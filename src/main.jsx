@@ -1271,6 +1271,104 @@ function settlementHistoryMeta(snapshot) {
   };
 }
 
+function SettlementHistoryDetail({ project, snapshot, onClose }) {
+  const [copyNotice, setCopyNotice] = useState('');
+  const balances = snapshot.member_balance_payload ?? [];
+  const transfers = snapshot.transfer_payload ?? [];
+  const meta = settlementHistoryMeta(snapshot);
+  const periodLabel = snapshot.period_label ?? '历史周期';
+
+  const copyHistoryText = async () => {
+    const text = buildSettlementShareText({
+      project,
+      period: { label: periodLabel },
+      transfers,
+      currency: snapshot.project_currency ?? project.default_currency,
+    });
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyNotice('历史结算文案已复制');
+    } catch {
+      window.prompt('复制历史结算文案', text);
+      setCopyNotice('已生成历史结算文案');
+    }
+  };
+
+  return (
+    <div className="modal-layer">
+      <button className="modal-backdrop" onClick={onClose} aria-label="关闭" />
+      <section className="history-detail-sheet">
+        <div className="sheet-handle" />
+        <div className="history-detail-header">
+          <div>
+            <span>{periodLabel}</span>
+            <h2>历史结算详情</h2>
+          </div>
+          <button
+            className="copy-transfer-button"
+            type="button"
+            onClick={copyHistoryText}
+            aria-label="复制历史结算文案"
+          >
+            <Copy size={18} />
+          </button>
+        </div>
+
+        <div className="history-detail-summary">
+          <div>
+            <span>归档金额</span>
+            <strong>{formatMoney(fromMinorUnits(meta.totalMinor), snapshot.project_currency ?? project.default_currency)}</strong>
+          </div>
+          <div>
+            <span>成员 / 转账</span>
+            <strong>{meta.memberCount} 人 · {meta.transferCount} 笔</strong>
+          </div>
+          <div>
+            <span>账单数</span>
+            <strong>{snapshot.included_expense_ids?.length ?? 0} 笔</strong>
+          </div>
+        </div>
+
+        <section className="history-detail-section">
+          <h3>成员净额</h3>
+          {balances.map((balance) => (
+            <div className="history-balance-row" key={balance.member_id}>
+              <span className="avatar avatar-sm">{balance.display_name?.[0] ?? '?'}</span>
+              <strong>{balance.display_name}</strong>
+              <div>
+                <b className={balance.net_minor >= 0 ? 'positive' : 'negative'}>
+                  {balance.net_minor >= 0 ? '+' : '-'}{formatMoney(fromMinorUnits(Math.abs(balance.net_minor)), snapshot.project_currency ?? project.default_currency)}
+                </b>
+                <small>已付 {formatMoney(fromMinorUnits(balance.paid_minor), snapshot.project_currency ?? project.default_currency)} · 应摊 {formatMoney(fromMinorUnits(balance.owed_minor), snapshot.project_currency ?? project.default_currency)}</small>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section className="history-detail-section">
+          <h3>转账方案</h3>
+          {transfers.length ? (
+            transfers.map((transfer) => (
+              <article className="history-transfer-row" key={`${transfer.from_member_id}-${transfer.to_member_id}-${transfer.amount_minor}`}>
+                <span>{transfer.from_name}</span>
+                <ArrowsLeftRight size={16} />
+                <span>{transfer.to_name}</span>
+                <strong>{formatMoney(fromMinorUnits(transfer.amount_minor), snapshot.project_currency ?? project.default_currency)}</strong>
+              </article>
+            ))
+          ) : (
+            <p className="history-detail-empty">该周期无需转账。</p>
+          )}
+        </section>
+
+        {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
+        <button className="cancel-button" type="button" onClick={onClose}>关闭</button>
+      </section>
+    </div>
+  );
+}
+
 function SettlementScreen({
   project,
   activePeriod,
@@ -1288,6 +1386,7 @@ function SettlementScreen({
   const { balances, transfers } = buildCurrentSettlement({ members, expenses });
   const categorySummary = summarizeExpensesByCategory(expenses);
   const [shareNotice, setShareNotice] = useState('');
+  const [selectedHistorySnapshot, setSelectedHistorySnapshot] = useState(null);
 
   const copySettlementText = async () => {
     const text = buildSettlementShareText({
@@ -1395,7 +1494,12 @@ function SettlementScreen({
             settlementHistory.map((item) => {
               const meta = settlementHistoryMeta(item);
               return (
-                <article className="history-row" key={item.id ?? item.created_at}>
+                <button
+                  className="history-row"
+                  key={item.id ?? item.created_at}
+                  type="button"
+                  onClick={() => setSelectedHistorySnapshot(item)}
+                >
                   <CheckCircle size={25} />
                   <div>
                     <strong>{item.period_label ?? activePeriod.label} 结算</strong>
@@ -1406,7 +1510,7 @@ function SettlementScreen({
                     <strong>{formatMoney(fromMinorUnits(meta.totalMinor), project.default_currency)}</strong>
                     <span>{new Date(item.created_at).toLocaleDateString('zh-CN')}</span>
                   </div>
-                </article>
+                </button>
               );
             })
           ) : (
@@ -1426,6 +1530,13 @@ function SettlementScreen({
         </button>
       </div>
       {settledNotice ? <div className="toast">{settledNotice}</div> : null}
+      {selectedHistorySnapshot ? (
+        <SettlementHistoryDetail
+          project={project}
+          snapshot={selectedHistorySnapshot}
+          onClose={() => setSelectedHistorySnapshot(null)}
+        />
+      ) : null}
       <BottomNav active="stats" onDetails={onBack} onMembers={onOpenMembers} onSettings={onOpenSettings} />
     </div>
   );
