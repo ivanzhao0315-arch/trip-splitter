@@ -220,6 +220,20 @@ function clearProjectSession() {
   }
 }
 
+function createProjectInviteUrl(code) {
+  if (!code || typeof window === 'undefined') return '';
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('code', normalizeProjectCode(code));
+  return url.toString();
+}
+
+function readInviteCodeFromUrl() {
+  if (typeof window === 'undefined') return '';
+  return normalizeProjectCode(new URLSearchParams(window.location.search).get('code'));
+}
+
 function readRecentProjects() {
   try {
     const items = JSON.parse(window.localStorage.getItem(RECENT_PROJECTS_KEY) ?? '[]');
@@ -325,7 +339,11 @@ function TopBar({ title, code, onBack }) {
 
   const copyProjectInvite = async () => {
     if (!code) return;
-    const inviteText = buildProjectInviteText({ projectName: title, code });
+    const inviteText = buildProjectInviteText({
+      projectName: title,
+      code,
+      appUrl: createProjectInviteUrl(code),
+    });
 
     try {
       await navigator.clipboard.writeText(inviteText);
@@ -361,7 +379,7 @@ function TopBar({ title, code, onBack }) {
 
 function EntryScreen({ onCreateProject, onJoinProject, onOpenRecentProject, recentProjects, appError, isBusy }) {
   const [name, setName] = useState('');
-  const [joinCode, setJoinCode] = useState('');
+  const [joinCode, setJoinCode] = useState(() => readInviteCodeFromUrl());
   const [error, setError] = useState('');
 
   const requireName = () => {
@@ -441,6 +459,9 @@ function EntryScreen({ onCreateProject, onJoinProject, onOpenRecentProject, rece
               {isBusy ? '处理中...' : '加入'}
             </button>
           </div>
+          {joinCode.length === 4 ? (
+            <p className="join-code-hint">已填入邀请项目码 #{joinCode}</p>
+          ) : null}
         </section>
 
         {recentProjects.length ? (
@@ -1290,7 +1311,11 @@ function ProjectSettingsSheet({ project, activePeriod, members, expenses, settle
   ];
 
   const copyInvite = async () => {
-    const inviteText = buildProjectInviteText({ projectName: project.name, code: project.code });
+    const inviteText = buildProjectInviteText({
+      projectName: project.name,
+      code: project.code,
+      appUrl: createProjectInviteUrl(project.code),
+    });
 
     try {
       await navigator.clipboard.writeText(inviteText);

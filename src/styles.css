@@ -438,6 +438,14 @@ button:disabled {
   gap: 8px;
 }
 
+.join-code-hint {
+  margin: -4px 0 0;
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
 .create-content {
   display: flex;
   flex-direction: column;
