@@ -449,7 +449,7 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
   );
 }
 
-function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpenSettlement, onAddMember }) {
+function ProjectHome({ project, activePeriod, members, expenses, currentUsername, onOpenAi, onOpenSettlement, onAddMember }) {
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
   const remainingMinor = budgetMinor - totalMinor;
@@ -458,6 +458,8 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
   const budgetLabel = project.project_type === 'roommate' ? '月度预算剩余' : '预算剩余';
   const remainingText = `${remainingMinor < 0 ? '-' : ''}${formatMoney(fromMinorUnits(Math.abs(remainingMinor)), project.default_currency)}`;
   const memberById = new Map(members.map((member) => [member.id, member]));
+  const currentMember = findMemberByDisplayName(members, currentUsername);
+  const currentMemberId = currentMember?.id;
 
   return (
     <div className="screen">
@@ -485,7 +487,12 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
               <strong>{members.length} 人</strong>
             </div>
             <div className="avatar-stack">
-              {members.map((member) => <Avatar key={member.id} member={member} size="sm" />)}
+              {members.map((member) => (
+                <div className="avatar-stack-item" key={member.id}>
+                  <Avatar member={member} size="sm" />
+                  {member.id === currentMemberId ? <span>我</span> : null}
+                </div>
+              ))}
             </div>
           </article>
         </section>
@@ -499,7 +506,10 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
             {members.map((member) => (
               <div className="member-chip" key={member.id}>
                 <Avatar member={member} />
-                <span>{memberName(member)}</span>
+                <span>
+                  {memberName(member)}
+                  {member.id === currentMemberId ? <b>我</b> : null}
+                </span>
               </div>
             ))}
             <button className="add-member" onClick={onAddMember}>
@@ -1427,6 +1437,7 @@ function App() {
             activePeriod={activePeriod}
             members={members}
             expenses={expenses}
+            currentUsername={username}
             onOpenAi={() => setAiOpen(true)}
             onOpenSettlement={() => setScreen('settlement')}
             onAddMember={() => {

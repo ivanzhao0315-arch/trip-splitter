@@ -554,8 +554,33 @@ button:disabled {
   margin-left: 8px;
 }
 
-.avatar-stack .avatar {
+.avatar-stack-item {
+  position: relative;
   margin-left: -8px;
+}
+
+.avatar-stack-item .avatar {
+  border: 2px solid #fff;
+}
+
+.avatar-stack-item > span {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid #fff;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.avatar-stack .avatar {
   border: 2px solid #fff;
 }
 
@@ -630,6 +655,25 @@ button:disabled {
   background: transparent;
   font-size: 12px;
   line-height: 16px;
+}
+
+.member-chip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.member-chip b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--primary);
+  font-size: 10px;
+  line-height: 1;
 }
 
 .add-member {
