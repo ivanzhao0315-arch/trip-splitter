@@ -21,6 +21,7 @@ import {
   ShareNetwork,
   Sparkle,
   Tag,
+  Trash,
   UsersThree,
 } from '@phosphor-icons/react';
 import { getBillMissingFields } from './domain/billValidation';
@@ -33,7 +34,7 @@ import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabe
 import { buildProjectInviteText } from './domain/projectInvite';
 import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
 import { createAiDraft } from './services/aiDraftService';
-import { createExpense, fetchProjectDetail } from './services/expenseService';
+import { createExpense, deleteExpense, fetchProjectDetail } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
 import { addProjectMember, createProject, joinProject } from './services/projectService';
@@ -544,7 +545,19 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
   );
 }
 
-function ProjectHome({ project, activePeriod, members, expenses, currentUsername, onOpenAi, onOpenSettlement, onAddMember, onOpenSettings }) {
+function ProjectHome({
+  project,
+  activePeriod,
+  members,
+  expenses,
+  currentUsername,
+  onOpenAi,
+  onOpenSettlement,
+  onAddMember,
+  onOpenSettings,
+  onDeleteExpense,
+  isBusy,
+}) {
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
   const remainingMinor = budgetMinor - totalMinor;
@@ -644,6 +657,15 @@ function ProjectHome({ project, activePeriod, members, expenses, currentUsername
                     {traceLabel ? <small>{traceLabel}</small> : null}
                     <span>{new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
+                  <button
+                    className="delete-expense-button"
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => onDeleteExpense(expense)}
+                    aria-label={`删除账单 ${expense.description}`}
+                  >
+                    <Trash size={18} />
+                  </button>
                 </article>
               );
             })}
@@ -1558,6 +1580,37 @@ function App() {
     }
   };
 
+  const handleDeleteExpense = async (expense) => {
+    setAppError('');
+    const confirmed = window.confirm(`删除「${expense.description || '这笔账单'}」？删除后本周期统计和结算会同步更新。`);
+    if (!confirmed) return;
+
+    if (!hasBackendConfig) {
+      const nextExpenses = expenses.filter((item) => item.id !== expense.id);
+      saveLocalProjectState({
+        project: currentProject,
+        activePeriod,
+        members,
+        expenses: nextExpenses,
+        settlementHistory,
+      });
+      setExpenses(nextExpenses);
+      setSettledNotice('');
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      await deleteExpense({ projectId: currentProject.id, expenseId: expense.id });
+      await loadProjectState(currentProject.id);
+      setSettledNotice('');
+    } catch (error) {
+      setAppError(error.message || '删除账单失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const handleAddMember = async (displayName) => {
     setAppError('');
     const normalizedName = normalizeMemberDisplayName(displayName);
@@ -1822,6 +1875,8 @@ function App() {
               setMemberDialogOpen(true);
             }}
             onOpenSettings={() => setSettingsOpen(true)}
+            onDeleteExpense={handleDeleteExpense}
+            isBusy={isBusy}
           />
         )}
         {screen === 'confirm' && draftExpense && (

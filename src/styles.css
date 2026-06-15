@@ -863,6 +863,7 @@ button:disabled {
 }
 
 .expense-amount {
+  flex: none;
   text-align: right;
 }
 
@@ -878,6 +879,17 @@ button:disabled {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.delete-expense-button {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--error);
+  background: var(--surface-low);
 }
 
 .ai-fab {

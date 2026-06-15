@@ -105,3 +105,14 @@ export async function createExpense({
   if (error) throw error;
   return data;
 }
+
+export async function deleteExpense({ projectId, expenseId }) {
+  const client = requireSupabase();
+  const { error } = await client
+    .from('expenses')
+    .delete()
+    .eq('project_id', projectId)
+    .eq('id', expenseId);
+
+  if (error) throw error;
+}
