@@ -329,6 +329,13 @@ button:disabled {
   gap: 8px;
 }
 
+.recent-project-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .recent-project-row {
   min-height: 54px;
   display: flex;
@@ -370,6 +377,22 @@ button:disabled {
   color: var(--secondary);
   font-size: 12px;
   line-height: 16px;
+}
+
+.recent-project-remove {
+  width: 44px;
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid transparent;
+}
+
+.recent-project-remove:active {
+  transform: scale(0.98);
 }
 
 .primary-button,

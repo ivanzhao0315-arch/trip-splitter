@@ -430,6 +430,7 @@ function EntryScreen({
   onCreateProject,
   onJoinProject,
   onOpenRecentProject,
+  onForgetRecentProject,
   recentProjects,
   appError,
   isBusy,
@@ -536,19 +537,29 @@ function EntryScreen({
             </div>
             <div className="recent-project-list">
               {recentProjects.map((recentProject) => (
-                <button
-                  className="recent-project-row"
-                  type="button"
-                  key={`${recentProject.mode}-${recentProject.id}`}
-                  disabled={isBusy}
-                  onClick={() => onOpenRecentProject(recentProject)}
-                >
-                  <span>
-                    <strong>{recentProject.name}</strong>
-                    <small>#{recentProject.code} · {recentProject.username}</small>
-                  </span>
-                  <CaretRight size={20} />
-                </button>
+                <div className="recent-project-item" key={`${recentProject.mode}-${recentProject.id}`}>
+                  <button
+                    className="recent-project-row"
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => onOpenRecentProject(recentProject)}
+                  >
+                    <span>
+                      <strong>{recentProject.name}</strong>
+                      <small>#{recentProject.code} · {recentProject.username}</small>
+                    </span>
+                    <CaretRight size={20} />
+                  </button>
+                  <button
+                    className="recent-project-remove"
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => onForgetRecentProject(recentProject.id)}
+                    aria-label={`移除最近项目 ${recentProject.name}`}
+                  >
+                    <Trash size={17} />
+                  </button>
+                </div>
               ))}
             </div>
           </section>
@@ -2743,6 +2754,10 @@ function App() {
             }}
             onJoinProject={handleJoinProject}
             onOpenRecentProject={handleOpenRecentProject}
+            onForgetRecentProject={(projectId) => {
+              setRecentProjects(forgetRecentProject(projectId));
+              setAppError('');
+            }}
             recentProjects={recentProjects}
             appError={appError}
             isBusy={isBusy}
