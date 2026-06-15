@@ -49,11 +49,24 @@ async function findOrCreateMember({ client, projectId, displayName }) {
   return racedMember;
 }
 
-async function insertProjectWithCode({ client, name, defaultCurrency, projectType, budgetAmount }) {
+async function insertProjectWithCode({ client, name, defaultCurrency, projectType, budgetAmount, preferredCode }) {
   let lastError = null;
+  const normalizedPreferredCode = normalizeProjectCode(preferredCode);
+  const attemptedCodes = new Set();
+  let attempts = 0;
 
-  for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt += 1) {
-    const code = createProjectCode();
+  while (attempts < MAX_CODE_ATTEMPTS) {
+    const code = attempts === 0 && normalizedPreferredCode.length === 4
+      ? normalizedPreferredCode
+      : createProjectCode();
+
+    if (attemptedCodes.has(code)) {
+      attempts += 1;
+      continue;
+    }
+    attemptedCodes.add(code);
+    attempts += 1;
+
     const { data, error } = await client
       .from('projects')
       .insert({
@@ -74,9 +87,16 @@ async function insertProjectWithCode({ client, name, defaultCurrency, projectTyp
   throw lastError ?? new Error('项目码生成失败，请重试');
 }
 
-export async function createProject({ name, defaultCurrency = 'CNY', displayName, projectType = 'trip', budgetAmount = '' }) {
+export async function createProject({ name, defaultCurrency = 'CNY', displayName, projectType = 'trip', budgetAmount = '', code }) {
   const client = requireSupabase();
-  const project = await insertProjectWithCode({ client, name, defaultCurrency, projectType, budgetAmount });
+  const project = await insertProjectWithCode({
+    client,
+    name,
+    defaultCurrency,
+    projectType,
+    budgetAmount,
+    preferredCode: code,
+  });
 
   try {
     const { data: period, error: periodError } = await client

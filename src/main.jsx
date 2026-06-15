@@ -249,6 +249,14 @@ function readInviteCodeFromUrl() {
   return normalizeProjectCode(new URLSearchParams(window.location.search).get('code'));
 }
 
+function clearInviteCodeFromUrl() {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('code')) return;
+  url.searchParams.delete('code');
+  window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
 function readRecentProjects() {
   try {
     const items = JSON.parse(window.localStorage.getItem(RECENT_PROJECTS_KEY) ?? '[]');
@@ -407,10 +415,27 @@ function TopBar({ title, code, onBack }) {
   );
 }
 
-function EntryScreen({ onCreateProject, onJoinProject, onOpenRecentProject, recentProjects, appError, isBusy }) {
-  const [name, setName] = useState('');
-  const [joinCode, setJoinCode] = useState(() => readInviteCodeFromUrl());
+function EntryScreen({
+  initialName = '',
+  initialJoinCode = '',
+  onCreateProject,
+  onJoinProject,
+  onOpenRecentProject,
+  recentProjects,
+  appError,
+  isBusy,
+}) {
+  const [name, setName] = useState(initialName);
+  const [joinCode, setJoinCode] = useState(initialJoinCode);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (initialName && !name) setName(initialName);
+  }, [initialName, name]);
+
+  useEffect(() => {
+    setJoinCode(initialJoinCode);
+  }, [initialJoinCode]);
 
   const requireName = () => {
     if (!name.trim()) {
@@ -486,7 +511,7 @@ function EntryScreen({ onCreateProject, onJoinProject, onOpenRecentProject, rece
                 if (requireName() && joinCode.length === 4) onJoinProject(name.trim(), joinCode);
               }}
             >
-              {isBusy ? '处理中...' : '加入'}
+              {isBusy ? '处理中...' : joinCode.length === 4 ? '加入邀请' : '加入'}
             </button>
           </div>
           {joinCode.length === 4 ? (
@@ -1855,6 +1880,14 @@ function App() {
 
   useEffect(() => {
     const session = readProjectSession();
+    const inviteCode = readInviteCodeFromUrl();
+
+    if (inviteCode) {
+      if (session?.username) setUsername(session.username);
+      setScreen('entry');
+      return;
+    }
+
     if (!session?.username) return;
 
     let cancelled = false;
@@ -1943,6 +1976,7 @@ function App() {
       setExpenses(nextState.expenses);
       setSettlementHistory(nextState.settlementHistory);
       setSettledNotice('');
+      clearInviteCodeFromUrl();
       setScreen('home');
       return;
     }
@@ -1953,6 +1987,7 @@ function App() {
       await loadProjectState(member.project.id);
       writeProjectSession({ mode: 'backend', username: name, projectId: member.project.id });
       setRecentProjects(rememberRecentProject({ project: member.project, username: name, mode: 'backend' }));
+      clearInviteCodeFromUrl();
       setScreen('home');
     } catch (error) {
       setAppError(error.message || '加入项目失败');
@@ -2008,6 +2043,7 @@ function App() {
     try {
       const createdProject = await createProject({
         name: created.name,
+        code: created.code,
         defaultCurrency: created.currency,
         displayName: created.username,
         projectType: created.projectType,
@@ -2564,6 +2600,8 @@ function App() {
       <div className="phone">
         {screen === 'entry' && (
           <EntryScreen
+            initialName={username}
+            initialJoinCode={readInviteCodeFromUrl()}
             onCreateProject={(name) => {
               setUsername(name);
               setAppError('');

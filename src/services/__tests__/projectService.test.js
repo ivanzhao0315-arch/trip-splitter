@@ -8,6 +8,7 @@ vi.mock('../apiClient', () => ({
 
 const {
   addProjectMember,
+  createProject,
   deleteProjectMember,
   joinProject,
   updateProjectMember,
@@ -18,6 +19,7 @@ function createMockClient({ project, members = [], expenses = [] }) {
   const inserts = [];
   const updates = [];
   const deletes = [];
+  let currentProject = project;
 
   function findMember(filters) {
     return members.find((member) => {
@@ -74,12 +76,13 @@ function createMockClient({ project, members = [], expenses = [] }) {
         single: async () => {
           if (table === 'projects') {
             if (updateRow) {
-              const data = { ...project, ...updateRow };
+              const data = { ...currentProject, ...updateRow };
+              currentProject = data;
               updates.push({ table, row: updateRow, filters: { ...filters } });
               return { data, error: null };
             }
-            return project.code === filters.code
-              ? { data: project, error: null }
+            return currentProject?.code === filters.code
+              ? { data: currentProject, error: null }
               : { data: null, error: { message: 'not found' } };
           }
           if (table === 'members') {
@@ -95,7 +98,14 @@ function createMockClient({ project, members = [], expenses = [] }) {
         },
         insert(row) {
           inserts.push({ table, row });
-          const data = { id: 'new-member', joined_at: new Date(0).toISOString(), ...row };
+          let data = { id: 'new-member', joined_at: new Date(0).toISOString(), ...row };
+          if (table === 'projects') {
+            data = { id: 'new-project', created_at: new Date(0).toISOString(), ...row };
+            currentProject = data;
+          }
+          if (table === 'settlement_periods') {
+            data = { id: 'new-period', status: 'active', started_at: new Date(0).toISOString(), ...row };
+          }
           return {
             select() {
               return {
@@ -105,6 +115,13 @@ function createMockClient({ project, members = [], expenses = [] }) {
           };
         },
         then(resolve) {
+          if (updateRow && table === 'projects' && filters.id) {
+            currentProject = { ...currentProject, ...updateRow };
+            updates.push({ table, row: updateRow, filters: { ...filters } });
+            resolve({ error: null });
+            return;
+          }
+
           if (table === 'expenses') {
             let data = expenses.filter((expense) => (
               (!filters.project_id || expense.project_id === filters.project_id)
@@ -130,6 +147,47 @@ function createMockClient({ project, members = [], expenses = [] }) {
 }
 
 describe('project service member joins', () => {
+  it('uses the preferred create code as the persisted project code', async () => {
+    const client = createMockClient({ project: null });
+    mockState.client = client;
+
+    const project = await createProject({
+      name: '北海道旅行',
+      defaultCurrency: 'JPY',
+      displayName: 'Ivan',
+      projectType: 'trip',
+      budgetAmount: '1200',
+      code: 'ab12',
+    });
+
+    expect(project).toMatchObject({
+      id: 'new-project',
+      code: 'AB12',
+      active_period_id: 'new-period',
+      current_member_id: 'new-member',
+    });
+    expect(client.inserts).toEqual([
+      {
+        table: 'projects',
+        row: {
+          name: '北海道旅行',
+          code: 'AB12',
+          default_currency: 'JPY',
+          project_type: 'trip',
+          budget_amount_minor: 120000,
+        },
+      },
+      {
+        table: 'settlement_periods',
+        row: { project_id: 'new-project', label: expect.any(String) },
+      },
+      {
+        table: 'members',
+        row: { project_id: 'new-project', display_name: 'Ivan' },
+      },
+    ]);
+  });
+
   it('reuses an existing member when joining with the same nickname', async () => {
     const project = { id: 'project-1', code: 'A7K2', name: '杭州周末游' };
     const existingMember = { id: 'member-1', project_id: project.id, display_name: 'Ivan' };
