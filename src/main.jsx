@@ -24,8 +24,11 @@ import {
   UsersThree,
 } from '@phosphor-icons/react';
 import { createProjectCode, normalizeProjectCode } from './domain/codes';
+import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
+import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
+import { fetchExchangeRate } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
 import { createProject, joinProject } from './services/projectService';
 import { buildCurrentSettlement } from './services/settlementService';
@@ -82,6 +85,55 @@ const currencies = [
   { code: 'EUR', label: 'EUR - 欧元 (€)' },
   { code: 'HKD', label: 'HKD - 港币 ($)' },
 ];
+
+const fallbackRates = {
+  CNY: { USD: 0.14, EUR: 0.13, JPY: 21.8, HKD: 1.08 },
+  USD: { CNY: 7.25, EUR: 0.93, JPY: 157.4, HKD: 7.82 },
+  EUR: { CNY: 7.8, USD: 1.08, JPY: 169.2, HKD: 8.42 },
+  JPY: { CNY: 0.046, USD: 0.0064, EUR: 0.0059, HKD: 0.05 },
+  HKD: { CNY: 0.93, USD: 0.128, EUR: 0.119, JPY: 20.1 },
+};
+
+function buildLocalDraft(sourceType, text = '') {
+  if (sourceType === 'text') {
+    return parseExpenseText(text);
+  }
+
+  return {
+    amount: 40,
+    currency: 'USD',
+    description: 'Starbucks Coffee',
+    confidence: 0.78,
+  };
+}
+
+async function resolveExchangeRate({ fromCurrency, toCurrency }) {
+  if (fromCurrency === toCurrency) {
+    return {
+      rate: 1,
+      provider: 'identity',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  if (import.meta.env.DEV) {
+    return {
+      rate: fallbackRates[fromCurrency]?.[toCurrency] ?? 1,
+      provider: 'local-fallback',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  try {
+    return await fetchExchangeRate({ fromCurrency, toCurrency });
+  } catch {
+    return {
+      rate: fallbackRates[fromCurrency]?.[toCurrency] ?? 1,
+      provider: 'local-fallback',
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
 
 function memberName(member) {
   return member?.display_name ?? '未知成员';
@@ -350,11 +402,14 @@ function ProjectHome({ project, members, expenses, onOpenAi, onOpenSettlement })
   );
 }
 
-function AiSheet({ onClose, onConfirm }) {
+function AiSheet({ onClose, onConfirm, isBusy }) {
+  const [textInput, setTextInput] = useState('');
+  const [textMode, setTextMode] = useState(false);
+  const [error, setError] = useState('');
   const options = [
-    { icon: <Camera size={24} />, title: '拍摄收据', desc: '拍照并识别纸质账单明细' },
-    { icon: <Image size={24} />, title: '上传截图', desc: '微信/支付宝支付详情页截图' },
-    { icon: <ClipboardText size={24} />, title: '粘贴文字', desc: '粘贴群聊记录或账单文本' },
+    { icon: <Camera size={24} />, title: '拍摄收据', desc: '拍照并识别纸质账单明细', sourceType: 'photo' },
+    { icon: <Image size={24} />, title: '上传截图', desc: '微信/支付宝支付详情页截图', sourceType: 'screenshot' },
+    { icon: <ClipboardText size={24} />, title: '粘贴文字', desc: '粘贴群聊记录或账单文本', sourceType: 'text' },
   ];
 
   return (
@@ -368,7 +423,19 @@ function AiSheet({ onClose, onConfirm }) {
         </div>
         <div className="sheet-options">
           {options.map((option) => (
-            <button className="sheet-option" key={option.title} onClick={onConfirm}>
+            <button
+              className="sheet-option"
+              key={option.title}
+              disabled={isBusy}
+              onClick={() => {
+                setError('');
+                if (option.sourceType === 'text') {
+                  setTextMode(true);
+                  return;
+                }
+                onConfirm({ sourceType: option.sourceType });
+              }}
+            >
               <div>{option.icon}</div>
               <span>
                 <strong>{option.title}</strong>
@@ -378,16 +445,43 @@ function AiSheet({ onClose, onConfirm }) {
             </button>
           ))}
         </div>
+        {textMode ? (
+          <form
+            className="text-draft-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!textInput.trim()) {
+                setError('请先粘贴账单文字');
+                return;
+              }
+              onConfirm({ sourceType: 'text', text: textInput.trim() });
+            }}
+          >
+            <label htmlFor="ai-text-input">账单文字</label>
+            <textarea
+              id="ai-text-input"
+              value={textInput}
+              onChange={(event) => {
+                setTextInput(event.target.value);
+                setError('');
+              }}
+              placeholder="例：Starbucks $40.00 Ivan 已付，大家平分"
+            />
+            {error ? <p className="error-text" role="alert">{error}</p> : null}
+            <button className="primary-button" type="submit" disabled={isBusy}>
+              {isBusy ? '识别中...' : '生成草稿'}
+            </button>
+          </form>
+        ) : null}
         <button className="cancel-button" onClick={onClose}>取消</button>
       </section>
     </div>
   );
 }
 
-function ConfirmBill({ project, members, onBack, onSave, appError, isBusy }) {
-  const [rate, setRate] = useState(7.25);
-  const converted = 40 * rate;
+function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, appError, isBusy }) {
   const payer = members[0];
+  const converted = draft.amount * draft.exchangeRate;
 
   return (
     <div className="screen">
@@ -395,16 +489,17 @@ function ConfirmBill({ project, members, onBack, onSave, appError, isBusy }) {
       <main className="content confirm-content">
         <section className="amount-card">
           <label>金额</label>
-          <h2><span>$</span>40.00</h2>
-          <p>USD（美元）</p>
+          <h2>{formatMoney(draft.amount, draft.currency)}</h2>
+          <p>{draft.currency} · AI 置信度 {Math.round((draft.confidence ?? 0) * 100)}%</p>
         </section>
 
         <section className="fx-card">
           <div>
-            <p><ArrowsLeftRight size={17} /> 汇率 1 USD = {rate.toFixed(2)} {project.default_currency}</p>
+            <p><ArrowsLeftRight size={17} /> 汇率 1 {draft.currency} = {draft.exchangeRate.toFixed(4)} {project.default_currency}</p>
             <strong>折合 {formatMoney(converted, project.default_currency)}</strong>
+            <small>{draft.exchangeRateProvider} · {new Date(draft.exchangeRateTimestamp).toLocaleString('zh-CN')}</small>
           </div>
-          <button onClick={() => setRate((current) => Number((current + 0.01).toFixed(2)))}>刷新汇率</button>
+          <button disabled={isBusy} onClick={onRefreshRate}>刷新汇率</button>
         </section>
 
         <section className="form-stack">
@@ -420,7 +515,7 @@ function ConfirmBill({ project, members, onBack, onSave, appError, isBusy }) {
           </div>
           <label className="form-field">
             <span>描述</span>
-            <input defaultValue="Starbucks Coffee" />
+            <input value={draft.description} readOnly />
           </label>
           {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         </section>
@@ -430,16 +525,16 @@ function ConfirmBill({ project, members, onBack, onSave, appError, isBusy }) {
           className="primary-button"
           disabled={isBusy}
           onClick={() => onSave({
-            amount: 40,
-            currency: 'USD',
+            amount: draft.amount,
+            currency: draft.currency,
             convertedAmount: converted,
-            exchangeRate: rate,
-            exchangeRateProvider: 'manual-refresh',
-            exchangeRateTimestamp: new Date().toISOString(),
-            description: 'Starbucks Coffee',
+            exchangeRate: draft.exchangeRate,
+            exchangeRateProvider: draft.exchangeRateProvider,
+            exchangeRateTimestamp: draft.exchangeRateTimestamp,
+            description: draft.description,
             payerMemberId: payer.id,
             participantMemberIds: members.map((member) => member.id),
-            sourceType: 'photo',
+            sourceType: draft.sourceType,
           })}
         >
           {isBusy ? '保存中...' : '保存账单'}
@@ -574,6 +669,7 @@ function App() {
   const [aiOpen, setAiOpen] = useState(false);
   const [settled, setSettled] = useState(false);
   const [expenses, setExpenses] = useState(fallbackExpenses);
+  const [draftExpense, setDraftExpense] = useState(null);
   const [appError, setAppError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
 
@@ -650,10 +746,16 @@ function App() {
         {
           id: `local-expense-${Date.now()}`,
           description: draft.description,
+          original_amount_minor: toMinorUnits(draft.amount),
+          original_currency: draft.currency,
           converted_amount_minor: toMinorUnits(draft.convertedAmount),
           project_currency: currentProject.default_currency,
+          exchange_rate: draft.exchangeRate,
+          exchange_rate_provider: draft.exchangeRateProvider,
+          exchange_rate_timestamp: draft.exchangeRateTimestamp,
           payer_member_id: draft.payerMemberId,
           participant_member_ids: draft.participantMemberIds,
+          source_type: draft.sourceType,
           created_at: new Date().toISOString(),
         },
         ...items,
@@ -669,6 +771,68 @@ function App() {
       setScreen('home');
     } catch (error) {
       setAppError(error.message || '保存账单失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const openDraftForConfirmation = async ({ sourceType, text = '' }) => {
+    setAppError('');
+    setIsBusy(true);
+
+    try {
+      let parsedDraft = buildLocalDraft(sourceType, text);
+
+      if (hasBackendConfig || sourceType === 'text') {
+        try {
+          const response = hasBackendConfig
+            ? await createAiDraft({ projectId: currentProject.id, sourceType, text })
+            : { draft: buildLocalDraft(sourceType, text) };
+          parsedDraft = response.draft ?? parsedDraft;
+        } catch {
+          parsedDraft = buildLocalDraft(sourceType, text);
+        }
+      }
+
+      const rate = await resolveExchangeRate({
+        fromCurrency: parsedDraft.currency,
+        toCurrency: currentProject.default_currency,
+      });
+
+      setDraftExpense({
+        ...parsedDraft,
+        sourceType,
+        exchangeRate: rate.rate,
+        exchangeRateProvider: rate.provider,
+        exchangeRateTimestamp: rate.timestamp,
+      });
+      setAiOpen(false);
+      setScreen('confirm');
+    } catch (error) {
+      setAppError(error.message || 'AI 识别失败，请手动填写账单');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const refreshDraftRate = async () => {
+    if (!draftExpense) return;
+
+    setAppError('');
+    setIsBusy(true);
+    try {
+      const rate = await resolveExchangeRate({
+        fromCurrency: draftExpense.currency,
+        toCurrency: currentProject.default_currency,
+      });
+      setDraftExpense((current) => ({
+        ...current,
+        exchangeRate: rate.rate,
+        exchangeRateProvider: rate.provider,
+        exchangeRateTimestamp: rate.timestamp,
+      }));
+    } catch (error) {
+      setAppError(error.message || '汇率刷新失败');
     } finally {
       setIsBusy(false);
     }
@@ -707,12 +871,14 @@ function App() {
             onOpenSettlement={() => setScreen('settlement')}
           />
         )}
-        {screen === 'confirm' && (
+        {screen === 'confirm' && draftExpense && (
           <ConfirmBill
             project={currentProject}
             members={members}
+            draft={draftExpense}
             onBack={() => setScreen('home')}
             onSave={handleSaveExpense}
+            onRefreshRate={refreshDraftRate}
             appError={appError}
             isBusy={isBusy}
           />
@@ -730,10 +896,8 @@ function App() {
         {aiOpen ? (
           <AiSheet
             onClose={() => setAiOpen(false)}
-            onConfirm={() => {
-              setAiOpen(false);
-              setScreen('confirm');
-            }}
+            onConfirm={openDraftForConfirmation}
+            isBusy={isBusy}
           />
         ) : null}
       </div>

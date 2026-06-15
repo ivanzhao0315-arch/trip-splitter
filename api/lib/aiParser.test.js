@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseExpenseText } from './aiParser.js';
+import { parseExpenseText } from '../../src/domain/aiParser.js';
 
 describe('parseExpenseText', () => {
   it('extracts USD amounts', () => {

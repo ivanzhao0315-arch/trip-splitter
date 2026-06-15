@@ -41,6 +41,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .app-shell {
   min-height: 100dvh;
   display: grid;
@@ -813,6 +818,37 @@ button {
   background: var(--surface-high);
 }
 
+.text-draft-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-low);
+  border: 1px solid var(--surface-highest);
+}
+
+.text-draft-form label {
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.text-draft-form textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border: 1px solid var(--outline-variant);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: #fff;
+  font: inherit;
+  outline: 0;
+}
+
 .confirm-content {
   padding-bottom: 128px;
 }
@@ -865,7 +901,16 @@ button {
 }
 
 .fx-card strong {
+  display: block;
   font-size: 18px;
+}
+
+.fx-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 14px;
 }
 
 .fx-card button {
