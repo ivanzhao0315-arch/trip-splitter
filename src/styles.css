@@ -1003,6 +1003,11 @@ button:disabled {
   box-shadow: 0 -20px 50px rgba(25, 28, 29, 0.28);
 }
 
+.settings-sheet {
+  max-height: calc(100% - 52px);
+  overflow-y: auto;
+}
+
 .member-dialog {
   position: absolute;
   left: 18px;
@@ -1130,6 +1135,21 @@ button:disabled {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 14px;
+}
+
+.settings-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--surface-highest);
+}
+
+.settings-save-button {
+  width: 100%;
 }
 
 .settings-row {

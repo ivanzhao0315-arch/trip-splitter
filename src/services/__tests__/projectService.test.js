@@ -6,10 +6,11 @@ vi.mock('../apiClient', () => ({
   requireSupabase: () => mockState.client,
 }));
 
-const { addProjectMember, joinProject } = await import('../projectService');
+const { addProjectMember, joinProject, updateProjectSettings } = await import('../projectService');
 
 function createMockClient({ project, members = [] }) {
   const inserts = [];
+  const updates = [];
 
   function findMember(filters) {
     return members.find((member) => (
@@ -20,11 +21,17 @@ function createMockClient({ project, members = [] }) {
 
   return {
     inserts,
+    updates,
     from(table) {
       const filters = {};
+      let updateRow = null;
 
       return {
         select() {
+          return this;
+        },
+        update(row) {
+          updateRow = row;
           return this;
         },
         eq(field, value) {
@@ -39,6 +46,11 @@ function createMockClient({ project, members = [] }) {
         },
         single: async () => {
           if (table === 'projects') {
+            if (updateRow) {
+              const data = { ...project, ...updateRow };
+              updates.push({ table, row: updateRow, filters: { ...filters } });
+              return { data, error: null };
+            }
             return project.code === filters.code
               ? { data: project, error: null }
               : { data: null, error: { message: 'not found' } };
@@ -87,6 +99,27 @@ describe('project service member joins', () => {
     expect(member).toMatchObject({ id: 'new-member', display_name: '张三' });
     expect(client.inserts).toEqual([
       { table: 'members', row: { project_id: project.id, display_name: '张三' } },
+    ]);
+  });
+
+  it('updates project name and budget', async () => {
+    const project = { id: 'project-1', code: 'A7K2', name: '杭州周末游' };
+    const client = createMockClient({ project });
+    mockState.client = client;
+
+    const updated = await updateProjectSettings({
+      projectId: project.id,
+      name: ' 东京五日游 ',
+      budgetAmount: '1200',
+    });
+
+    expect(updated).toMatchObject({ name: '东京五日游', budget_amount_minor: 120000 });
+    expect(client.updates).toEqual([
+      {
+        table: 'projects',
+        row: { name: '东京五日游', budget_amount_minor: 120000 },
+        filters: { id: project.id },
+      },
     ]);
   });
 });

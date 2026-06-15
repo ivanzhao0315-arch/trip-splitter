@@ -38,7 +38,7 @@ import { createAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
-import { addProjectMember, createProject, joinProject } from './services/projectService';
+import { addProjectMember, createProject, joinProject, updateProjectSettings } from './services/projectService';
 import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
 import { summarizeExpensesByCategory } from './domain/splitting';
 import './styles.css';
@@ -1405,8 +1405,24 @@ function SettlementScreen({
   );
 }
 
-function ProjectSettingsSheet({ project, activePeriod, members, expenses, settlementHistory, onClose, onSwitchProject }) {
+function ProjectSettingsSheet({
+  project,
+  activePeriod,
+  members,
+  expenses,
+  settlementHistory,
+  onClose,
+  onSwitchProject,
+  onSaveSettings,
+  appError,
+  isBusy,
+}) {
   const [copyNotice, setCopyNotice] = useState('');
+  const [projectName, setProjectName] = useState(project.name);
+  const [budgetAmount, setBudgetAmount] = useState(
+    project.budget_amount_minor == null ? '' : String(fromMinorUnits(project.budget_amount_minor)),
+  );
+  const [settingsError, setSettingsError] = useState('');
   const totalMinor = expenses.reduce((sum, expense) => sum + expense.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
   const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
@@ -1455,6 +1471,54 @@ function ProjectSettingsSheet({ project, activePeriod, members, expenses, settle
             </div>
           ))}
         </div>
+        <form
+          className="settings-edit-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const normalizedBudget = budgetAmount.trim();
+            const parsedBudget = Number(normalizedBudget);
+
+            if (!projectName.trim()) {
+              setSettingsError('请输入项目名称');
+              return;
+            }
+            if (normalizedBudget && (!Number.isFinite(parsedBudget) || parsedBudget < 0)) {
+              setSettingsError('请输入有效预算');
+              return;
+            }
+
+            setSettingsError('');
+            onSaveSettings({ name: projectName.trim(), budgetAmount: normalizedBudget });
+          }}
+        >
+          <label className="form-field">
+            <span>项目名称</span>
+            <input
+              value={projectName}
+              onChange={(event) => {
+                setProjectName(event.target.value);
+                setSettingsError('');
+              }}
+            />
+          </label>
+          <label className="form-field">
+            <span>{project.project_type === 'roommate' ? '月度预算' : '出游预算'}（可选）</span>
+            <input
+              value={budgetAmount}
+              inputMode="decimal"
+              onChange={(event) => {
+                setBudgetAmount(event.target.value);
+                setSettingsError('');
+              }}
+              placeholder="例如：3000"
+            />
+          </label>
+          {settingsError ? <p className="error-text" role="alert">{settingsError}</p> : null}
+          {appError ? <p className="error-text" role="alert">{appError}</p> : null}
+          <button className="secondary-button settings-save-button" type="submit" disabled={isBusy}>
+            {isBusy ? '保存中...' : '保存设置'}
+          </button>
+        </form>
         <button className="primary-button" type="button" onClick={copyInvite}>
           <Copy size={20} />
           复制邀请文案
@@ -2019,6 +2083,44 @@ function App() {
     setSettingsOpen(false);
   };
 
+  const handleSaveProjectSettings = async ({ name, budgetAmount }) => {
+    setAppError('');
+
+    if (!hasBackendConfig) {
+      const nextProject = {
+        ...currentProject,
+        name,
+        budget_amount_minor: budgetAmount ? toMinorUnits(budgetAmount) : null,
+      };
+
+      saveLocalProjectState({
+        project: nextProject,
+        activePeriod,
+        members,
+        expenses,
+        settlementHistory,
+      });
+      setProject(nextProject);
+      setRecentProjects(rememberRecentProject({ project: nextProject, username, mode: 'local' }));
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      const updatedProject = await updateProjectSettings({
+        projectId: currentProject.id,
+        name,
+        budgetAmount,
+      });
+      setProject((current) => ({ ...(current ?? currentProject), ...updatedProject }));
+      setRecentProjects(rememberRecentProject({ project: updatedProject, username, mode: 'backend' }));
+    } catch (error) {
+      setAppError(error.message || '保存项目设置失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const handleOpenRecentProject = async (recentProject) => {
     setUsername(recentProject.username);
     setAppError('');
@@ -2169,6 +2271,9 @@ function App() {
             settlementHistory={settlementHistory}
             onClose={() => setSettingsOpen(false)}
             onSwitchProject={handleSwitchProject}
+            onSaveSettings={handleSaveProjectSettings}
+            appError={appError}
+            isBusy={isBusy}
           />
         ) : null}
       </div>

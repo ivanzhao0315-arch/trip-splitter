@@ -133,3 +133,31 @@ export async function addProjectMember({ projectId, displayName }) {
 
   return findOrCreateMember({ client, projectId, displayName });
 }
+
+export async function updateProjectSettings({ projectId, name, budgetAmount = '' }) {
+  const client = requireSupabase();
+  const normalizedName = String(name ?? '').trim();
+  const normalizedBudget = String(budgetAmount ?? '').trim();
+
+  if (!normalizedName) {
+    throw new Error('请输入项目名称');
+  }
+
+  const parsedBudget = Number(normalizedBudget);
+  if (normalizedBudget && (!Number.isFinite(parsedBudget) || parsedBudget < 0)) {
+    throw new Error('请输入有效预算');
+  }
+
+  const { data, error } = await client
+    .from('projects')
+    .update({
+      name: normalizedName,
+      budget_amount_minor: normalizedBudget ? toMinorUnits(parsedBudget) : null,
+    })
+    .eq('id', projectId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
