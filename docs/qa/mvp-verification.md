@@ -26,6 +26,7 @@
 - [ ] Photo and screenshot AI draft paths send the uploaded image to the server AI endpoint when `OPENAI_API_KEY` is configured.
 - [ ] User can confirm an expense.
 - [ ] Expense is split equally among selected participants.
+- [ ] Expense save rejects payer or participant ids that do not belong to the current project.
 - [ ] Non-project currency expense stores original amount and converted amount.
 - [ ] Non-project currency expense tries the server exchange-rate provider before using local fallback rates.
 - [ ] Exchange-rate endpoint accepts pair and table-style provider responses and rejects missing rates.

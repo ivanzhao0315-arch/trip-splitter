@@ -1,6 +1,33 @@
 import { toMinorUnits } from '../domain/money';
 import { requireSupabase } from './apiClient';
 
+async function normalizeExpenseMembers({ client, projectId, payerMemberId, participantMemberIds }) {
+  const uniqueParticipantIds = [...new Set(participantMemberIds ?? [])];
+  if (!payerMemberId || uniqueParticipantIds.length === 0) {
+    throw new Error('账单必须包含付款人和至少一位参与人');
+  }
+
+  const candidateIds = [...new Set([payerMemberId, ...uniqueParticipantIds])];
+  const { data: projectMembers, error } = await client
+    .from('members')
+    .select('id')
+    .eq('project_id', projectId)
+    .in('id', candidateIds);
+
+  if (error) throw error;
+
+  const validIds = new Set((projectMembers ?? []).map((member) => member.id));
+  const invalidIds = candidateIds.filter((memberId) => !validIds.has(memberId));
+  if (invalidIds.length) {
+    throw new Error('付款人或参与人不属于当前项目');
+  }
+
+  return {
+    payerMemberId,
+    participantMemberIds: uniqueParticipantIds,
+  };
+}
+
 export async function fetchProjectDetail(projectId) {
   const client = requireSupabase();
 
@@ -46,6 +73,12 @@ export async function createExpense({
   sourceType = 'manual',
 }) {
   const client = requireSupabase();
+  const normalizedMembers = await normalizeExpenseMembers({
+    client,
+    projectId: project.id,
+    payerMemberId,
+    participantMemberIds,
+  });
 
   const { data, error } = await client
     .from('expenses')
@@ -60,8 +93,8 @@ export async function createExpense({
       exchange_rate_provider: exchangeRateProvider,
       exchange_rate_timestamp: exchangeRateTimestamp,
       description,
-      payer_member_id: payerMemberId,
-      participant_member_ids: participantMemberIds,
+      payer_member_id: normalizedMembers.payerMemberId,
+      participant_member_ids: normalizedMembers.participantMemberIds,
       source_type: sourceType,
     })
     .select()
