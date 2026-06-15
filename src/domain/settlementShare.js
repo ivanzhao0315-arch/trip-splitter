@@ -4,10 +4,15 @@ export function summarizeTransfers(transfers, currency = 'CNY') {
   if (!transfers?.length) return '无需转账';
 
   const [firstTransfer] = transfers;
-  const firstLine = `${firstTransfer.from_name}给${firstTransfer.to_name} ${formatMoney(fromMinorUnits(firstTransfer.amount_minor), currency)}`;
+  const firstLine = formatTransferInstruction(firstTransfer, currency, { compact: true });
 
   if (transfers.length === 1) return firstLine;
   return `${firstLine} 等 ${transfers.length} 笔`;
+}
+
+export function formatTransferInstruction(transfer, currency = 'CNY', { compact = false } = {}) {
+  const separator = compact ? '给' : ' 给 ';
+  return `${transfer.from_name}${separator}${transfer.to_name} ${formatMoney(fromMinorUnits(transfer.amount_minor), currency)}`;
 }
 
 export function buildSettlementShareText({ project, period, transfers, currency }) {
@@ -21,7 +26,7 @@ export function buildSettlementShareText({ project, period, transfers, currency 
   }
 
   transfers.forEach((transfer, index) => {
-    lines.push(`${index + 1}. ${transfer.from_name} 给 ${transfer.to_name} ${formatMoney(fromMinorUnits(transfer.amount_minor), currency)}`);
+    lines.push(`${index + 1}. ${formatTransferInstruction(transfer, currency)}`);
   });
 
   return lines.join('\n');

@@ -34,7 +34,7 @@ import { findMemberByDisplayName, normalizeMemberDisplayName, upsertMemberByIden
 import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
 import { buildProjectInviteText } from './domain/projectInvite';
-import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
+import { buildSettlementShareText, formatTransferInstruction, summarizeTransfers } from './domain/settlementShare';
 import { filterExpenses } from './domain/expenseFilters';
 import {
   buildExpenseCsv,
@@ -1649,6 +1649,18 @@ function SettlementScreen({
     }
   };
 
+  const copyTransferInstruction = async (transfer) => {
+    const text = formatTransferInstruction(transfer, project.default_currency);
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNotice(`已复制：${text}`);
+    } catch {
+      window.prompt('复制单笔转账', text);
+      setShareNotice('已生成单笔转账文案');
+    }
+  };
+
   return (
     <div className="screen">
       <TopBar title="结算汇总" code={project.code} onBack={onBack} />
@@ -1721,6 +1733,14 @@ function SettlementScreen({
                 <ArrowsLeftRight size={18} />
                 <span>{transfer.to_name}</span>
                 <strong>{formatMoney(fromMinorUnits(transfer.amount_minor), project.default_currency)}</strong>
+                <button
+                  className="copy-transfer-row-button"
+                  type="button"
+                  onClick={() => copyTransferInstruction(transfer)}
+                  aria-label={`复制转账 ${formatTransferInstruction(transfer, project.default_currency)}`}
+                >
+                  <Copy size={16} />
+                </button>
               </article>
             ))
           ) : (

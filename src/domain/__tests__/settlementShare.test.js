@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSettlementShareText, summarizeTransfers } from '../settlementShare';
+import { buildSettlementShareText, formatTransferInstruction, summarizeTransfers } from '../settlementShare';
 
 describe('settlement share text', () => {
   it('formats transfer instructions for Chinese group chats', () => {
@@ -28,6 +28,13 @@ describe('settlement share text', () => {
       '合租账本 2026-06 结算方案',
       '当前没有需要互相转账的余额。',
     ].join('\n'));
+  });
+
+  it('formats a single transfer instruction for copying', () => {
+    expect(formatTransferInstruction(
+      { from_name: '张三', to_name: '小陈', amount_minor: 9600 },
+      'CNY',
+    )).toBe('张三 给 小陈 ¥96.00');
   });
 
   it('summarizes settlement history transfers compactly', () => {
