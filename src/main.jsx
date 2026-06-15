@@ -26,6 +26,7 @@ import {
 import { createProjectCode, normalizeProjectCode } from './domain/codes';
 import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
+import { findMemberByDisplayName, normalizeMemberDisplayName, upsertMemberByIdentity } from './domain/members';
 import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
 import { buildSettlementShareText } from './domain/settlementShare';
@@ -1056,7 +1057,7 @@ function App() {
         return;
       }
 
-      const existingMember = stored.members.find((member) => member.display_name === name);
+      const existingMember = findMemberByDisplayName(stored.members, name);
       const nextMembers = existingMember ? stored.members : [...stored.members, createLocalMember(name)];
       const nextState = { ...stored, members: nextMembers };
 
@@ -1194,9 +1195,16 @@ function App() {
 
   const handleAddMember = async (displayName) => {
     setAppError('');
+    const normalizedName = normalizeMemberDisplayName(displayName);
 
     if (!hasBackendConfig) {
-      const nextMembers = [...members, createLocalMember(displayName)];
+      const existingMember = findMemberByDisplayName(members, normalizedName);
+      if (existingMember) {
+        setMemberDialogOpen(false);
+        return;
+      }
+
+      const nextMembers = [...members, createLocalMember(normalizedName)];
       saveLocalProjectState({
         project: currentProject,
         activePeriod,
@@ -1211,8 +1219,8 @@ function App() {
 
     setIsBusy(true);
     try {
-      const member = await addProjectMember({ projectId: currentProject.id, displayName });
-      setMembers((items) => [...items, member]);
+      const member = await addProjectMember({ projectId: currentProject.id, displayName: normalizedName });
+      setMembers((items) => upsertMemberByIdentity(items, member));
       setMemberDialogOpen(false);
     } catch (error) {
       setAppError(error.message || '添加成员失败');
