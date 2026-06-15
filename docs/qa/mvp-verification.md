@@ -15,6 +15,7 @@
 - [ ] User can choose trip or roommate project type when creating a project.
 - [ ] Optional project budget is shown as remaining budget after expenses are added.
 - [ ] Created project code is exactly 4 uppercase letters/digits.
+- [ ] Project code can be copied from the top bar for sharing in WeChat.
 - [ ] User can join with a 4-character alphanumeric code.
 - [ ] Project home shows current period.
 - [ ] AI entry sheet opens.

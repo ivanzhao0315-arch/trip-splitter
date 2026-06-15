@@ -180,6 +180,20 @@ function Avatar({ member, size = 'md' }) {
 }
 
 function TopBar({ title, code, onBack }) {
+  const [copyNotice, setCopyNotice] = useState('');
+
+  const copyProjectCode = async () => {
+    if (!code) return;
+
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopyNotice('项目码已复制');
+    } catch {
+      window.prompt('复制项目码', code);
+      setCopyNotice('可手动复制项目码');
+    }
+  };
+
   return (
     <header className="top-bar">
       <div className="top-left">
@@ -191,10 +205,13 @@ function TopBar({ title, code, onBack }) {
         <h1>{title}</h1>
       </div>
       {code ? (
-        <button className="code-pill" aria-label="复制项目码">
-          <span>#{code}</span>
-          <Copy size={15} />
-        </button>
+        <div className="code-share">
+          <button className="code-pill" type="button" onClick={copyProjectCode} aria-label="复制项目码">
+            <span>#{code}</span>
+            <Copy size={15} />
+          </button>
+          {copyNotice ? <span className="code-copy-notice">{copyNotice}</span> : null}
+        </div>
       ) : null}
     </header>
   );
