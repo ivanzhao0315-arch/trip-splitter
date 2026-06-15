@@ -34,6 +34,7 @@ import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberIn
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
 import { buildProjectInviteText } from './domain/projectInvite';
 import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
+import { filterExpenses } from './domain/expenseFilters';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
@@ -627,6 +628,8 @@ function ProjectHome({
   onDeleteExpense,
   isBusy,
 }) {
+  const [expenseQuery, setExpenseQuery] = useState('');
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('全部');
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
   const remainingMinor = budgetMinor - totalMinor;
@@ -645,6 +648,13 @@ function ProjectHome({
     : currentNetMinor > 0
       ? `待收 ${formatMoney(fromMinorUnits(currentNetMinor), project.default_currency)}`
       : `应付 ${formatMoney(fromMinorUnits(Math.abs(currentNetMinor)), project.default_currency)}`;
+  const filteredExpenses = filterExpenses({
+    expenses,
+    members,
+    query: expenseQuery,
+    category: expenseCategoryFilter,
+  });
+  const hasExpenseFilters = expenseQuery.trim() || expenseCategoryFilter !== '全部';
 
   return (
     <div className="screen">
@@ -721,6 +731,30 @@ function ProjectHome({
             <h3>最近明细</h3>
             <button onClick={onOpenSettlement}>查看结算</button>
           </div>
+          {expenses.length ? (
+            <div className="expense-filter-bar">
+              <label className="expense-search-field">
+                <span>搜索账单</span>
+                <input
+                  value={expenseQuery}
+                  onChange={(event) => setExpenseQuery(event.target.value)}
+                  placeholder="描述、备注、成员"
+                />
+              </label>
+              <label className="expense-category-filter">
+                <span>分类</span>
+                <select
+                  value={expenseCategoryFilter}
+                  onChange={(event) => setExpenseCategoryFilter(event.target.value)}
+                >
+                  <option value="全部">全部</option>
+                  {expenseCategories.map((item) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
           <div className="expense-list">
             {expenses.length === 0 ? (
               <div className="expense-empty-card">
@@ -729,7 +763,21 @@ function ProjectHome({
                 <p>拍小票、上传支付截图，或粘贴群聊记录，先生成一笔待确认账单。</p>
                 <button type="button" onClick={onOpenAi}>AI 录入第一笔</button>
               </div>
-            ) : expenses.map((expense) => {
+            ) : filteredExpenses.length === 0 ? (
+              <div className="expense-empty-card compact">
+                <strong>没有匹配的账单</strong>
+                <p>换个关键词或切回全部分类再试。</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExpenseQuery('');
+                    setExpenseCategoryFilter('全部');
+                  }}
+                >
+                  清除筛选
+                </button>
+              </div>
+            ) : filteredExpenses.map((expense) => {
               const traceLabel = expenseTraceLabel(expense, project.default_currency);
               return (
                 <article className="expense-row" key={expense.id}>
@@ -771,6 +819,9 @@ function ProjectHome({
               );
             })}
           </div>
+          {hasExpenseFilters && filteredExpenses.length ? (
+            <p className="expense-filter-summary">已显示 {filteredExpenses.length} / {expenses.length} 笔</p>
+          ) : null}
         </section>
       </main>
       <button className="ai-fab" onClick={onOpenAi}>
