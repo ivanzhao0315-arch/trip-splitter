@@ -1312,6 +1312,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
             participantMemberIds: participantIds,
             sourceType: draft.sourceType,
             sourceName: draft.sourceName,
+            aiDraftId: draft.aiDraftId,
             mode: draft.mode,
             expenseId: draft.expenseId,
             createdAt,
