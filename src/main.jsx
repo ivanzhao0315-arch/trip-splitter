@@ -622,6 +622,14 @@ function ProjectHome({
   const memberById = new Map(members.map((member) => [member.id, member]));
   const currentMember = findMemberByDisplayName(members, currentUsername);
   const currentMemberId = currentMember?.id;
+  const currentBalances = buildCurrentSettlement({ members, expenses }).balances;
+  const currentBalance = currentBalances.find((item) => item.member_id === currentMemberId);
+  const currentNetMinor = currentBalance?.net_minor ?? 0;
+  const currentNetLabel = currentNetMinor === 0
+    ? '已平衡'
+    : currentNetMinor > 0
+      ? `待收 ${formatMoney(fromMinorUnits(currentNetMinor), project.default_currency)}`
+      : `应付 ${formatMoney(fromMinorUnits(Math.abs(currentNetMinor)), project.default_currency)}`;
 
   return (
     <div className="screen">
@@ -642,6 +650,12 @@ function ProjectHome({
                 <span style={{ width: `${budgetProgress}%` }} />
               </div>
             ) : null}
+          </article>
+          <article className="mini-card">
+            <p>我的余额</p>
+            <strong className={currentNetMinor < 0 ? 'negative' : 'positive'}>
+              {currentNetLabel}
+            </strong>
           </article>
           <article className="mini-card member-card">
             <div>
