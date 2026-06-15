@@ -1045,6 +1045,29 @@ button:disabled {
   font-weight: 700;
 }
 
+.switch-project-button {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 10px;
+  border-radius: 12px;
+  color: #8a3900;
+  background: #fff8ef;
+  border: 1px solid rgba(191, 88, 0, 0.24);
+  font-weight: 800;
+}
+
+.switch-project-button small {
+  color: #8a3900;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+}
+
 .sheet-option small {
   margin-top: 2px;
   color: var(--muted);

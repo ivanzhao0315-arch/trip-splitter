@@ -1148,7 +1148,7 @@ function SettlementScreen({
   );
 }
 
-function ProjectSettingsSheet({ project, activePeriod, members, expenses, settlementHistory, onClose }) {
+function ProjectSettingsSheet({ project, activePeriod, members, expenses, settlementHistory, onClose, onSwitchProject }) {
   const [copyNotice, setCopyNotice] = useState('');
   const totalMinor = expenses.reduce((sum, expense) => sum + expense.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
@@ -1199,6 +1199,10 @@ function ProjectSettingsSheet({ project, activePeriod, members, expenses, settle
           复制邀请文案
         </button>
         {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
+        <button className="switch-project-button" type="button" onClick={onSwitchProject}>
+          切换项目
+          <small>仅退出当前设备，不删除账本数据</small>
+        </button>
         <button className="cancel-button" type="button" onClick={onClose}>关闭</button>
       </section>
     </div>
@@ -1627,6 +1631,23 @@ function App() {
     }
   };
 
+  const handleSwitchProject = () => {
+    clearProjectSession();
+    setScreen('entry');
+    setUsername('');
+    setProject(null);
+    setActivePeriod(fallbackPeriod);
+    setMembers(fallbackMembers);
+    setExpenses(fallbackExpenses);
+    setSettlementHistory([]);
+    setDraftExpense(null);
+    setSettledNotice('');
+    setAppError('');
+    setAiOpen(false);
+    setMemberDialogOpen(false);
+    setSettingsOpen(false);
+  };
+
   return (
     <div className="app-shell">
       <div className="phone">
@@ -1721,6 +1742,7 @@ function App() {
             expenses={expenses}
             settlementHistory={settlementHistory}
             onClose={() => setSettingsOpen(false)}
+            onSwitchProject={handleSwitchProject}
           />
         ) : null}
       </div>
