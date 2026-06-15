@@ -122,6 +122,30 @@ describe('expense service member validation', () => {
     });
   });
 
+  it('links confirmed expenses back to their AI draft', async () => {
+    const client = createMockClient({
+      members: [
+        { id: 'ivan', project_id: 'project-1' },
+        { id: 'chen', project_id: 'project-1' },
+      ],
+    });
+    mockState.client = client;
+
+    await createExpense({
+      ...baseExpense,
+      aiDraftId: 'draft-1',
+    });
+
+    expect(client.inserts[0].row).toMatchObject({
+      ai_draft_id: 'draft-1',
+    });
+    expect(client.updates).toContainEqual({
+      table: 'ai_drafts',
+      filters: { project_id: 'project-1', id: 'draft-1' },
+      row: { status: 'confirmed', confirmed_expense_id: 'expense-1' },
+    });
+  });
+
   it('rejects payer or participant ids outside the project', async () => {
     const client = createMockClient({
       members: [

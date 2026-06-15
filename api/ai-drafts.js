@@ -38,6 +38,26 @@ function getRuntimeEnv(env) {
   return env ?? globalThis.process?.env ?? {};
 }
 
+function getSupabaseConfig(env) {
+  const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
+  const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
+
+  if (!url || !key) return null;
+  return { url, key };
+}
+
+function sourceReference({ sourceType, text, file }) {
+  if (sourceType === 'text') {
+    return String(text ?? '').trim().slice(0, 500) || null;
+  }
+
+  if (file && typeof file === 'object') {
+    return file.name ? String(file.name).slice(0, 160) : null;
+  }
+
+  return null;
+}
+
 function normalizeDraft(draft, fallback = {}) {
   const amount = Number(draft?.amount);
   const currency = String(draft?.currency ?? fallback.currency ?? 'CNY').toUpperCase();
@@ -54,6 +74,46 @@ function normalizeDraft(draft, fallback = {}) {
       ? draft.participantNames.map((name) => String(name).trim()).filter(Boolean)
       : [],
   };
+}
+
+async function persistAiDraft({ env, projectId, sourceType, sourceRef, draft }) {
+  const config = getSupabaseConfig(env);
+  if (!config) return null;
+
+  const response = await fetch(`${config.url.replace(/\/$/, '')}/rest/v1/ai_drafts`, {
+    method: 'POST',
+    headers: {
+      apikey: config.key,
+      Authorization: `Bearer ${config.key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({
+      project_id: projectId,
+      source_type: sourceType,
+      source_ref: sourceRef,
+      draft_payload: draft,
+      status: 'draft',
+    }),
+  });
+
+  if (!response.ok) return null;
+
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows[0] : null;
+}
+
+async function draftResponse({ env, projectId, sourceType, sourceRef, draft, note }) {
+  const aiDraft = await persistAiDraft({ env, projectId, sourceType, sourceRef, draft });
+
+  return json({
+    sourceType,
+    draft,
+    status: 'draft',
+    aiDraftId: aiDraft?.id,
+    persisted: Boolean(aiDraft?.id),
+    ...(note ? { note } : {}),
+  });
 }
 
 async function requestOpenAiDraft(input, env) {
@@ -169,6 +229,7 @@ export default async function handler(request, env) {
   const sourceType = formData.get('sourceType');
   const text = formData.get('text');
   const file = formData.get('file');
+  const sourceRef = sourceReference({ sourceType, text, file });
 
   if (!projectId || !sourceType) {
     return json({ error: 'Missing projectId or sourceType' }, 400);
@@ -177,37 +238,46 @@ export default async function handler(request, env) {
   if (sourceType === 'text') {
     if (runtimeEnv.OPENAI_API_KEY) {
       try {
-        return json({
+        return draftResponse({
+          env: runtimeEnv,
+          projectId,
           sourceType,
+          sourceRef,
           draft: await parseTextWithOpenAI({ text, sourceType, env: runtimeEnv }),
-          status: 'draft',
         });
       } catch {
         // Fall through to deterministic parsing so text entry remains usable.
       }
     }
 
-    return json({
+    return draftResponse({
+      env: runtimeEnv,
+      projectId,
       sourceType,
+      sourceRef,
       draft: normalizeDraft(parseExpenseText(text)),
-      status: 'draft',
     });
   }
 
   if (file && runtimeEnv.OPENAI_API_KEY) {
     try {
-      return json({
+      return draftResponse({
+        env: runtimeEnv,
+        projectId,
         sourceType,
+        sourceRef,
         draft: await parseImageWithOpenAI({ file, sourceType, env: runtimeEnv }),
-        status: 'draft',
       });
     } catch (error) {
       return json({ error: error.message || 'Image parsing failed' }, 502);
     }
   }
 
-  return json({
+  return draftResponse({
+    env: runtimeEnv,
+    projectId,
     sourceType,
+    sourceRef,
     draft: {
       amount: 0,
       currency: 'CNY',
@@ -216,7 +286,6 @@ export default async function handler(request, env) {
       participantNames: [],
       confidence: 0,
     },
-    status: 'draft',
     note: 'No AI provider configured; user must complete the draft manually.',
   });
 }

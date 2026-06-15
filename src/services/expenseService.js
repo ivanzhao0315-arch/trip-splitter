@@ -74,6 +74,7 @@ export async function createExpense({
   participantMemberIds,
   sourceType = 'manual',
   sourceName,
+  aiDraftId,
   createdAt,
 }) {
   const client = requireSupabase();
@@ -103,12 +104,22 @@ export async function createExpense({
       participant_member_ids: normalizedMembers.participantMemberIds,
       source_type: sourceType,
       source_name: sourceName ?? null,
+      ai_draft_id: aiDraftId ?? null,
       created_at: createdAt ?? new Date().toISOString(),
     })
     .select()
     .single();
 
   if (error) throw error;
+
+  if (aiDraftId) {
+    await client
+      .from('ai_drafts')
+      .update({ status: 'confirmed', confirmed_expense_id: data.id })
+      .eq('project_id', project.id)
+      .eq('id', aiDraftId);
+  }
+
   return data;
 }
 
@@ -128,6 +139,7 @@ export async function updateExpense({
   participantMemberIds,
   sourceType = 'manual',
   sourceName,
+  aiDraftId,
   createdAt,
 }) {
   const client = requireSupabase();
@@ -138,25 +150,31 @@ export async function updateExpense({
     participantMemberIds,
   });
 
+  const updateRow = {
+    original_amount_minor: toMinorUnits(amount),
+    original_currency: currency,
+    converted_amount_minor: toMinorUnits(convertedAmount),
+    project_currency: project.default_currency,
+    exchange_rate: exchangeRate,
+    exchange_rate_provider: exchangeRateProvider,
+    exchange_rate_timestamp: exchangeRateTimestamp,
+    description,
+    category,
+    notes,
+    payer_member_id: normalizedMembers.payerMemberId,
+    participant_member_ids: normalizedMembers.participantMemberIds,
+    source_type: sourceType,
+    source_name: sourceName ?? null,
+    created_at: createdAt ?? new Date().toISOString(),
+  };
+
+  if (aiDraftId !== undefined) {
+    updateRow.ai_draft_id = aiDraftId;
+  }
+
   const { error } = await client
     .from('expenses')
-    .update({
-      original_amount_minor: toMinorUnits(amount),
-      original_currency: currency,
-      converted_amount_minor: toMinorUnits(convertedAmount),
-      project_currency: project.default_currency,
-      exchange_rate: exchangeRate,
-      exchange_rate_provider: exchangeRateProvider,
-      exchange_rate_timestamp: exchangeRateTimestamp,
-      description,
-      category,
-      notes,
-      payer_member_id: normalizedMembers.payerMemberId,
-      participant_member_ids: normalizedMembers.participantMemberIds,
-      source_type: sourceType,
-      source_name: sourceName ?? null,
-      created_at: createdAt ?? new Date().toISOString(),
-    })
+    .update(updateRow)
     .eq('project_id', project.id)
     .eq('id', expenseId);
 

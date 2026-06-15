@@ -31,6 +31,10 @@ Open `SQL Editor` in Supabase and run the migration files in order:
 5. `supabase/migrations/0005_expense_source_name.sql`
 6. `supabase/migrations/0006_public_mvp_policies.sql`
 7. `supabase/migrations/0007_supporting_fk_indexes.sql`
+8. `supabase/migrations/0008_allow_expense_delete.sql`
+9. `supabase/migrations/0009_expense_category_notes.sql`
+10. `supabase/migrations/0010_enable_realtime_publication.sql`
+11. `supabase/migrations/0011_link_ai_drafts_to_expenses.sql`
 
 If you prefer the Supabase CLI, install or run it with `npx`, link the project, then push migrations:
 
@@ -83,8 +87,9 @@ Use two browser profiles, or one normal window plus one incognito window.
 2. Copy the project invitation from the top project code or the settings panel.
 3. In window B, enter a different nickname and join with the same 4-character project code.
 4. Add a manual expense in either window.
-5. Refresh both windows.
-6. Confirm members, expenses, current period, and settlement history persist.
+5. Confirm the other window updates automatically without a refresh.
+6. Refresh both windows.
+7. Confirm members, expenses, current period, and settlement history persist.
 
 Expected result: both windows load the same Supabase-backed project state. If `.env.local` is missing or has empty Supabase variables, this test only verifies local browser storage.
 
@@ -109,6 +114,12 @@ from public.expenses e
 join public.projects p on p.id = e.project_id
 order by e.created_at desc
 limit 10;
+
+select p.code, d.source_type, d.status, d.created_at
+from public.ai_drafts d
+join public.projects p on p.id = d.project_id
+order by d.created_at desc
+limit 10;
 ```
 
 ## Production Notes
@@ -117,3 +128,4 @@ limit 10;
 - For public testing, this MVP can be deployed with only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - For real users, add authentication or project access tokens before collecting sensitive data.
 - Keep AI and exchange-rate provider keys in server-side deployment environment variables only.
+- Deploy to a host that supports serverless functions, such as Cloudflare Pages, if you need `/api/ai-drafts` and `/api/exchange-rate`.

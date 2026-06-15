@@ -41,6 +41,32 @@ To switch from local demo mode to a real shared backend, create a Supabase proje
 
 Detailed setup and verification steps are in [docs/supabase-setup.md](docs/supabase-setup.md).
 
-## GitHub Pages Deployment
+## Cloudflare Pages Deployment
 
-The repository includes a GitHub Pages workflow. Configure repository secrets `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then run the `Deploy GitHub Pages` workflow or push to `main`.
+Production is deployed on Cloudflare Pages so `/api/exchange-rate` and `/api/ai-drafts` can run as Pages Functions.
+
+Required Cloudflare Pages variables:
+
+```bash
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+Optional server-side variables:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+OPENAI_VISION_MODEL=gpt-4.1-mini
+EXCHANGE_RATE_PROVIDER_URL=
+EXCHANGE_RATE_PROVIDER_KEY=
+```
+
+Deploy from a local build:
+
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name trip-splitter --branch main
+```
+
+GitHub Pages can host the static app, but it cannot run the `/api` functions used for AI drafts and exchange rates.

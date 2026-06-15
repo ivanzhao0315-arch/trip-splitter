@@ -359,6 +359,7 @@ function createDraftFromExpense(expense) {
     createdAt: expense.created_at ?? new Date().toISOString(),
     sourceType: expense.source_type ?? 'manual',
     sourceName: expense.source_name ?? null,
+    aiDraftId: expense.ai_draft_id ?? null,
   };
 }
 
@@ -2132,6 +2133,7 @@ function App() {
                 participant_member_ids: draft.participantMemberIds,
                 source_type: draft.sourceType,
                 source_name: draft.sourceName,
+                ai_draft_id: draft.aiDraftId ?? null,
                 created_at: draft.createdAt,
                 category: draft.category,
                 notes: draft.notes,
@@ -2183,6 +2185,7 @@ function App() {
         participant_member_ids: draft.participantMemberIds,
         source_type: draft.sourceType,
         source_name: draft.sourceName,
+        ai_draft_id: draft.aiDraftId ?? null,
         created_at: draft.createdAt,
         category: draft.category,
         notes: draft.notes,
@@ -2426,14 +2429,17 @@ function App() {
       let parsedDraft = buildLocalDraft(sourceType, text);
 
       if (sourceType !== 'manual' && (hasBackendConfig || sourceType === 'text')) {
+        let aiDraftId = null;
         try {
           const response = hasBackendConfig
             ? await createAiDraft({ projectId: currentProject.id, sourceType, text, file })
             : { draft: buildLocalDraft(sourceType, text) };
           parsedDraft = response.draft ?? parsedDraft;
+          aiDraftId = response.aiDraftId ?? null;
         } catch {
           parsedDraft = buildLocalDraft(sourceType, text);
         }
+        parsedDraft = { ...parsedDraft, aiDraftId };
       }
 
       const rate = await resolveExchangeRate({
@@ -2458,6 +2464,7 @@ function App() {
         ...parsedDraft,
         sourceType,
         sourceName: file?.name,
+        aiDraftId: parsedDraft.aiDraftId ?? null,
         payerMemberId,
         participantMemberIds,
         exchangeRate: rate.rate,
