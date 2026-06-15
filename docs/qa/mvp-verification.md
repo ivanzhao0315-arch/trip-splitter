@@ -18,6 +18,7 @@
 - [ ] Project code can be copied from the top bar for sharing in WeChat.
 - [ ] User can join with a 4-character alphanumeric code.
 - [ ] In local/dev mode, joining with an existing project code loads the same stored project state.
+- [ ] Joining the same backend project with the same nickname reuses that member instead of creating duplicates.
 - [ ] Project home shows current period.
 - [ ] AI entry sheet opens.
 - [ ] Text AI draft detects amount and currency.

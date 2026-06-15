@@ -9,6 +9,46 @@ function isUniqueViolation(error) {
   return error?.code === '23505';
 }
 
+function normalizeDisplayName(displayName) {
+  return String(displayName ?? '').trim();
+}
+
+async function findOrCreateMember({ client, projectId, displayName }) {
+  const normalizedName = normalizeDisplayName(displayName);
+  if (!normalizedName) {
+    throw new Error('请输入昵称');
+  }
+
+  const { data: existingMember, error: existingError } = await client
+    .from('members')
+    .select('*')
+    .eq('project_id', projectId)
+    .eq('display_name', normalizedName)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (existingMember) return existingMember;
+
+  const { data: member, error: memberError } = await client
+    .from('members')
+    .insert({ project_id: projectId, display_name: normalizedName })
+    .select()
+    .single();
+
+  if (!memberError) return member;
+  if (!isUniqueViolation(memberError)) throw memberError;
+
+  const { data: racedMember, error: racedError } = await client
+    .from('members')
+    .select('*')
+    .eq('project_id', projectId)
+    .eq('display_name', normalizedName)
+    .single();
+
+  if (racedError) throw racedError;
+  return racedMember;
+}
+
 async function insertProjectWithCode({ client, name, defaultCurrency, projectType, budgetAmount }) {
   let lastError = null;
 
@@ -83,13 +123,7 @@ export async function joinProject({ code, displayName }) {
 
   if (projectError) throw new Error('项目码不存在');
 
-  const { data: member, error: memberError } = await client
-    .from('members')
-    .insert({ project_id: project.id, display_name: displayName })
-    .select()
-    .single();
-
-  if (memberError) throw memberError;
+  const member = await findOrCreateMember({ client, projectId: project.id, displayName });
 
   return { ...member, project };
 }
@@ -97,12 +131,5 @@ export async function joinProject({ code, displayName }) {
 export async function addProjectMember({ projectId, displayName }) {
   const client = requireSupabase();
 
-  const { data, error } = await client
-    .from('members')
-    .insert({ project_id: projectId, display_name: displayName })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return findOrCreateMember({ client, projectId, displayName });
 }
