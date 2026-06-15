@@ -10,6 +10,14 @@ function memberName(member) {
   return member?.display_name ?? '未知成员';
 }
 
+function sanitizeFilenamePart(value, fallback) {
+  return String(value ?? fallback)
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, '-')
+    .slice(0, 48) || fallback;
+}
+
 export function buildExpenseCsv({ project, period, members = [], expenses = [] }) {
   const memberById = new Map(members.map((member) => [member.id, member]));
   const rows = [
@@ -42,17 +50,51 @@ export function buildExpenseCsv({ project, period, members = [], expenses = [] }
 }
 
 export function createExpenseExportFilename({ project, period }) {
-  const projectName = String(project?.name ?? 'shared-expenses')
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, '-')
-    .replace(/\s+/g, '-')
-    .slice(0, 48) || 'shared-expenses';
-  const periodLabel = String(period?.label ?? 'current').replace(/[\\/:*?"<>|]+/g, '-');
+  const projectName = sanitizeFilenamePart(project?.name, 'shared-expenses');
+  const periodLabel = sanitizeFilenamePart(period?.label, 'current');
 
   return `${projectName}-${periodLabel}-expenses.csv`;
 }
 
-export function buildSettlementHistoryCsv({ project, settlementHistory = [] }) {
+function settlementSnapshotRows({ project, snapshot }) {
+  const currency = snapshot.project_currency ?? project?.default_currency ?? 'CNY';
+  const balances = snapshot.member_balance_payload ?? [];
+  const transfers = snapshot.transfer_payload ?? [];
+  const totalMinor = balances.reduce((sum, balance) => sum + Number(balance.paid_minor ?? 0), 0);
+  const transferText = transfers.length
+    ? transfers
+      .map((transfer) => `${transfer.from_name} -> ${transfer.to_name} ${formatMoney(fromMinorUnits(transfer.amount_minor), currency)}`)
+      .join(' / ')
+    : '无需转账';
+
+  if (!balances.length) {
+    return [[
+      snapshot.period_label ?? '历史周期',
+      snapshot.created_at ? new Date(snapshot.created_at).toLocaleString('zh-CN') : '',
+      formatMoney(fromMinorUnits(totalMinor), currency),
+      snapshot.included_expense_ids?.length ?? 0,
+      '',
+      '',
+      '',
+      '',
+      transferText,
+    ]];
+  }
+
+  return balances.map((balance) => [
+    snapshot.period_label ?? '历史周期',
+    snapshot.created_at ? new Date(snapshot.created_at).toLocaleString('zh-CN') : '',
+    formatMoney(fromMinorUnits(totalMinor), currency),
+    snapshot.included_expense_ids?.length ?? 0,
+    balance.display_name ?? '未知成员',
+    formatMoney(fromMinorUnits(balance.paid_minor ?? 0), currency),
+    formatMoney(fromMinorUnits(balance.owed_minor ?? 0), currency),
+    `${Number(balance.net_minor ?? 0) >= 0 ? '+' : '-'}${formatMoney(fromMinorUnits(Math.abs(Number(balance.net_minor ?? 0))), currency)}`,
+    transferText,
+  ]);
+}
+
+function buildSettlementCsv({ project, settlementHistory = [] }) {
   const rows = [
     ['项目', project?.name ?? '共享账本'],
     ['结算币种', project?.default_currency ?? 'CNY'],
@@ -61,55 +103,29 @@ export function buildSettlementHistoryCsv({ project, settlementHistory = [] }) {
   ];
 
   for (const snapshot of settlementHistory) {
-    const currency = snapshot.project_currency ?? project?.default_currency ?? 'CNY';
-    const balances = snapshot.member_balance_payload ?? [];
-    const transfers = snapshot.transfer_payload ?? [];
-    const totalMinor = balances.reduce((sum, balance) => sum + Number(balance.paid_minor ?? 0), 0);
-    const transferText = transfers.length
-      ? transfers
-        .map((transfer) => `${transfer.from_name} -> ${transfer.to_name} ${formatMoney(fromMinorUnits(transfer.amount_minor), currency)}`)
-        .join(' / ')
-      : '无需转账';
-
-    if (!balances.length) {
-      rows.push([
-        snapshot.period_label ?? '历史周期',
-        snapshot.created_at ? new Date(snapshot.created_at).toLocaleString('zh-CN') : '',
-        formatMoney(fromMinorUnits(totalMinor), currency),
-        snapshot.included_expense_ids?.length ?? 0,
-        '',
-        '',
-        '',
-        '',
-        transferText,
-      ]);
-      continue;
-    }
-
-    for (const balance of balances) {
-      rows.push([
-        snapshot.period_label ?? '历史周期',
-        snapshot.created_at ? new Date(snapshot.created_at).toLocaleString('zh-CN') : '',
-        formatMoney(fromMinorUnits(totalMinor), currency),
-        snapshot.included_expense_ids?.length ?? 0,
-        balance.display_name ?? '未知成员',
-        formatMoney(fromMinorUnits(balance.paid_minor ?? 0), currency),
-        formatMoney(fromMinorUnits(balance.owed_minor ?? 0), currency),
-        `${Number(balance.net_minor ?? 0) >= 0 ? '+' : '-'}${formatMoney(fromMinorUnits(Math.abs(Number(balance.net_minor ?? 0))), currency)}`,
-        transferText,
-      ]);
-    }
+    rows.push(...settlementSnapshotRows({ project, snapshot }));
   }
 
   return `${rows.map((row) => row.map(csvCell).join(',')).join('\n')}\n`;
 }
 
+export function buildSettlementHistoryCsv({ project, settlementHistory = [] }) {
+  return buildSettlementCsv({ project, settlementHistory });
+}
+
+export function buildSettlementSnapshotCsv({ project, snapshot }) {
+  return buildSettlementCsv({ project, settlementHistory: snapshot ? [snapshot] : [] });
+}
+
 export function createSettlementHistoryExportFilename({ project }) {
-  const projectName = String(project?.name ?? 'shared-expenses')
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, '-')
-    .replace(/\s+/g, '-')
-    .slice(0, 48) || 'shared-expenses';
+  const projectName = sanitizeFilenamePart(project?.name, 'shared-expenses');
 
   return `${projectName}-settlement-history.csv`;
+}
+
+export function createSettlementSnapshotExportFilename({ project, snapshot }) {
+  const projectName = sanitizeFilenamePart(project?.name, 'shared-expenses');
+  const periodLabel = sanitizeFilenamePart(snapshot?.period_label, 'settlement');
+
+  return `${projectName}-${periodLabel}-settlement.csv`;
 }

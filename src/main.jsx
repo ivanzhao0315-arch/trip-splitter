@@ -39,8 +39,10 @@ import { filterExpenses } from './domain/expenseFilters';
 import {
   buildExpenseCsv,
   buildSettlementHistoryCsv,
+  buildSettlementSnapshotCsv,
   createExpenseExportFilename,
   createSettlementHistoryExportFilename,
+  createSettlementSnapshotExportFilename,
 } from './domain/expenseExport';
 import { createAiDraft, discardAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
@@ -1381,6 +1383,21 @@ function SettlementHistoryDetail({ project, snapshot, onClose }) {
     }
   };
 
+  const exportHistorySnapshot = () => {
+    const csv = buildSettlementSnapshotCsv({ project, snapshot });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = createSettlementSnapshotExportFilename({ project, snapshot });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setCopyNotice('该次历史结算 CSV 已导出');
+  };
+
   return (
     <div className="modal-layer">
       <button className="modal-backdrop" onClick={onClose} aria-label="关闭" />
@@ -1391,14 +1408,24 @@ function SettlementHistoryDetail({ project, snapshot, onClose }) {
             <span>{periodLabel}</span>
             <h2>历史结算详情</h2>
           </div>
-          <button
-            className="copy-transfer-button"
-            type="button"
-            onClick={copyHistoryText}
-            aria-label="复制历史结算文案"
-          >
-            <Copy size={18} />
-          </button>
+          <div className="history-detail-actions">
+            <button
+              className="copy-transfer-button"
+              type="button"
+              onClick={exportHistorySnapshot}
+              aria-label="导出该次历史结算"
+            >
+              <DownloadSimple size={18} />
+            </button>
+            <button
+              className="copy-transfer-button"
+              type="button"
+              onClick={copyHistoryText}
+              aria-label="复制历史结算文案"
+            >
+              <Copy size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="history-detail-summary">

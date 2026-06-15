@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   buildExpenseCsv,
   buildSettlementHistoryCsv,
+  buildSettlementSnapshotCsv,
   createExpenseExportFilename,
   createSettlementHistoryExportFilename,
+  createSettlementSnapshotExportFilename,
 } from '../expenseExport';
 
 const project = { name: '杭州周末游', default_currency: 'CNY' };
@@ -94,5 +96,37 @@ describe('expense export', () => {
     expect(createSettlementHistoryExportFilename({
       project: { name: 'Trip / June' },
     })).toBe('Trip---June-settlement-history.csv');
+  });
+
+  it('builds a single settlement snapshot csv', () => {
+    const csv = buildSettlementSnapshotCsv({
+      project,
+      snapshot: {
+        period_label: '2026-06 #3',
+        project_currency: 'CNY',
+        created_at: '2026-06-20T12:00:00.000Z',
+        included_expense_ids: ['e1'],
+        member_balance_payload: [
+          {
+            display_name: 'Ivan',
+            paid_minor: 0,
+            owed_minor: 10000,
+            net_minor: -10000,
+          },
+        ],
+        transfer_payload: [],
+      },
+    });
+
+    expect(csv).toContain('周期,归档时间,总金额,账单数,成员,已付,应摊,净额,转账方案');
+    expect(csv).toContain('2026-06 #3');
+    expect(csv).toContain('Ivan,¥0.00,¥100.00,-¥100.00,无需转账');
+  });
+
+  it('creates a single settlement snapshot export filename', () => {
+    expect(createSettlementSnapshotExportFilename({
+      project: { name: 'Trip / June' },
+      snapshot: { period_label: '2026-06 #3' },
+    })).toBe('Trip---June-2026-06-#3-settlement.csv');
   });
 });
