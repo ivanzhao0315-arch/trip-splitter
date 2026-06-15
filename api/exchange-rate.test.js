@@ -29,8 +29,30 @@ describe('exchange-rate endpoint', () => {
     expect(response.status).toBe(400);
   });
 
-  it('requires provider config for cross-currency conversion', async () => {
+  it('uses a keyless default provider for cross-currency conversion', async () => {
     vi.stubEnv('EXCHANGE_RATE_PROVIDER_URL', '');
+    vi.stubEnv('EXCHANGE_RATE_PROVIDER_KEY', '');
+    vi.stubGlobal('fetch', vi.fn(async (url) => {
+      expect(String(url)).toBe('https://open.er-api.com/v6/latest/USD');
+
+      return new Response(JSON.stringify({
+        result: 'success',
+        rates: { CNY: 7.28 },
+      }), { status: 200 });
+    }));
+
+    const response = await postExchangeRate({ fromCurrency: 'USD', toCurrency: 'CNY' });
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      rate: 7.28,
+      provider: 'open.er-api.com',
+    });
+  });
+
+  it('rejects incomplete custom provider config', async () => {
+    vi.stubEnv('EXCHANGE_RATE_PROVIDER_URL', 'https://rates.example/latest');
     vi.stubEnv('EXCHANGE_RATE_PROVIDER_KEY', '');
 
     const response = await postExchangeRate({ fromCurrency: 'USD', toCurrency: 'CNY' });
@@ -80,6 +102,18 @@ describe('exchange-rate endpoint', () => {
     vi.stubEnv('EXCHANGE_RATE_PROVIDER_KEY', 'test-key');
     vi.stubGlobal('fetch', vi.fn(async () => (
       new Response(JSON.stringify({ rates: { EUR: 0.92 } }), { status: 200 })
+    )));
+
+    const response = await postExchangeRate({ fromCurrency: 'USD', toCurrency: 'CNY' });
+
+    expect(response.status).toBe(502);
+  });
+
+  it('rejects default provider error responses', async () => {
+    vi.stubEnv('EXCHANGE_RATE_PROVIDER_URL', '');
+    vi.stubEnv('EXCHANGE_RATE_PROVIDER_KEY', '');
+    vi.stubGlobal('fetch', vi.fn(async () => (
+      new Response(JSON.stringify({ result: 'error', 'error-type': 'unsupported-code' }), { status: 200 })
     )));
 
     const response = await postExchangeRate({ fromCurrency: 'USD', toCurrency: 'CNY' });
