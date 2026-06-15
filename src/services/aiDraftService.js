@@ -16,3 +16,16 @@ export async function createAiDraft({ projectId, sourceType, text, file }) {
 
   return response.json();
 }
+
+export async function discardAiDraft({ projectId, aiDraftId, supabase }) {
+  if (!supabase || !projectId || !aiDraftId) return;
+
+  const { error } = await supabase
+    .from('ai_drafts')
+    .update({ status: 'discarded' })
+    .eq('project_id', projectId)
+    .eq('id', aiDraftId)
+    .eq('status', 'draft');
+
+  if (error) throw error;
+}

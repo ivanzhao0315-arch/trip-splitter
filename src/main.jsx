@@ -37,10 +37,10 @@ import { buildProjectInviteText } from './domain/projectInvite';
 import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
 import { filterExpenses } from './domain/expenseFilters';
 import { buildExpenseCsv, createExpenseExportFilename } from './domain/expenseExport';
-import { createAiDraft } from './services/aiDraftService';
+import { createAiDraft, discardAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
-import { hasBackendConfig } from './services/apiClient';
+import { hasBackendConfig, supabase } from './services/apiClient';
 import {
   addProjectMember,
   createProject,
@@ -2221,6 +2221,26 @@ function App() {
     }
   };
 
+  const handleCancelDraft = async () => {
+    const draft = draftExpense;
+
+    setAppError('');
+    setDraftExpense(null);
+    setScreen('home');
+
+    if (!hasBackendConfig || draft?.mode === 'edit' || !draft?.aiDraftId) return;
+
+    try {
+      await discardAiDraft({
+        projectId: currentProject.id,
+        aiDraftId: draft.aiDraftId,
+        supabase,
+      });
+    } catch {
+      setAppError('草稿状态同步失败，但账单未保存');
+    }
+  };
+
   const handleDeleteExpense = async (expense) => {
     setAppError('');
     const confirmed = window.confirm(`删除「${expense.description || '这笔账单'}」？删除后本周期统计和结算会同步更新。`);
@@ -2716,7 +2736,7 @@ function App() {
             project={currentProject}
             members={members}
             draft={draftExpense}
-            onBack={() => setScreen('home')}
+            onBack={handleCancelDraft}
             onSave={handleSaveExpense}
             onResolveRate={resolveExchangeRate}
             appError={appError}
