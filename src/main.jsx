@@ -870,6 +870,9 @@ function ProjectHome({
               const traceLabel = expenseTraceLabel(expense, project.default_currency);
               const splitMinor = Math.round(expense.converted_amount_minor / expense.participant_member_ids.length);
               const splitLabel = formatMoney(fromMinorUnits(splitMinor), project.default_currency);
+              const participantNames = expense.participant_member_ids
+                .map((memberId) => memberName(memberById.get(memberId)))
+                .join('、');
               return (
                 <article className="expense-row" key={expense.id}>
                   <div className="expense-icon"><Receipt size={22} /></div>
@@ -879,6 +882,7 @@ function ProjectHome({
                       {expense.category ?? '其他'} · {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分 · 每人约 {splitLabel}
                       {expense.source_name ? ` · ${sourceTypeLabel(expense.source_type)} ${expense.source_name}` : ''}
                     </p>
+                    {participantNames ? <small className="expense-participants">参与：{participantNames}</small> : null}
                     {expense.notes ? <small className="expense-notes">{expense.notes}</small> : null}
                   </div>
                   <div className="expense-amount">

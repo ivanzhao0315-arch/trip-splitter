@@ -981,6 +981,7 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
+.expense-participants,
 .expense-notes {
   display: block;
   max-width: 100%;
