@@ -8,7 +8,7 @@ function expenseDraftSchema() {
   return {
     type: 'object',
     additionalProperties: false,
-    required: ['amount', 'currency', 'description', 'payerName', 'participantNames', 'confidence'],
+    required: ['amount', 'currency', 'description', 'payerName', 'participantNames', 'confidence', 'createdAt'],
     properties: {
       amount: { type: 'number', minimum: 0 },
       currency: { type: 'string', enum: Array.from(SUPPORTED_CURRENCIES) },
@@ -19,6 +19,7 @@ function expenseDraftSchema() {
         items: { type: 'string' },
       },
       confidence: { type: 'number', minimum: 0, maximum: 1 },
+      createdAt: { type: 'string' },
     },
   };
 }
@@ -29,7 +30,7 @@ function expenseDraftPrompt(sourceType) {
     '请识别一笔最主要的共同支出。',
     '如果来源是聊天记录，请结合上下文判断金额、币种、描述、付款人和参与人。',
     '如果写了“大家平分”“全员”“所有人”，participantNames 可以为空数组，让前端按当前项目全员处理。',
-    '只返回 JSON，不要解释。字段：amount 数字；currency 三位大写币种；description 简短中文或原文商户描述；payerName 付款人昵称或空字符串；participantNames 参与人昵称数组；confidence 0 到 1。',
+    '只返回 JSON，不要解释。字段：amount 数字；currency 三位大写币种；description 简短中文或原文商户描述；payerName 付款人昵称或空字符串；participantNames 参与人昵称数组；confidence 0 到 1；createdAt 为可解析到的 ISO 8601 时间字符串，无法判断则返回空字符串。',
     `来源类型：${sourceType}`,
   ].join('\n');
 }
@@ -63,6 +64,8 @@ function normalizeDraft(draft, fallback = {}) {
   const currency = String(draft?.currency ?? fallback.currency ?? 'CNY').toUpperCase();
   const description = String(draft?.description ?? fallback.description ?? '').trim();
   const confidence = Number(draft?.confidence);
+  const createdAt = String(draft?.createdAt ?? fallback.createdAt ?? '').trim();
+  const createdAtDate = createdAt ? new Date(createdAt) : null;
 
   return {
     amount: Number.isFinite(amount) && amount >= 0 ? amount : 0,
@@ -73,6 +76,7 @@ function normalizeDraft(draft, fallback = {}) {
     participantNames: Array.isArray(draft?.participantNames)
       ? draft.participantNames.map((name) => String(name).trim()).filter(Boolean)
       : [],
+    createdAt: createdAtDate && !Number.isNaN(createdAtDate.getTime()) ? createdAtDate.toISOString() : '',
   };
 }
 

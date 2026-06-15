@@ -2471,7 +2471,7 @@ function App() {
         exchangeRate: rate.rate,
         exchangeRateProvider: rate.provider,
         exchangeRateTimestamp: rate.timestamp,
-        createdAt: new Date().toISOString(),
+        createdAt: parsedDraft.createdAt || new Date().toISOString(),
       });
       setAiOpen(false);
       setScreen('confirm');

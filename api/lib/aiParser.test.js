@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { parseExpenseText } from '../../src/domain/aiParser.js';
 
+function localIso(year, month, day, hour, minute) {
+  return new Date(year, month - 1, day, hour, minute, 0, 0).toISOString();
+}
+
 describe('parseExpenseText', () => {
   it('extracts USD amounts', () => {
     expect(parseExpenseText('Starbucks $40.00')).toMatchObject({
@@ -23,6 +27,26 @@ describe('parseExpenseText', () => {
       amount: 1280,
       currency: 'JPY',
       confidence: 0.82,
+    });
+  });
+
+  it('extracts Chinese month-day and time without treating date numbers as amount', () => {
+    const draft = parseExpenseText('6月12日 20:30 晚餐 88 Ivan 已付', new Date('2026-06-15T08:00:00.000Z'));
+
+    expect(draft).toMatchObject({
+      amount: 88,
+      currency: 'CNY',
+    });
+    expect(draft.createdAt).toBe(localIso(2026, 6, 12, 20, 30));
+  });
+
+  it('extracts relative dates with time', () => {
+    const draft = parseExpenseText('昨天 19:45 夜宵 ¥66', new Date('2026-06-15T08:00:00.000Z'));
+
+    expect(draft).toMatchObject({
+      amount: 66,
+      currency: 'CNY',
+      createdAt: localIso(2026, 6, 14, 19, 45),
     });
   });
 });

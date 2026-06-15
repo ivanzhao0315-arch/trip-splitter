@@ -123,6 +123,7 @@ describe('ai draft endpoint', () => {
       expect(prompt).toContain('张三 已付');
       expect(schema.required).toContain('payerName');
       expect(schema.required).toContain('participantNames');
+      expect(schema.required).toContain('createdAt');
 
       return new Response(JSON.stringify({
         output_text: JSON.stringify({
@@ -132,6 +133,7 @@ describe('ai draft endpoint', () => {
           payerName: '张三',
           participantNames: ['小陈', 'Ivan'],
           confidence: 0.9,
+          createdAt: '2026-06-14T12:30:00.000Z',
         }),
       }), { status: 200 });
     }));
@@ -151,6 +153,7 @@ describe('ai draft endpoint', () => {
       description: '打车',
       payerName: '张三',
       participantNames: ['小陈', 'Ivan'],
+      createdAt: '2026-06-14T12:30:00.000Z',
     });
   });
 
@@ -210,6 +213,7 @@ describe('ai draft endpoint', () => {
 
       expect(schema.required).toContain('payerName');
       expect(schema.required).toContain('participantNames');
+      expect(schema.required).toContain('createdAt');
       expect(schema.properties.participantNames.type).toBe('array');
 
       return new Response(JSON.stringify({
@@ -220,6 +224,7 @@ describe('ai draft endpoint', () => {
           payerName: '张三',
           participantNames: ['张三', 'Ivan'],
           confidence: 0.91,
+          createdAt: '',
         }),
       }), { status: 200 });
     }));
