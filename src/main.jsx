@@ -1422,6 +1422,41 @@ function SettlementHistoryDetail({ project, snapshot, onClose }) {
   );
 }
 
+function SettlementConfirmDialog({ project, expenses, transfers, onCancel, onConfirm, isBusy }) {
+  const totalMinor = expenses.reduce((sum, expense) => sum + expense.converted_amount_minor, 0);
+
+  return (
+    <div className="modal-layer">
+      <button className="modal-backdrop" onClick={onCancel} aria-label="取消结算" />
+      <section className="settlement-confirm-dialog">
+        <div className="settlement-confirm-icon">
+          <CheckCircle size={26} weight="fill" />
+        </div>
+        <h2>确认归档本周期？</h2>
+        <p>归档后当前账单会进入历史结算，并自动开启下一周期。</p>
+        <div className="settlement-confirm-grid">
+          <div>
+            <span>账单数</span>
+            <strong>{expenses.length} 笔</strong>
+          </div>
+          <div>
+            <span>总金额</span>
+            <strong>{formatMoney(fromMinorUnits(totalMinor), project.default_currency)}</strong>
+          </div>
+          <div>
+            <span>转账方案</span>
+            <strong>{transfers.length} 笔</strong>
+          </div>
+        </div>
+        <button className="primary-button" type="button" disabled={isBusy} onClick={onConfirm}>
+          {isBusy ? '归档中...' : '确认归档'}
+        </button>
+        <button className="cancel-button" type="button" disabled={isBusy} onClick={onCancel}>再检查一下</button>
+      </section>
+    </div>
+  );
+}
+
 function SettlementScreen({
   project,
   activePeriod,
@@ -1440,6 +1475,7 @@ function SettlementScreen({
   const categorySummary = summarizeExpensesByCategory(expenses);
   const [shareNotice, setShareNotice] = useState('');
   const [selectedHistorySnapshot, setSelectedHistorySnapshot] = useState(null);
+  const [settlementConfirmOpen, setSettlementConfirmOpen] = useState(false);
 
   const copySettlementText = async () => {
     const text = buildSettlementShareText({
@@ -1576,7 +1612,7 @@ function SettlementScreen({
         <button
           className={`primary-button ${settledNotice ? 'settled' : ''}`}
           disabled={isBusy || expenses.length === 0}
-          onClick={onSettled}
+          onClick={() => setSettlementConfirmOpen(true)}
         >
           <CheckCircle size={22} weight="fill" />
           {settledNotice ? '结算成功' : expenses.length === 0 ? '暂无待结算账单' : '标记为已结算'}
@@ -1588,6 +1624,19 @@ function SettlementScreen({
           project={project}
           snapshot={selectedHistorySnapshot}
           onClose={() => setSelectedHistorySnapshot(null)}
+        />
+      ) : null}
+      {settlementConfirmOpen ? (
+        <SettlementConfirmDialog
+          project={project}
+          expenses={expenses}
+          transfers={transfers}
+          isBusy={isBusy}
+          onCancel={() => setSettlementConfirmOpen(false)}
+          onConfirm={() => {
+            setSettlementConfirmOpen(false);
+            onSettled();
+          }}
         />
       ) : null}
       <BottomNav active="stats" onDetails={onBack} onMembers={onOpenMembers} onSettings={onOpenSettings} />
