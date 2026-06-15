@@ -202,7 +202,21 @@ function originalAmountLabel(expense, projectCurrency) {
     return '';
   }
   const originalAmount = formatMoney(fromMinorUnits(expense.original_amount_minor), expense.original_currency);
-  return `原 ${originalAmount} · ${expense.exchange_rate_provider ?? '汇率'}`;
+  return `原 ${originalAmount}`;
+}
+
+function expenseTraceLabel(expense, projectCurrency) {
+  const parts = [originalAmountLabel(expense, projectCurrency)].filter(Boolean);
+  if (expense.exchange_rate_provider) {
+    parts.push(`汇率 ${expense.exchange_rate_provider}`);
+  }
+  if (expense.exchange_rate_timestamp) {
+    parts.push(new Date(expense.exchange_rate_timestamp).toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }));
+  }
+  return parts.join(' · ');
 }
 
 function Avatar({ member, size = 'md' }) {
@@ -507,7 +521,7 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
                 <button type="button" onClick={onOpenAi}>AI 录入第一笔</button>
               </div>
             ) : expenses.map((expense) => {
-              const originalLabel = originalAmountLabel(expense, project.default_currency);
+              const traceLabel = expenseTraceLabel(expense, project.default_currency);
               return (
                 <article className="expense-row" key={expense.id}>
                   <div className="expense-icon"><Receipt size={22} /></div>
@@ -520,7 +534,7 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
                   </div>
                   <div className="expense-amount">
                     <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
-                    {originalLabel ? <small>{originalLabel}</small> : null}
+                    {traceLabel ? <small>{traceLabel}</small> : null}
                     <span>{new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                 </article>

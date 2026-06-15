@@ -751,7 +751,7 @@ button:disabled {
 
 .expense-amount small {
   display: block;
-  max-width: 104px;
+  max-width: 132px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
