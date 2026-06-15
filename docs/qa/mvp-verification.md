@@ -12,6 +12,8 @@
 
 - [ ] User can set nickname.
 - [ ] User can create a project with name and default currency.
+- [ ] User can choose trip or roommate project type when creating a project.
+- [ ] Optional project budget is shown as remaining budget after expenses are added.
 - [ ] Created project code is exactly 4 uppercase letters/digits.
 - [ ] User can join with a 4-character alphanumeric code.
 - [ ] Project home shows current period.

@@ -1,4 +1,5 @@
 import { createProjectCode, normalizeProjectCode } from '../domain/codes';
+import { toMinorUnits } from '../domain/money';
 import { createCurrentPeriodLabel } from '../domain/periods';
 import { requireSupabase } from './apiClient';
 
@@ -8,14 +9,20 @@ function isUniqueViolation(error) {
   return error?.code === '23505';
 }
 
-async function insertProjectWithCode({ client, name, defaultCurrency }) {
+async function insertProjectWithCode({ client, name, defaultCurrency, projectType, budgetAmount }) {
   let lastError = null;
 
   for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt += 1) {
     const code = createProjectCode();
     const { data, error } = await client
       .from('projects')
-      .insert({ name, code, default_currency: defaultCurrency })
+      .insert({
+        name,
+        code,
+        default_currency: defaultCurrency,
+        project_type: projectType,
+        budget_amount_minor: budgetAmount ? toMinorUnits(budgetAmount) : null,
+      })
       .select()
       .single();
 
@@ -27,9 +34,9 @@ async function insertProjectWithCode({ client, name, defaultCurrency }) {
   throw lastError ?? new Error('项目码生成失败，请重试');
 }
 
-export async function createProject({ name, defaultCurrency = 'CNY', displayName }) {
+export async function createProject({ name, defaultCurrency = 'CNY', displayName, projectType = 'trip', budgetAmount = '' }) {
   const client = requireSupabase();
-  const project = await insertProjectWithCode({ client, name, defaultCurrency });
+  const project = await insertProjectWithCode({ client, name, defaultCurrency, projectType, budgetAmount });
 
   try {
     const { data: period, error: periodError } = await client

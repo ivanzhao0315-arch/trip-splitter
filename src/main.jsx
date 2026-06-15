@@ -40,6 +40,8 @@ const fallbackProject = {
   name: '杭州周末游',
   code: 'A7K2',
   default_currency: 'CNY',
+  project_type: 'trip',
+  budget_amount_minor: 300000,
   active_period_id: 'local-period',
 };
 
@@ -301,6 +303,8 @@ function EntryScreen({ onCreateProject, onJoinProject, appError, isBusy }) {
 function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) {
   const [projectName, setProjectName] = useState('');
   const [currency, setCurrency] = useState('CNY');
+  const [projectType, setProjectType] = useState('trip');
+  const [budgetAmount, setBudgetAmount] = useState('');
   const [code] = useState(createProjectCode);
   const [error, setError] = useState('');
 
@@ -328,6 +332,14 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
           </label>
 
           <label className="form-field">
+            <span>项目类型</span>
+            <select value={projectType} onChange={(event) => setProjectType(event.target.value)}>
+              <option value="trip">朋友出游</option>
+              <option value="roommate">合租账本</option>
+            </select>
+          </label>
+
+          <label className="form-field">
             <span>结算币种</span>
             <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
               {currencies.map((item) => (
@@ -336,9 +348,19 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
             </select>
           </label>
 
+          <label className="form-field">
+            <span>{projectType === 'trip' ? '出游预算' : '月度预算'}（可选）</span>
+            <input
+              value={budgetAmount}
+              inputMode="decimal"
+              onChange={(event) => setBudgetAmount(event.target.value)}
+              placeholder={projectType === 'trip' ? '例如：3000' : '例如：5000'}
+            />
+          </label>
+
           <div className="info-card">
             <Sparkle size={20} />
-            <p>创建后将生成 4 位项目码。任何知道项目码的人都可以加入并共同记录支出。</p>
+            <p>{projectType === 'trip' ? '适合旅行期间持续记账、看预算和最后结算。' : '适合房租、水电、日用品等周期性合租账单。'} 创建后将生成 4 位项目码。</p>
           </div>
 
           {error ? <p className="error-text" role="alert">{error}</p> : null}
@@ -353,7 +375,13 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
               setError('请输入项目名称');
               return;
             }
-            onCreated({ name: projectName.trim(), currency, code, username });
+            const normalizedBudget = budgetAmount.trim();
+            const parsedBudget = Number(normalizedBudget);
+            if (normalizedBudget && (!Number.isFinite(parsedBudget) || parsedBudget < 0)) {
+              setError('请输入有效预算');
+              return;
+            }
+            onCreated({ name: projectName.trim(), currency, code, username, projectType, budgetAmount });
           }}
         >
           {isBusy ? '处理中...' : '立即创建'}
@@ -365,6 +393,12 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
 
 function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpenSettlement, onAddMember }) {
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
+  const budgetMinor = project.budget_amount_minor ?? 0;
+  const remainingMinor = budgetMinor - totalMinor;
+  const budgetProgress = budgetMinor > 0 ? Math.min(100, Math.round((totalMinor / budgetMinor) * 100)) : 0;
+  const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
+  const budgetLabel = project.project_type === 'roommate' ? '月度预算剩余' : '预算剩余';
+  const remainingText = `${remainingMinor < 0 ? '-' : ''}${formatMoney(fromMinorUnits(Math.abs(remainingMinor)), project.default_currency)}`;
   const memberById = new Map(members.map((member) => [member.id, member]));
 
   return (
@@ -373,12 +407,19 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
       <main className="content with-nav">
         <section className="summary-grid">
           <article className="total-card">
-            <p>总计支出 ({project.default_currency}) · {activePeriod.label}</p>
+            <p>{projectTypeLabel} · 总计支出 ({project.default_currency}) · {activePeriod.label}</p>
             <h2>{formatMoney(fromMinorUnits(totalMinor), project.default_currency)}</h2>
           </article>
           <article className="mini-card">
-            <p>我的余额</p>
-            <strong className="positive">+¥120.00</strong>
+            <p>{budgetMinor > 0 ? budgetLabel : '项目类型'}</p>
+            <strong className={remainingMinor < 0 ? 'negative' : 'positive'}>
+              {budgetMinor > 0 ? remainingText : projectTypeLabel}
+            </strong>
+            {budgetMinor > 0 ? (
+              <div className="budget-progress" aria-label={`预算已使用 ${budgetProgress}%`}>
+                <span style={{ width: `${budgetProgress}%` }} />
+              </div>
+            ) : null}
           </article>
           <article className="mini-card member-card">
             <div>
@@ -967,6 +1008,8 @@ function App() {
         name: created.name,
         code: created.code,
         default_currency: created.currency,
+        project_type: created.projectType,
+        budget_amount_minor: created.budgetAmount.trim() ? toMinorUnits(created.budgetAmount) : null,
         active_period_id: nextPeriod.id,
       });
       setActivePeriod(nextPeriod);
@@ -984,6 +1027,8 @@ function App() {
         name: created.name,
         defaultCurrency: created.currency,
         displayName: created.username,
+        projectType: created.projectType,
+        budgetAmount: created.budgetAmount,
       });
       await loadProjectState(createdProject.id);
       setScreen('home');
