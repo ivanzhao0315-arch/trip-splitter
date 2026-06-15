@@ -1,9 +1,9 @@
-# 虚拟人解说
+# 自动记账项目
 
-项目代号：ECHO-1
-
-这是虚拟人解说项目的 Git 仓库。
+面向中文用户的 AI-first 共享记账和分账项目。
 
 ## 开始
 
-后续可以在这里补充项目说明、运行方式和开发约定。
+当前产品设计见：
+
+- [AI-first Shared Ledger Product Design](docs/superpowers/specs/2026-06-15-ai-first-shared-ledger-design.md)
