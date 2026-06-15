@@ -36,6 +36,7 @@ import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabe
 import { buildProjectInviteText } from './domain/projectInvite';
 import { buildSettlementShareText, formatTransferInstruction, summarizeTransfers } from './domain/settlementShare';
 import { filterExpenses } from './domain/expenseFilters';
+import { formatExpenseShareText } from './domain/expenseShare';
 import {
   buildExpenseCsv,
   buildSettlementHistoryCsv,
@@ -692,6 +693,7 @@ function ProjectHome({
 }) {
   const [expenseQuery, setExpenseQuery] = useState('');
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('全部');
+  const [expenseCopyNotice, setExpenseCopyNotice] = useState('');
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
   const remainingMinor = budgetMinor - totalMinor;
@@ -723,6 +725,18 @@ function ProjectHome({
     category: expenseCategoryFilter,
   });
   const hasExpenseFilters = expenseQuery.trim() || expenseCategoryFilter !== '全部';
+
+  const copyExpenseText = async (expense) => {
+    const text = formatExpenseShareText({ expense, project, members });
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setExpenseCopyNotice(`已复制：${expense.description || '未命名账单'}`);
+    } catch {
+      window.prompt('复制账单摘要', text);
+      setExpenseCopyNotice('已生成账单摘要');
+    }
+  };
 
   return (
     <div className="screen">
@@ -874,6 +888,15 @@ function ProjectHome({
                   </div>
                   <div className="expense-actions">
                     <button
+                      className="copy-expense-button"
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => copyExpenseText(expense)}
+                      aria-label={`复制账单 ${expense.description}`}
+                    >
+                      <Copy size={18} />
+                    </button>
+                    <button
                       className="edit-expense-button"
                       type="button"
                       disabled={isBusy}
@@ -899,6 +922,7 @@ function ProjectHome({
           {hasExpenseFilters && filteredExpenses.length ? (
             <p className="expense-filter-summary">已显示 {filteredExpenses.length} / {expenses.length} 笔</p>
           ) : null}
+          {expenseCopyNotice ? <p className="expense-copy-notice">{expenseCopyNotice}</p> : null}
         </section>
       </main>
       <button className="ai-fab" onClick={onOpenAi}>

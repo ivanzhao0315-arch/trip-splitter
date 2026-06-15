@@ -935,6 +935,15 @@ button:disabled {
   text-align: center;
 }
 
+.expense-copy-notice {
+  margin: 10px 0 0;
+  color: var(--primary);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  font-weight: 700;
+}
+
 .expense-icon {
   width: 42px;
   height: 42px;
@@ -1006,6 +1015,7 @@ button:disabled {
   gap: 6px;
 }
 
+.copy-expense-button,
 .edit-expense-button,
 .delete-expense-button {
   flex: none;
@@ -1017,6 +1027,7 @@ button:disabled {
   background: var(--surface-low);
 }
 
+.copy-expense-button,
 .edit-expense-button {
   color: var(--primary);
 }
