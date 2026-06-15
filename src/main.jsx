@@ -484,7 +484,14 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
             <button onClick={onOpenSettlement}>查看结算</button>
           </div>
           <div className="expense-list">
-            {expenses.map((expense) => {
+            {expenses.length === 0 ? (
+              <div className="expense-empty-card">
+                <div className="expense-empty-icon"><Sparkle size={24} weight="fill" /></div>
+                <strong>还没有账单</strong>
+                <p>拍小票、上传支付截图，或粘贴群聊记录，先生成一笔待确认账单。</p>
+                <button type="button" onClick={onOpenAi}>AI 录入第一笔</button>
+              </div>
+            ) : expenses.map((expense) => {
               const originalLabel = originalAmountLabel(expense, project.default_currency);
               return (
                 <article className="expense-row" key={expense.id}>
