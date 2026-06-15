@@ -1892,7 +1892,7 @@ function ProjectSettingsSheet({
         </div>
         <form
           className="settings-edit-form"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
             const normalizedBudget = budgetAmount.trim();
             const parsedBudget = Number(normalizedBudget);
@@ -1907,7 +1907,8 @@ function ProjectSettingsSheet({
             }
 
             setSettingsError('');
-            onSaveSettings({ name: projectName.trim(), budgetAmount: normalizedBudget });
+            const saved = await onSaveSettings({ name: projectName.trim(), budgetAmount: normalizedBudget });
+            if (saved) setCopyNotice('项目设置已保存');
           }}
         >
           <label className="form-field">
@@ -2768,7 +2769,7 @@ function App() {
       });
       setProject(nextProject);
       setRecentProjects(rememberRecentProject({ project: nextProject, username, mode: 'local' }));
-      return;
+      return true;
     }
 
     setIsBusy(true);
@@ -2780,8 +2781,10 @@ function App() {
       });
       setProject((current) => ({ ...(current ?? currentProject), ...updatedProject }));
       setRecentProjects(rememberRecentProject({ project: updatedProject, username, mode: 'backend' }));
+      return true;
     } catch (error) {
       setAppError(error.message || '保存项目设置失败');
+      return false;
     } finally {
       setIsBusy(false);
     }
