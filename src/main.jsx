@@ -31,7 +31,7 @@ import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
 import { fetchExchangeRate } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
-import { createProject, joinProject } from './services/projectService';
+import { addProjectMember, createProject, joinProject } from './services/projectService';
 import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
 import './styles.css';
 
@@ -146,6 +146,29 @@ async function resolveExchangeRate({ fromCurrency, toCurrency }) {
 
 function memberName(member) {
   return member?.display_name ?? '未知成员';
+}
+
+function createLocalMember(displayName) {
+  return {
+    id: `local-member-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    display_name: displayName,
+    initials: displayName.slice(0, 1).toUpperCase(),
+    color: '#e1e3e4',
+  };
+}
+
+function inferPayerMemberId({ members, text }) {
+  const source = String(text ?? '');
+  const paymentWords = '(已付|支付|付了|付款|垫付|paid)';
+  const payerMatch = members.find((member) => {
+    const escapedName = member.display_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`${escapedName}\\s*.{0,4}\\s*${paymentWords}`, 'i').test(source);
+  });
+  if (payerMatch) return payerMatch.id;
+
+  const exactMatch = members.find((member) => source.includes(member.display_name));
+  if (exactMatch) return exactMatch.id;
+  return members[0]?.id;
 }
 
 function Avatar({ member, size = 'md' }) {
@@ -333,7 +356,7 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
   );
 }
 
-function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpenSettlement }) {
+function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpenSettlement, onAddMember }) {
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const memberById = new Map(members.map((member) => [member.id, member]));
 
@@ -364,7 +387,7 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
         <section className="section-block">
           <div className="section-header">
             <h3>小组成员</h3>
-            <button>管理成员</button>
+            <button onClick={onAddMember}>管理成员</button>
           </div>
           <div className="member-strip">
             {members.map((member) => (
@@ -373,7 +396,7 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
                 <span>{memberName(member)}</span>
               </div>
             ))}
-            <button className="add-member">
+            <button className="add-member" onClick={onAddMember}>
               <Plus size={20} />
               <span>添加</span>
             </button>
@@ -407,6 +430,47 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
         AI 记账
       </button>
       <BottomNav active="details" />
+    </div>
+  );
+}
+
+function MemberDialog({ onClose, onSubmit, appError, isBusy }) {
+  const [displayName, setDisplayName] = useState('');
+  const [error, setError] = useState('');
+
+  return (
+    <div className="modal-layer">
+      <button className="modal-backdrop" onClick={onClose} aria-label="关闭" />
+      <form
+        className="member-dialog"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!displayName.trim()) {
+            setError('请输入成员昵称');
+            return;
+          }
+          onSubmit(displayName.trim());
+        }}
+      >
+        <h2>添加成员</h2>
+        <label className="form-field">
+          <span>成员昵称</span>
+          <input
+            value={displayName}
+            onChange={(event) => {
+              setDisplayName(event.target.value);
+              setError('');
+            }}
+            placeholder="例：张三"
+          />
+        </label>
+        {error ? <p className="error-text" role="alert">{error}</p> : null}
+        {appError ? <p className="error-text" role="alert">{appError}</p> : null}
+        <button className="primary-button" type="submit" disabled={isBusy}>
+          {isBusy ? '添加中...' : '添加成员'}
+        </button>
+        <button className="cancel-button" type="button" onClick={onClose}>取消</button>
+      </form>
     </div>
   );
 }
@@ -489,8 +553,23 @@ function AiSheet({ onClose, onConfirm, isBusy }) {
 }
 
 function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, appError, isBusy }) {
-  const payer = members[0];
+  const [payerMemberId, setPayerMemberId] = useState(draft.payerMemberId ?? members[0]?.id);
+  const [participantIds, setParticipantIds] = useState(
+    draft.participantMemberIds?.length ? draft.participantMemberIds : members.map((member) => member.id),
+  );
+  const payer = members.find((member) => member.id === payerMemberId) ?? members[0];
   const converted = draft.amount * draft.exchangeRate;
+  const canSave = Boolean(payer?.id && participantIds.length);
+
+  const toggleParticipant = (memberId) => {
+    setParticipantIds((current) => {
+      if (current.includes(memberId)) {
+        if (current.length === 1) return current;
+        return current.filter((id) => id !== memberId);
+      }
+      return [...current, memberId];
+    });
+  };
 
   return (
     <div className="screen">
@@ -512,14 +591,36 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, a
         </section>
 
         <section className="form-stack">
-          <PickerRow label="付款人" value={memberName(payer)} member={payer} />
           <div className="field-group">
-            <label>参与人（{members.length}人）</label>
+            <label>付款人</label>
             <div className="participant-box">
               {members.map((member) => (
-                <button className="participant active" key={member.id}>{memberName(member)}<CheckCircle size={15} weight="fill" /></button>
+                <button
+                  className={`participant ${member.id === payerMemberId ? 'active' : ''}`}
+                  key={member.id}
+                  type="button"
+                  onClick={() => setPayerMemberId(member.id)}
+                >
+                  {memberName(member)}
+                  {member.id === payerMemberId ? <CheckCircle size={15} weight="fill" /> : null}
+                </button>
               ))}
-              <button className="circle-add"><Plus size={16} /></button>
+            </div>
+          </div>
+          <div className="field-group">
+            <label>参与人（{participantIds.length}人）</label>
+            <div className="participant-box">
+              {members.map((member) => (
+                <button
+                  className={`participant ${participantIds.includes(member.id) ? 'active' : ''}`}
+                  key={member.id}
+                  type="button"
+                  onClick={() => toggleParticipant(member.id)}
+                >
+                  {memberName(member)}
+                  {participantIds.includes(member.id) ? <CheckCircle size={15} weight="fill" /> : null}
+                </button>
+              ))}
             </div>
           </div>
           <label className="form-field">
@@ -532,7 +633,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, a
       <div className="bottom-actions">
         <button
           className="primary-button"
-          disabled={isBusy}
+          disabled={isBusy || !canSave}
           onClick={() => onSave({
             amount: draft.amount,
             currency: draft.currency,
@@ -542,7 +643,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, a
             exchangeRateTimestamp: draft.exchangeRateTimestamp,
             description: draft.description,
             payerMemberId: payer.id,
-            participantMemberIds: members.map((member) => member.id),
+            participantMemberIds: participantIds,
             sourceType: draft.sourceType,
           })}
         >
@@ -707,6 +808,7 @@ function App() {
   const [project, setProject] = useState(null);
   const [activePeriod, setActivePeriod] = useState(fallbackPeriod);
   const [members, setMembers] = useState(fallbackMembers);
+  const [memberDialogOpen, setMemberDialogOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [settledNotice, setSettledNotice] = useState('');
   const [settlementHistory, setSettlementHistory] = useState([]);
@@ -834,6 +936,27 @@ function App() {
     }
   };
 
+  const handleAddMember = async (displayName) => {
+    setAppError('');
+
+    if (!hasBackendConfig) {
+      setMembers((items) => [...items, createLocalMember(displayName)]);
+      setMemberDialogOpen(false);
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      const member = await addProjectMember({ projectId: currentProject.id, displayName });
+      setMembers((items) => [...items, member]);
+      setMemberDialogOpen(false);
+    } catch (error) {
+      setAppError(error.message || '添加成员失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const openDraftForConfirmation = async ({ sourceType, text = '' }) => {
     setAppError('');
     setIsBusy(true);
@@ -860,6 +983,8 @@ function App() {
       setDraftExpense({
         ...parsedDraft,
         sourceType,
+        payerMemberId: inferPayerMemberId({ members, text: parsedDraft.description }),
+        participantMemberIds: members.map((member) => member.id),
         exchangeRate: rate.rate,
         exchangeRateProvider: rate.provider,
         exchangeRateTimestamp: rate.timestamp,
@@ -985,6 +1110,10 @@ function App() {
             expenses={expenses}
             onOpenAi={() => setAiOpen(true)}
             onOpenSettlement={() => setScreen('settlement')}
+            onAddMember={() => {
+              setAppError('');
+              setMemberDialogOpen(true);
+            }}
           />
         )}
         {screen === 'confirm' && draftExpense && (
@@ -1017,6 +1146,14 @@ function App() {
           <AiSheet
             onClose={() => setAiOpen(false)}
             onConfirm={openDraftForConfirmation}
+            isBusy={isBusy}
+          />
+        ) : null}
+        {memberDialogOpen ? (
+          <MemberDialog
+            onClose={() => setMemberDialogOpen(false)}
+            onSubmit={handleAddMember}
+            appError={appError}
             isBusy={isBusy}
           />
         ) : null}

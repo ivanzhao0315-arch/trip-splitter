@@ -86,3 +86,16 @@ export async function joinProject({ code, displayName }) {
 
   return { ...member, project };
 }
+
+export async function addProjectMember({ projectId, displayName }) {
+  const client = requireSupabase();
+
+  const { data, error } = await client
+    .from('members')
+    .insert({ project_id: projectId, display_name: displayName })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
