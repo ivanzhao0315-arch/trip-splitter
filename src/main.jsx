@@ -682,6 +682,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
   const payer = members.find((member) => member.id === payerMemberId) ?? members[0];
   const numericAmount = Number(amount);
   const converted = numericAmount * exchangeRate;
+  const perPersonShare = participantIds.length && Number.isFinite(converted) ? converted / participantIds.length : 0;
   const canSave = Boolean(payer?.id && participantIds.length && Number.isFinite(numericAmount) && numericAmount > 0);
 
   const toggleParticipant = (memberId) => {
@@ -790,6 +791,12 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
                 </button>
               ))}
             </div>
+          </div>
+          <div className="split-preview">
+            <span>等额分摊</span>
+            <strong>
+              {participantIds.length} 人 · 每人约 {formatMoney(perPersonShare, project.default_currency)}
+            </strong>
           </div>
           <label className="form-field">
             <span>描述</span>
