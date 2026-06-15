@@ -28,6 +28,7 @@
 - [ ] Expense is split equally among selected participants.
 - [ ] Non-project currency expense stores original amount and converted amount.
 - [ ] Non-project currency expense tries the server exchange-rate provider before using local fallback rates.
+- [ ] Exchange-rate endpoint accepts pair and table-style provider responses and rejects missing rates.
 - [ ] Settlement view shows simplified transfers.
 - [ ] Settlement view can copy a Chinese transfer message suitable for WeChat group chat.
 - [ ] Marking a period as settled creates a historical snapshot.

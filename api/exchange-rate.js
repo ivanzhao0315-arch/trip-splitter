@@ -1,5 +1,12 @@
 import { json, readJson } from './lib/json.js';
 
+function extractRate(payload, toCurrency) {
+  const directRate = payload?.rate ?? payload?.result ?? payload?.conversion_rate;
+  const tableRate = payload?.rates?.[toCurrency] ?? payload?.conversion_rates?.[toCurrency];
+  const nestedRate = payload?.data?.[toCurrency]?.value ?? payload?.data?.[toCurrency];
+  return Number(directRate ?? tableRate ?? nestedRate);
+}
+
 export default async function handler(request) {
   if (request.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
@@ -33,7 +40,7 @@ export default async function handler(request) {
   }
 
   const payload = await response.json();
-  const rate = Number(payload.rate ?? payload.result ?? payload.conversion_rate);
+  const rate = extractRate(payload, toCurrency);
 
   if (!Number.isFinite(rate) || rate <= 0) {
     return json({ error: 'Exchange-rate response did not include a valid rate' }, 502);
