@@ -854,13 +854,15 @@ function ProjectHome({
               </div>
             ) : filteredExpenses.map((expense) => {
               const traceLabel = expenseTraceLabel(expense, project.default_currency);
+              const splitMinor = Math.round(expense.converted_amount_minor / expense.participant_member_ids.length);
+              const splitLabel = formatMoney(fromMinorUnits(splitMinor), project.default_currency);
               return (
                 <article className="expense-row" key={expense.id}>
                   <div className="expense-icon"><Receipt size={22} /></div>
                   <div className="expense-copy">
                     <h4>{expense.description}</h4>
                     <p>
-                      {expense.category ?? '其他'} · {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分
+                      {expense.category ?? '其他'} · {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分 · 每人约 {splitLabel}
                       {expense.source_name ? ` · ${sourceTypeLabel(expense.source_type)} ${expense.source_name}` : ''}
                     </p>
                     {expense.notes ? <small className="expense-notes">{expense.notes}</small> : null}
