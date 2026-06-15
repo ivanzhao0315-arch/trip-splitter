@@ -1134,6 +1134,18 @@ button:disabled {
   line-height: 18px;
 }
 
+.save-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #8a3900;
+  background: #fff4e5;
+  border: 1px solid rgba(191, 88, 0, 0.24);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
 .field-group {
   display: flex;
   flex-direction: column;

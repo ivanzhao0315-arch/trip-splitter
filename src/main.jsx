@@ -23,6 +23,7 @@ import {
   Tag,
   UsersThree,
 } from '@phosphor-icons/react';
+import { getBillMissingFields } from './domain/billValidation';
 import { createProjectCode, normalizeProjectCode } from './domain/codes';
 import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
@@ -724,7 +725,13 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
   const numericAmount = Number(amount);
   const converted = numericAmount * exchangeRate;
   const perPersonShare = participantIds.length && Number.isFinite(converted) ? converted / participantIds.length : 0;
-  const canSave = Boolean(payer?.id && participantIds.length && Number.isFinite(numericAmount) && numericAmount > 0);
+  const missingFields = getBillMissingFields({
+    amount: numericAmount,
+    description,
+    payerMemberId: payer?.id,
+    participantMemberIds: participantIds,
+  });
+  const canSave = missingFields.length === 0;
 
   const toggleParticipant = (memberId) => {
     setParticipantIds((current) => {
@@ -857,6 +864,9 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
                 : '可在保存前修正 AI 识别的金额、币种、付款人、参与人和描述。'}
             </p>
           ) : null}
+          {missingFields.length ? (
+            <p className="save-hint">还需补全：{missingFields.join('、')}</p>
+          ) : null}
           {localError ? <p className="error-text" role="alert">{localError}</p> : null}
           {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         </section>
@@ -872,14 +882,14 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
             exchangeRate,
             exchangeRateProvider,
             exchangeRateTimestamp,
-            description,
+            description: description.trim(),
             payerMemberId: payer.id,
             participantMemberIds: participantIds,
             sourceType: draft.sourceType,
             sourceName: draft.sourceName,
           })}
         >
-          {isBusy ? '保存中...' : '保存账单'}
+          {isBusy ? '保存中...' : missingFields.length ? `补全${missingFields[0]}后保存` : '保存账单'}
         </button>
         <button className="text-button" onClick={() => setManualOpen((current) => !current)}>
           {manualOpen ? '收起修改提示' : '手动修改'}
