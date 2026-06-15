@@ -1162,6 +1162,10 @@ button:disabled {
   border-color: #d9e3f6;
 }
 
+.fx-card > div:first-child {
+  min-width: 0;
+}
+
 .fx-card p {
   margin: 0 0 4px;
   display: flex;
@@ -1184,13 +1188,41 @@ button:disabled {
   line-height: 14px;
 }
 
-.fx-card button {
+.fx-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fx-actions button {
   flex: none;
   min-height: 36px;
   padding: 0 10px;
   border-radius: 8px;
   background: #fff;
   border: 1px solid var(--outline-variant);
+}
+
+.fx-edit-row {
+  display: grid;
+  grid-template-columns: auto minmax(78px, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: #3d4756;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.fx-edit-row input {
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--outline-variant);
+  background: #fff;
+  font-size: 14px;
 }
 
 .manual-note {

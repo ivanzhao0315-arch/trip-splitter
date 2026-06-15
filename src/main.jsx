@@ -731,6 +731,8 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
   const [currency, setCurrency] = useState(draft.currency);
   const [description, setDescription] = useState(draft.description);
   const [exchangeRate, setExchangeRate] = useState(draft.exchangeRate);
+  const [manualRateInput, setManualRateInput] = useState(String(draft.exchangeRate ?? 1));
+  const [rateEditing, setRateEditing] = useState(false);
   const [exchangeRateProvider, setExchangeRateProvider] = useState(draft.exchangeRateProvider);
   const [exchangeRateTimestamp, setExchangeRateTimestamp] = useState(draft.exchangeRateTimestamp);
   const [localError, setLocalError] = useState('');
@@ -741,7 +743,9 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
   );
   const payer = members.find((member) => member.id === payerMemberId) ?? members[0];
   const numericAmount = Number(amount);
-  const converted = numericAmount * exchangeRate;
+  const numericExchangeRate = Number(exchangeRate);
+  const validExchangeRate = Number.isFinite(numericExchangeRate) && numericExchangeRate > 0;
+  const converted = validExchangeRate ? numericAmount * numericExchangeRate : NaN;
   const perPersonShare = participantIds.length && Number.isFinite(converted) ? converted / participantIds.length : 0;
   const missingFields = getBillMissingFields({
     amount: numericAmount,
@@ -749,7 +753,8 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
     payerMemberId: payer?.id,
     participantMemberIds: participantIds,
   });
-  const canSave = missingFields.length === 0;
+  const saveMissingFields = validExchangeRate ? missingFields : [...missingFields, '汇率'];
+  const canSave = saveMissingFields.length === 0;
 
   const toggleParticipant = (memberId) => {
     setParticipantIds((current) => {
@@ -766,11 +771,29 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
     try {
       const rate = await onResolveRate({ fromCurrency: nextCurrency, toCurrency: project.default_currency });
       setExchangeRate(rate.rate);
+      setManualRateInput(String(rate.rate));
       setExchangeRateProvider(rate.provider);
       setExchangeRateTimestamp(rate.timestamp);
+      setRateEditing(false);
     } catch (error) {
       setLocalError(error.message || '汇率刷新失败');
     }
+  };
+
+  const applyManualRate = () => {
+    const nextRate = Number(manualRateInput);
+
+    if (!Number.isFinite(nextRate) || nextRate <= 0) {
+      setLocalError('请输入大于 0 的汇率');
+      return;
+    }
+
+    setExchangeRate(nextRate);
+    setExchangeRateProvider('manual');
+    setExchangeRateTimestamp(new Date().toISOString());
+    setLocalError('');
+    setManualOpen(true);
+    setRateEditing(false);
   };
 
   return (
@@ -785,11 +808,36 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
 
         <section className="fx-card">
           <div>
-            <p><ArrowsLeftRight size={17} /> 汇率 1 {currency} = {exchangeRate.toFixed(4)} {project.default_currency}</p>
+            <p>
+              <ArrowsLeftRight size={17} />
+              汇率 1 {currency} = {validExchangeRate ? numericExchangeRate.toFixed(4) : '--'} {project.default_currency}
+            </p>
             <strong>折合 {Number.isFinite(converted) ? formatMoney(converted, project.default_currency) : '--'}</strong>
             <small>{exchangeRateProvider} · {new Date(exchangeRateTimestamp).toLocaleString('zh-CN')}</small>
+            {rateEditing ? (
+              <div className="fx-edit-row">
+                <span>1 {currency} =</span>
+                <input
+                  aria-label="手动汇率"
+                  inputMode="decimal"
+                  value={manualRateInput}
+                  onChange={(event) => {
+                    setManualRateInput(event.target.value);
+                    setLocalError('');
+                  }}
+                />
+                <span>{project.default_currency}</span>
+              </div>
+            ) : null}
           </div>
-          <button disabled={isBusy} onClick={() => refreshRate()}>刷新汇率</button>
+          <div className="fx-actions">
+            {rateEditing ? (
+              <button disabled={isBusy} onClick={applyManualRate} type="button">应用</button>
+            ) : (
+              <button disabled={isBusy} onClick={() => setRateEditing(true)} type="button">手动汇率</button>
+            )}
+            <button disabled={isBusy} onClick={() => refreshRate()} type="button">刷新汇率</button>
+          </div>
         </section>
 
         <section className="form-stack">
@@ -882,8 +930,8 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
                 : '可在保存前修正 AI 识别的金额、币种、付款人、参与人和描述。'}
             </p>
           ) : null}
-          {missingFields.length ? (
-            <p className="save-hint">还需补全：{missingFields.join('、')}</p>
+          {saveMissingFields.length ? (
+            <p className="save-hint">还需补全：{saveMissingFields.join('、')}</p>
           ) : null}
           {localError ? <p className="error-text" role="alert">{localError}</p> : null}
           {appError ? <p className="error-text" role="alert">{appError}</p> : null}
@@ -907,7 +955,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
             sourceName: draft.sourceName,
           })}
         >
-          {isBusy ? '保存中...' : missingFields.length ? `补全${missingFields[0]}后保存` : '保存账单'}
+          {isBusy ? '保存中...' : saveMissingFields.length ? `补全${saveMissingFields[0]}后保存` : '保存账单'}
         </button>
         <button className="text-button" onClick={() => setManualOpen((current) => !current)}>
           {manualOpen ? '收起修改提示' : '手动修改'}
