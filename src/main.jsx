@@ -552,14 +552,23 @@ function AiSheet({ onClose, onConfirm, isBusy }) {
   );
 }
 
-function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, appError, isBusy }) {
+function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, appError, isBusy }) {
+  const [amount, setAmount] = useState(String(draft.amount));
+  const [currency, setCurrency] = useState(draft.currency);
+  const [description, setDescription] = useState(draft.description);
+  const [exchangeRate, setExchangeRate] = useState(draft.exchangeRate);
+  const [exchangeRateProvider, setExchangeRateProvider] = useState(draft.exchangeRateProvider);
+  const [exchangeRateTimestamp, setExchangeRateTimestamp] = useState(draft.exchangeRateTimestamp);
+  const [localError, setLocalError] = useState('');
+  const [manualOpen, setManualOpen] = useState(false);
   const [payerMemberId, setPayerMemberId] = useState(draft.payerMemberId ?? members[0]?.id);
   const [participantIds, setParticipantIds] = useState(
     draft.participantMemberIds?.length ? draft.participantMemberIds : members.map((member) => member.id),
   );
   const payer = members.find((member) => member.id === payerMemberId) ?? members[0];
-  const converted = draft.amount * draft.exchangeRate;
-  const canSave = Boolean(payer?.id && participantIds.length);
+  const numericAmount = Number(amount);
+  const converted = numericAmount * exchangeRate;
+  const canSave = Boolean(payer?.id && participantIds.length && Number.isFinite(numericAmount) && numericAmount > 0);
 
   const toggleParticipant = (memberId) => {
     setParticipantIds((current) => {
@@ -571,26 +580,67 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, a
     });
   };
 
+  const refreshRate = async (nextCurrency = currency) => {
+    setLocalError('');
+    try {
+      const rate = await onResolveRate({ fromCurrency: nextCurrency, toCurrency: project.default_currency });
+      setExchangeRate(rate.rate);
+      setExchangeRateProvider(rate.provider);
+      setExchangeRateTimestamp(rate.timestamp);
+    } catch (error) {
+      setLocalError(error.message || '汇率刷新失败');
+    }
+  };
+
   return (
     <div className="screen">
       <TopBar title="确认账单" code={project.code} onBack={onBack} />
       <main className="content confirm-content">
         <section className="amount-card">
           <label>金额</label>
-          <h2>{formatMoney(draft.amount, draft.currency)}</h2>
-          <p>{draft.currency} · AI 置信度 {Math.round((draft.confidence ?? 0) * 100)}%</p>
+          <h2>{Number.isFinite(numericAmount) ? formatMoney(numericAmount, currency) : `${currency} --`}</h2>
+          <p>{currency} · AI 置信度 {Math.round((draft.confidence ?? 0) * 100)}%</p>
         </section>
 
         <section className="fx-card">
           <div>
-            <p><ArrowsLeftRight size={17} /> 汇率 1 {draft.currency} = {draft.exchangeRate.toFixed(4)} {project.default_currency}</p>
-            <strong>折合 {formatMoney(converted, project.default_currency)}</strong>
-            <small>{draft.exchangeRateProvider} · {new Date(draft.exchangeRateTimestamp).toLocaleString('zh-CN')}</small>
+            <p><ArrowsLeftRight size={17} /> 汇率 1 {currency} = {exchangeRate.toFixed(4)} {project.default_currency}</p>
+            <strong>折合 {Number.isFinite(converted) ? formatMoney(converted, project.default_currency) : '--'}</strong>
+            <small>{exchangeRateProvider} · {new Date(exchangeRateTimestamp).toLocaleString('zh-CN')}</small>
           </div>
-          <button disabled={isBusy} onClick={onRefreshRate}>刷新汇率</button>
+          <button disabled={isBusy} onClick={() => refreshRate()}>刷新汇率</button>
         </section>
 
         <section className="form-stack">
+          <div className="edit-grid">
+            <label className="form-field">
+              <span>原始金额</span>
+              <input
+                value={amount}
+                inputMode="decimal"
+                onChange={(event) => {
+                  setAmount(event.target.value);
+                  setLocalError('');
+                }}
+                onFocus={() => setManualOpen(true)}
+              />
+            </label>
+            <label className="form-field">
+              <span>币种</span>
+              <select
+                value={currency}
+                onChange={(event) => {
+                  const nextCurrency = event.target.value;
+                  setCurrency(nextCurrency);
+                  refreshRate(nextCurrency);
+                }}
+              >
+                {currencies.map((item) => (
+                  <option key={item.code} value={item.code}>{item.code}</option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className="field-group">
             <label>付款人</label>
             <div className="participant-box">
@@ -625,8 +675,19 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, a
           </div>
           <label className="form-field">
             <span>描述</span>
-            <input value={draft.description} readOnly />
+            <input
+              value={description}
+              onChange={(event) => {
+                setDescription(event.target.value);
+                setLocalError('');
+              }}
+              onFocus={() => setManualOpen(true)}
+            />
           </label>
+          {manualOpen ? (
+            <p className="manual-note">可在保存前修正 AI 识别的金额、币种、付款人、参与人和描述。</p>
+          ) : null}
+          {localError ? <p className="error-text" role="alert">{localError}</p> : null}
           {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         </section>
       </main>
@@ -635,13 +696,13 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, a
           className="primary-button"
           disabled={isBusy || !canSave}
           onClick={() => onSave({
-            amount: draft.amount,
-            currency: draft.currency,
+            amount: numericAmount,
+            currency,
             convertedAmount: converted,
-            exchangeRate: draft.exchangeRate,
-            exchangeRateProvider: draft.exchangeRateProvider,
-            exchangeRateTimestamp: draft.exchangeRateTimestamp,
-            description: draft.description,
+            exchangeRate,
+            exchangeRateProvider,
+            exchangeRateTimestamp,
+            description,
             payerMemberId: payer.id,
             participantMemberIds: participantIds,
             sourceType: draft.sourceType,
@@ -649,7 +710,9 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onRefreshRate, a
         >
           {isBusy ? '保存中...' : '保存账单'}
         </button>
-        <button className="text-button">手动修改</button>
+        <button className="text-button" onClick={() => setManualOpen((current) => !current)}>
+          {manualOpen ? '收起修改提示' : '手动修改'}
+        </button>
       </div>
     </div>
   );
@@ -998,29 +1061,6 @@ function App() {
     }
   };
 
-  const refreshDraftRate = async () => {
-    if (!draftExpense) return;
-
-    setAppError('');
-    setIsBusy(true);
-    try {
-      const rate = await resolveExchangeRate({
-        fromCurrency: draftExpense.currency,
-        toCurrency: currentProject.default_currency,
-      });
-      setDraftExpense((current) => ({
-        ...current,
-        exchangeRate: rate.rate,
-        exchangeRateProvider: rate.provider,
-        exchangeRateTimestamp: rate.timestamp,
-      }));
-    } catch (error) {
-      setAppError(error.message || '汇率刷新失败');
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
   const handleSettleActivePeriod = async () => {
     setAppError('');
     setSettledNotice('');
@@ -1123,7 +1163,7 @@ function App() {
             draft={draftExpense}
             onBack={() => setScreen('home')}
             onSave={handleSaveExpense}
-            onRefreshRate={refreshDraftRate}
+            onResolveRate={resolveExchangeRate}
             appError={appError}
             isBusy={isBusy}
           />
