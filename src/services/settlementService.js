@@ -1,4 +1,4 @@
-import { buildSettlementSnapshot, createCurrentPeriodLabel } from '../domain/periods';
+import { buildSettlementSnapshot, createNextPeriodLabel } from '../domain/periods';
 import { calculatePeriodBalances, simplifyTransfers } from '../domain/splitting';
 import { requireSupabase } from './apiClient';
 
@@ -39,7 +39,7 @@ export async function settleActivePeriod({ project, period, members, expenses })
 
   const { data: nextPeriod, error: nextError } = await client
     .from('settlement_periods')
-    .insert({ project_id: project.id, label: createCurrentPeriodLabel() })
+    .insert({ project_id: project.id, label: createNextPeriodLabel(period.label) })
     .select()
     .single();
 

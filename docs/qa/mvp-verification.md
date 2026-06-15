@@ -30,6 +30,7 @@
 - [ ] Settlement view shows simplified transfers.
 - [ ] Settlement view can copy a Chinese transfer message suitable for WeChat group chat.
 - [ ] Marking a period as settled creates a historical snapshot.
+- [ ] Settling multiple times in the same month creates distinguishable period labels such as `2026-06 #2`.
 - [ ] Adding a later expense does not mutate the old snapshot.
 
 ## Visual

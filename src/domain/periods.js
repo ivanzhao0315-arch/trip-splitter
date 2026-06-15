@@ -4,6 +4,18 @@ export function createCurrentPeriodLabel(date = new Date()) {
   return `${year}-${month}`;
 }
 
+export function createNextPeriodLabel(currentLabel, date = new Date()) {
+  const baseLabel = createCurrentPeriodLabel(date);
+  const source = String(currentLabel ?? '');
+
+  if (!source.startsWith(baseLabel)) {
+    return baseLabel;
+  }
+
+  const sequence = source.match(/#(\d+)$/)?.[1];
+  return `${baseLabel} #${sequence ? Number(sequence) + 1 : 2}`;
+}
+
 export function buildSettlementSnapshot({ project, period, expenses, balances, transfers }) {
   return {
     project_id: project.id,

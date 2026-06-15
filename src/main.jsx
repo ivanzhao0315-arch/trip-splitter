@@ -27,7 +27,7 @@ import { createProjectCode, normalizeProjectCode } from './domain/codes';
 import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
 import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
-import { buildSettlementSnapshot, createCurrentPeriodLabel } from './domain/periods';
+import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
 import { buildSettlementShareText } from './domain/settlementShare';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
@@ -1293,7 +1293,7 @@ function App() {
         ...fallbackPeriod,
         id: `local-period-${Date.now()}`,
         project_id: currentProject.id,
-        label: createCurrentPeriodLabel(),
+        label: createNextPeriodLabel(activePeriod.label),
         started_at: new Date().toISOString(),
       };
       const nextHistory = [snapshot, ...settlementHistory];
