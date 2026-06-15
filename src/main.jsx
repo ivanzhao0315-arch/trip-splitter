@@ -12,6 +12,7 @@ import {
   ClipboardText,
   Copy,
   DotsThree,
+  DownloadSimple,
   GearSix,
   HouseLine,
   Image,
@@ -35,6 +36,7 @@ import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabe
 import { buildProjectInviteText } from './domain/projectInvite';
 import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
 import { filterExpenses } from './domain/expenseFilters';
+import { buildExpenseCsv, createExpenseExportFilename } from './domain/expenseExport';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
@@ -1642,6 +1644,21 @@ function ProjectSettingsSheet({
     }
   };
 
+  const exportExpenses = () => {
+    const csv = buildExpenseCsv({ project, period: activePeriod, members, expenses });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = createExpenseExportFilename({ project, period: activePeriod });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setCopyNotice('本周期账单 CSV 已导出');
+  };
+
   return (
     <div className="modal-layer">
       <button className="modal-backdrop" onClick={onClose} aria-label="关闭" />
@@ -1710,6 +1727,10 @@ function ProjectSettingsSheet({
         <button className="primary-button" type="button" onClick={copyInvite}>
           <Copy size={20} />
           复制邀请文案
+        </button>
+        <button className="secondary-button settings-export-button" type="button" onClick={exportExpenses}>
+          <DownloadSimple size={20} />
+          导出本周期明细
         </button>
         {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
         <button className="switch-project-button" type="button" onClick={onSwitchProject}>
