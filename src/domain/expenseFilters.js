@@ -16,11 +16,15 @@ export function filterExpenses({ expenses, members = [], query = '', category = 
     if (!normalizedQuery) return true;
 
     const payer = memberById.get(expense.payer_member_id);
+    const participantNames = (expense.participant_member_ids ?? [])
+      .map((memberId) => memberById.get(memberId)?.display_name)
+      .filter(Boolean);
     const searchable = [
       expense.description,
       expenseCategory,
       expense.notes,
       payer?.display_name,
+      ...participantNames,
       expense.source_name,
     ]
       .map(normalizeText)
