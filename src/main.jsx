@@ -29,7 +29,7 @@ import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
 import { findMemberByDisplayName, normalizeMemberDisplayName, upsertMemberByIdentity } from './domain/members';
 import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
-import { buildSettlementShareText } from './domain/settlementShare';
+import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
@@ -883,6 +883,7 @@ function settlementHistoryMeta(snapshot) {
     memberCount: balances.length,
     transferCount: transfers.length,
     totalMinor,
+    transferSummary: summarizeTransfers(transfers, snapshot.project_currency),
   };
 }
 
@@ -988,6 +989,7 @@ function SettlementScreen({
                   <div>
                     <strong>{item.period_label ?? activePeriod.label} 结算</strong>
                     <span>{meta.memberCount}人参与 · {meta.transferCount}笔转账</span>
+                    <small>{meta.transferSummary}</small>
                   </div>
                   <div>
                     <strong>{formatMoney(fromMinorUnits(meta.totalMinor), project.default_currency)}</strong>

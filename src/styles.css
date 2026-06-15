@@ -1354,6 +1354,18 @@ button:disabled {
   font-size: 12px;
 }
 
+.history-row small {
+  display: block;
+  max-width: 170px;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .history-row > div:last-child {
   text-align: right;
 }
