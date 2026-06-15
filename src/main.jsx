@@ -1543,6 +1543,36 @@ function SettlementConfirmDialog({ project, expenses, transfers, onCancel, onCon
   );
 }
 
+function DeleteExpenseConfirmDialog({ project, expense, members, onCancel, onConfirm, isBusy }) {
+  const memberById = new Map(members.map((member) => [member.id, member]));
+  const payer = memberById.get(expense.payer_member_id);
+
+  return (
+    <div className="modal-layer">
+      <button className="modal-backdrop" onClick={onCancel} aria-label="取消删除账单" />
+      <section className="delete-confirm-dialog">
+        <div className="delete-confirm-icon">
+          <Trash size={24} weight="fill" />
+        </div>
+        <h2>删除这笔账单？</h2>
+        <p>删除后本周期统计、成员余额和结算方案都会同步更新。</p>
+        <div className="delete-confirm-summary">
+          <span>{expense.description || '未命名账单'}</span>
+          <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
+          <small>
+            {memberName(payer)}支付 · {(expense.participant_member_ids ?? []).length}人平分
+          </small>
+        </div>
+        <button className="danger-button" type="button" disabled={isBusy} onClick={() => onConfirm(expense)}>
+          <Trash size={18} />
+          {isBusy ? '删除中...' : '确认删除'}
+        </button>
+        <button className="cancel-button" type="button" disabled={isBusy} onClick={onCancel}>取消</button>
+      </section>
+    </div>
+  );
+}
+
 function SettlementScreen({
   project,
   activePeriod,
@@ -1955,6 +1985,7 @@ function App() {
   const [settlementHistory, setSettlementHistory] = useState([]);
   const [expenses, setExpenses] = useState(fallbackExpenses);
   const [draftExpense, setDraftExpense] = useState(null);
+  const [deletingExpense, setDeletingExpense] = useState(null);
   const [appError, setAppError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [syncNotice, setSyncNotice] = useState('');
@@ -2332,10 +2363,13 @@ function App() {
     }
   };
 
+  const requestDeleteExpense = (expense) => {
+    setAppError('');
+    setDeletingExpense(expense);
+  };
+
   const handleDeleteExpense = async (expense) => {
     setAppError('');
-    const confirmed = window.confirm(`删除「${expense.description || '这笔账单'}」？删除后本周期统计和结算会同步更新。`);
-    if (!confirmed) return;
 
     if (!hasBackendConfig) {
       const nextExpenses = expenses.filter((item) => item.id !== expense.id);
@@ -2348,6 +2382,7 @@ function App() {
       });
       setExpenses(nextExpenses);
       setSettledNotice('');
+      setDeletingExpense(null);
       return;
     }
 
@@ -2356,6 +2391,7 @@ function App() {
       await deleteExpense({ projectId: currentProject.id, expenseId: expense.id });
       await loadProjectState(currentProject.id);
       setSettledNotice('');
+      setDeletingExpense(null);
     } catch (error) {
       setAppError(error.message || '删除账单失败');
     } finally {
@@ -2679,6 +2715,7 @@ function App() {
     setMemberDialogOpen(false);
     setEditingMember(null);
     setSettingsOpen(false);
+    setDeletingExpense(null);
   };
 
   const handleSaveProjectSettings = async ({ name, budgetAmount }) => {
@@ -2822,7 +2859,7 @@ function App() {
             }}
             onOpenSettings={() => setSettingsOpen(true)}
             onEditExpense={handleEditExpense}
-            onDeleteExpense={handleDeleteExpense}
+            onDeleteExpense={requestDeleteExpense}
             isBusy={isBusy}
           />
         )}
@@ -2889,6 +2926,16 @@ function App() {
             onSwitchProject={handleSwitchProject}
             onSaveSettings={handleSaveProjectSettings}
             appError={appError}
+            isBusy={isBusy}
+          />
+        ) : null}
+        {deletingExpense ? (
+          <DeleteExpenseConfirmDialog
+            project={currentProject}
+            expense={deletingExpense}
+            members={members}
+            onCancel={() => setDeletingExpense(null)}
+            onConfirm={handleDeleteExpense}
             isBusy={isBusy}
           />
         ) : null}

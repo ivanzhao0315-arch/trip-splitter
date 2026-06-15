@@ -1128,7 +1128,8 @@ button:disabled {
   line-height: 28px;
 }
 
-.settlement-confirm-dialog {
+.settlement-confirm-dialog,
+.delete-confirm-dialog {
   position: absolute;
   left: 18px;
   right: 18px;
@@ -1143,7 +1144,8 @@ button:disabled {
   box-shadow: 0 22px 60px rgba(25, 28, 29, 0.28);
 }
 
-.settlement-confirm-icon {
+.settlement-confirm-icon,
+.delete-confirm-icon {
   width: 48px;
   height: 48px;
   display: grid;
@@ -1153,17 +1155,26 @@ button:disabled {
   background: var(--primary-container);
 }
 
+.delete-confirm-icon {
+  color: var(--error);
+  background: rgba(187, 26, 26, 0.12);
+}
+
 .settlement-confirm-dialog h2,
-.settlement-confirm-dialog p {
+.settlement-confirm-dialog p,
+.delete-confirm-dialog h2,
+.delete-confirm-dialog p {
   margin: 0;
 }
 
-.settlement-confirm-dialog h2 {
+.settlement-confirm-dialog h2,
+.delete-confirm-dialog h2 {
   font-size: 22px;
   line-height: 30px;
 }
 
-.settlement-confirm-dialog p {
+.settlement-confirm-dialog p,
+.delete-confirm-dialog p {
   color: var(--muted);
   font-size: 14px;
   line-height: 20px;
@@ -1204,6 +1215,41 @@ button:disabled {
   margin-top: 4px;
   font-size: 18px;
   line-height: 24px;
+}
+
+.delete-confirm-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--surface-highest);
+}
+
+.delete-confirm-summary span,
+.delete-confirm-summary strong,
+.delete-confirm-summary small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.delete-confirm-summary span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.delete-confirm-summary strong {
+  color: var(--error);
+  font-size: 20px;
+  line-height: 26px;
+}
+
+.delete-confirm-summary small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
 }
 
 .sheet-handle {
