@@ -34,6 +34,10 @@ function expenseDraftPrompt(sourceType) {
   ].join('\n');
 }
 
+function getRuntimeEnv(env) {
+  return env ?? globalThis.process?.env ?? {};
+}
+
 function normalizeDraft(draft, fallback = {}) {
   const amount = Number(draft?.amount);
   const currency = String(draft?.currency ?? fallback.currency ?? 'CNY').toUpperCase();
@@ -52,15 +56,15 @@ function normalizeDraft(draft, fallback = {}) {
   };
 }
 
-async function requestOpenAiDraft(input) {
+async function requestOpenAiDraft(input, env) {
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini',
+      model: env.OPENAI_VISION_MODEL || 'gpt-4.1-mini',
       input,
       text: {
         format: {
@@ -80,7 +84,7 @@ async function requestOpenAiDraft(input) {
   return normalizeDraft(extractResponseJson(await response.json()));
 }
 
-async function parseTextWithOpenAI({ text, sourceType }) {
+async function parseTextWithOpenAI({ text, sourceType, env }) {
   return requestOpenAiDraft([
     {
       role: 'user',
@@ -91,7 +95,19 @@ async function parseTextWithOpenAI({ text, sourceType }) {
         },
       ],
     },
-  ]);
+  ], env);
+}
+
+function arrayBufferToBase64(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    const chunk = bytes.subarray(index, index + 0x8000);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
 }
 
 async function fileToDataUrl(file) {
@@ -100,9 +116,8 @@ async function fileToDataUrl(file) {
     throw new Error('Image is too large');
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
   const mimeType = file.type || 'image/jpeg';
-  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+  return `data:${mimeType};base64,${arrayBufferToBase64(await file.arrayBuffer())}`;
 }
 
 function extractResponseJson(payload) {
@@ -119,7 +134,7 @@ function extractResponseJson(payload) {
   return JSON.parse(outputText);
 }
 
-async function parseImageWithOpenAI({ file, sourceType }) {
+async function parseImageWithOpenAI({ file, sourceType, env }) {
   const imageUrl = await fileToDataUrl(file);
   if (!imageUrl) {
     throw new Error('Missing image file');
@@ -139,10 +154,12 @@ async function parseImageWithOpenAI({ file, sourceType }) {
         },
       ],
     },
-  ]);
+  ], env);
 }
 
-export default async function handler(request) {
+export default async function handler(request, env) {
+  const runtimeEnv = getRuntimeEnv(env);
+
   if (request.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }
@@ -158,11 +175,11 @@ export default async function handler(request) {
   }
 
   if (sourceType === 'text') {
-    if (process.env.OPENAI_API_KEY) {
+    if (runtimeEnv.OPENAI_API_KEY) {
       try {
         return json({
           sourceType,
-          draft: await parseTextWithOpenAI({ text, sourceType }),
+          draft: await parseTextWithOpenAI({ text, sourceType, env: runtimeEnv }),
           status: 'draft',
         });
       } catch {
@@ -177,11 +194,11 @@ export default async function handler(request) {
     });
   }
 
-  if (file && process.env.OPENAI_API_KEY) {
+  if (file && runtimeEnv.OPENAI_API_KEY) {
     try {
       return json({
         sourceType,
-        draft: await parseImageWithOpenAI({ file, sourceType }),
+        draft: await parseImageWithOpenAI({ file, sourceType, env: runtimeEnv }),
         status: 'draft',
       });
     } catch (error) {

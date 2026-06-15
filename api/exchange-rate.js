@@ -1,5 +1,9 @@
 import { json, readJson } from './lib/json.js';
 
+function getRuntimeEnv(env) {
+  return env ?? globalThis.process?.env ?? {};
+}
+
 function extractRate(payload, toCurrency) {
   const directRate = payload?.rate ?? payload?.result ?? payload?.conversion_rate;
   const tableRate = payload?.rates?.[toCurrency] ?? payload?.conversion_rates?.[toCurrency];
@@ -7,7 +11,9 @@ function extractRate(payload, toCurrency) {
   return Number(directRate ?? tableRate ?? nestedRate);
 }
 
-export default async function handler(request) {
+export default async function handler(request, env) {
+  const runtimeEnv = getRuntimeEnv(env);
+
   if (request.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }
@@ -22,8 +28,8 @@ export default async function handler(request) {
     return json({ rate: 1, provider: 'identity', timestamp: new Date().toISOString() });
   }
 
-  const baseUrl = process.env.EXCHANGE_RATE_PROVIDER_URL;
-  const apiKey = process.env.EXCHANGE_RATE_PROVIDER_KEY;
+  const baseUrl = runtimeEnv.EXCHANGE_RATE_PROVIDER_URL;
+  const apiKey = runtimeEnv.EXCHANGE_RATE_PROVIDER_KEY;
 
   if (!baseUrl || !apiKey) {
     return json({ error: 'Exchange-rate provider is not configured' }, 500);
