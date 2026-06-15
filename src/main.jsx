@@ -193,6 +193,7 @@ function loadLocalProjectState(code) {
 }
 
 function sourceTypeLabel(sourceType) {
+  if (sourceType === 'manual') return '手动录入';
   if (sourceType === 'photo') return '收据照片';
   if (sourceType === 'screenshot') return '支付截图';
   if (sourceType === 'text') return '粘贴文字';
@@ -614,6 +615,7 @@ function AiSheet({ onClose, onConfirm, isBusy }) {
     { icon: <Camera size={24} />, title: '拍摄收据', desc: '拍照并识别纸质账单明细', sourceType: 'photo' },
     { icon: <Image size={24} />, title: '上传截图', desc: '微信/支付宝支付详情页截图', sourceType: 'screenshot' },
     { icon: <ClipboardText size={24} />, title: '粘贴文字', desc: '粘贴群聊记录或账单文本', sourceType: 'text' },
+    { icon: <ListChecks size={24} />, title: '手动录入', desc: 'AI 不可用时直接填写账单', sourceType: 'manual' },
   ];
 
   return (
@@ -647,6 +649,22 @@ function AiSheet({ onClose, onConfirm, isBusy }) {
                   onClick={() => {
                     setError('');
                     setTextMode(true);
+                  }}
+                >
+                  {content}
+                </button>
+              );
+            }
+
+            if (option.sourceType === 'manual') {
+              return (
+                <button
+                  className="sheet-option"
+                  key={option.title}
+                  disabled={isBusy}
+                  onClick={() => {
+                    setError('');
+                    onConfirm({ sourceType: 'manual' });
                   }}
                 >
                   {content}
@@ -1303,7 +1321,7 @@ function App() {
     try {
       let parsedDraft = buildLocalDraft(sourceType, text);
 
-      if (hasBackendConfig || sourceType === 'text') {
+      if (sourceType !== 'manual' && (hasBackendConfig || sourceType === 'text')) {
         try {
           const response = hasBackendConfig
             ? await createAiDraft({ projectId: currentProject.id, sourceType, text, file })
