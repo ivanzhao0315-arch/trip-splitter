@@ -1853,6 +1853,18 @@ function ProjectSettingsSheet({
     }
   };
 
+  const copyInviteLink = async () => {
+    const inviteUrl = createProjectInviteUrl(project.code);
+
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopyNotice('邀请链接已复制');
+    } catch {
+      window.prompt('复制邀请链接', inviteUrl);
+      setCopyNotice('可手动复制邀请链接');
+    }
+  };
+
   const exportExpenses = () => {
     const csv = buildExpenseCsv({ project, period: activePeriod, members, expenses });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -1956,6 +1968,10 @@ function ProjectSettingsSheet({
         <button className="secondary-button settings-action-button" type="button" onClick={copyProjectCode}>
           <Copy size={20} />
           复制项目码
+        </button>
+        <button className="secondary-button settings-action-button" type="button" onClick={copyInviteLink}>
+          <ShareNetwork size={20} />
+          复制邀请链接
         </button>
         {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
         <button className="secondary-button settings-export-button" type="button" onClick={exportExpenses}>
