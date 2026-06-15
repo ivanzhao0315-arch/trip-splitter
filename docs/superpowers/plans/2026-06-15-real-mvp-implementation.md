@@ -124,7 +124,7 @@ import { createProjectCode, normalizeProjectCode } from '../codes';
 describe('project codes', () => {
   it('normalizes to uppercase letters and digits only', () => {
     expect(normalizeProjectCode(' a7-k2!! ')).toBe('A7K2');
-    expect(normalizeProjectCode('x8k2p')).toBe('X8K');
+    expect(normalizeProjectCode('x8k2p')).toBe('X8K2');
     expect(normalizeProjectCode('你A1B2')).toBe('A1B2');
   });
 
@@ -245,9 +245,9 @@ describe('equal splitting', () => {
     const balances = calculatePeriodBalances({ members, expenses });
 
     expect(balances).toEqual([
-      { member_id: 'chen', display_name: '小陈', paid_minor: 40000, owed_minor: 17658, net_minor: 22342 },
+      { member_id: 'chen', display_name: '小陈', paid_minor: 40000, owed_minor: 17659, net_minor: 22341 },
       { member_id: 'zhang', display_name: '张三', paid_minor: 8650, owed_minor: 17658, net_minor: -9008 },
-      { member_id: 'ivan', display_name: 'Ivan', paid_minor: 0, owed_minor: 13334, net_minor: -13334 },
+      { member_id: 'ivan', display_name: 'Ivan', paid_minor: 0, owed_minor: 13333, net_minor: -13333 },
     ]);
   });
 
