@@ -31,7 +31,7 @@ import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabe
 import { buildSettlementShareText } from './domain/settlementShare';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
-import { fetchExchangeRate } from './services/exchangeRateService';
+import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
 import { addProjectMember, createProject, joinProject } from './services/projectService';
 import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
@@ -123,31 +123,7 @@ function buildLocalDraft(sourceType, text = '') {
 }
 
 async function resolveExchangeRate({ fromCurrency, toCurrency }) {
-  if (fromCurrency === toCurrency) {
-    return {
-      rate: 1,
-      provider: 'identity',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  if (import.meta.env.DEV) {
-    return {
-      rate: fallbackRates[fromCurrency]?.[toCurrency] ?? 1,
-      provider: 'local-fallback',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  try {
-    return await fetchExchangeRate({ fromCurrency, toCurrency });
-  } catch {
-    return {
-      rate: fallbackRates[fromCurrency]?.[toCurrency] ?? 1,
-      provider: 'local-fallback',
-      timestamp: new Date().toISOString(),
-    };
-  }
+  return resolveExchangeRateWithFallback({ fromCurrency, toCurrency, fallbackRates });
 }
 
 function memberName(member) {

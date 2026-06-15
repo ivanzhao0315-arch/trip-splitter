@@ -27,6 +27,7 @@
 - [ ] User can confirm an expense.
 - [ ] Expense is split equally among selected participants.
 - [ ] Non-project currency expense stores original amount and converted amount.
+- [ ] Non-project currency expense tries the server exchange-rate provider before using local fallback rates.
 - [ ] Settlement view shows simplified transfers.
 - [ ] Settlement view can copy a Chinese transfer message suitable for WeChat group chat.
 - [ ] Marking a period as settled creates a historical snapshot.

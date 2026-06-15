@@ -19,3 +19,28 @@ export async function fetchExchangeRate({ fromCurrency, toCurrency }) {
 
   return response.json();
 }
+
+export async function resolveExchangeRateWithFallback({
+  fromCurrency,
+  toCurrency,
+  fallbackRates,
+  fetchRate = fetchExchangeRate,
+}) {
+  if (fromCurrency === toCurrency) {
+    return {
+      rate: 1,
+      provider: 'identity',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  try {
+    return await fetchRate({ fromCurrency, toCurrency });
+  } catch {
+    return {
+      rate: fallbackRates?.[fromCurrency]?.[toCurrency] ?? 1,
+      provider: 'local-fallback',
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
