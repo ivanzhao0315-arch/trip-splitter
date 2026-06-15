@@ -93,6 +93,7 @@ const baseExpense = {
   participantMemberIds: ['ivan', 'chen', 'chen'],
   sourceType: 'screenshot',
   sourceName: 'wechat-pay.png',
+  createdAt: '2026-06-14T20:30:00.000Z',
 };
 
 describe('expense service member validation', () => {
@@ -113,6 +114,7 @@ describe('expense service member validation', () => {
       participant_member_ids: ['ivan', 'chen'],
       source_type: 'screenshot',
       source_name: 'wechat-pay.png',
+      created_at: '2026-06-14T20:30:00.000Z',
     });
   });
 
@@ -170,6 +172,7 @@ describe('expense service member validation', () => {
           description: '晚餐修正',
           payer_member_id: 'ivan',
           participant_member_ids: ['ivan', 'chen'],
+          created_at: '2026-06-14T20:30:00.000Z',
         }),
       },
     ]);

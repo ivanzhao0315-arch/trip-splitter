@@ -305,6 +305,18 @@ function expenseTraceLabel(expense, projectCurrency) {
   return parts.join(' · ');
 }
 
+function toDateTimeInputValue(value) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return '';
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 16);
+}
+
+function fromDateTimeInputValue(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
 function createDraftFromExpense(expense) {
   return {
     mode: 'edit',
@@ -318,6 +330,7 @@ function createDraftFromExpense(expense) {
     exchangeRate: Number(expense.exchange_rate ?? 1),
     exchangeRateProvider: expense.exchange_rate_provider ?? 'identity',
     exchangeRateTimestamp: expense.exchange_rate_timestamp ?? expense.created_at ?? new Date().toISOString(),
+    createdAt: expense.created_at ?? new Date().toISOString(),
     sourceType: expense.source_type ?? 'manual',
     sourceName: expense.source_name ?? null,
   };
@@ -898,6 +911,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
   const [amount, setAmount] = useState(String(draft.amount));
   const [currency, setCurrency] = useState(draft.currency);
   const [description, setDescription] = useState(draft.description);
+  const [createdAtInput, setCreatedAtInput] = useState(toDateTimeInputValue(draft.createdAt));
   const [exchangeRate, setExchangeRate] = useState(draft.exchangeRate);
   const [manualRateInput, setManualRateInput] = useState(String(draft.exchangeRate ?? 1));
   const [rateEditing, setRateEditing] = useState(false);
@@ -921,7 +935,12 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
     payerMemberId: payer?.id,
     participantMemberIds: participantIds,
   });
-  const saveMissingFields = validExchangeRate ? missingFields : [...missingFields, '汇率'];
+  const createdAt = fromDateTimeInputValue(createdAtInput);
+  const saveMissingFields = [
+    ...missingFields,
+    ...(validExchangeRate ? [] : ['汇率']),
+    ...(createdAt ? [] : ['账单时间']),
+  ];
   const canSave = saveMissingFields.length === 0;
 
   const toggleParticipant = (memberId) => {
@@ -1091,6 +1110,18 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
               onFocus={() => setManualOpen(true)}
             />
           </label>
+          <label className="form-field">
+            <span>账单时间</span>
+            <input
+              type="datetime-local"
+              value={createdAtInput}
+              onChange={(event) => {
+                setCreatedAtInput(event.target.value);
+                setLocalError('');
+              }}
+              onFocus={() => setManualOpen(true)}
+            />
+          </label>
           {manualOpen ? (
             <p className="manual-note">
               {(draft.confidence ?? 0) === 0
@@ -1123,6 +1154,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
             sourceName: draft.sourceName,
             mode: draft.mode,
             expenseId: draft.expenseId,
+            createdAt,
           })}
         >
           {isBusy ? '保存中...' : saveMissingFields.length ? `补全${saveMissingFields[0]}后保存` : isEditing ? '保存修改' : '保存账单'}
@@ -1610,6 +1642,7 @@ function App() {
                 participant_member_ids: draft.participantMemberIds,
                 source_type: draft.sourceType,
                 source_name: draft.sourceName,
+                created_at: draft.createdAt,
               }
             : expense
         ));
@@ -1658,7 +1691,7 @@ function App() {
         participant_member_ids: draft.participantMemberIds,
         source_type: draft.sourceType,
         source_name: draft.sourceName,
-        created_at: new Date().toISOString(),
+        created_at: draft.createdAt,
       };
       const nextExpenses = [nextExpense, ...expenses];
 
@@ -1808,6 +1841,7 @@ function App() {
         exchangeRate: rate.rate,
         exchangeRateProvider: rate.provider,
         exchangeRateTimestamp: rate.timestamp,
+        createdAt: new Date().toISOString(),
       });
       setAiOpen(false);
       setScreen('confirm');

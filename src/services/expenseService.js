@@ -72,6 +72,7 @@ export async function createExpense({
   participantMemberIds,
   sourceType = 'manual',
   sourceName,
+  createdAt,
 }) {
   const client = requireSupabase();
   const normalizedMembers = await normalizeExpenseMembers({
@@ -98,6 +99,7 @@ export async function createExpense({
       participant_member_ids: normalizedMembers.participantMemberIds,
       source_type: sourceType,
       source_name: sourceName ?? null,
+      created_at: createdAt ?? new Date().toISOString(),
     })
     .select()
     .single();
@@ -120,6 +122,7 @@ export async function updateExpense({
   participantMemberIds,
   sourceType = 'manual',
   sourceName,
+  createdAt,
 }) {
   const client = requireSupabase();
   const normalizedMembers = await normalizeExpenseMembers({
@@ -144,6 +147,7 @@ export async function updateExpense({
       participant_member_ids: normalizedMembers.participantMemberIds,
       source_type: sourceType,
       source_name: sourceName ?? null,
+      created_at: createdAt ?? new Date().toISOString(),
     })
     .eq('project_id', project.id)
     .eq('id', expenseId);
