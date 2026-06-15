@@ -96,6 +96,7 @@ const fallbackExpenses = [
 
 const LOCAL_PROJECTS_KEY = 'trip-splitter:local-projects';
 const LOCAL_SESSION_KEY = 'trip-splitter:current-session';
+const RECENT_PROJECTS_KEY = 'trip-splitter:recent-projects';
 
 const currencies = [
   { code: 'CNY', label: 'CNY - 人民币 (¥)' },
@@ -217,6 +218,47 @@ function clearProjectSession() {
   }
 }
 
+function readRecentProjects() {
+  try {
+    const items = JSON.parse(window.localStorage.getItem(RECENT_PROJECTS_KEY) ?? '[]');
+    return Array.isArray(items) ? items : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentProjects(projects) {
+  try {
+    window.localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(projects.slice(0, 6)));
+  } catch {
+    // Recent projects are a local convenience; project codes still work without storage.
+  }
+}
+
+function rememberRecentProject({ project, username, mode }) {
+  if (!project?.id || !project?.code || !username) return [];
+
+  const item = {
+    id: project.id,
+    code: project.code,
+    name: project.name,
+    username,
+    mode,
+    updatedAt: new Date().toISOString(),
+  };
+  const existing = readRecentProjects().filter((recent) => recent.id !== item.id && recent.code !== item.code);
+  const nextProjects = [item, ...existing];
+  writeRecentProjects(nextProjects);
+  return nextProjects.slice(0, 6);
+}
+
+function forgetRecentProject(projectId) {
+  if (!projectId) return readRecentProjects();
+  const nextProjects = readRecentProjects().filter((project) => project.id !== projectId);
+  writeRecentProjects(nextProjects);
+  return nextProjects;
+}
+
 function sourceTypeLabel(sourceType) {
   if (sourceType === 'manual') return '手动录入';
   if (sourceType === 'photo') return '收据照片';
@@ -297,7 +339,7 @@ function TopBar({ title, code, onBack }) {
   );
 }
 
-function EntryScreen({ onCreateProject, onJoinProject, appError, isBusy }) {
+function EntryScreen({ onCreateProject, onJoinProject, onOpenRecentProject, recentProjects, appError, isBusy }) {
   const [name, setName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
@@ -380,6 +422,32 @@ function EntryScreen({ onCreateProject, onJoinProject, appError, isBusy }) {
             </button>
           </div>
         </section>
+
+        {recentProjects.length ? (
+          <section className="recent-projects" aria-label="最近项目">
+            <div className="recent-projects-header">
+              <h2>最近项目</h2>
+              <span>{recentProjects.length} 个</span>
+            </div>
+            <div className="recent-project-list">
+              {recentProjects.map((recentProject) => (
+                <button
+                  className="recent-project-row"
+                  type="button"
+                  key={`${recentProject.mode}-${recentProject.id}`}
+                  disabled={isBusy}
+                  onClick={() => onOpenRecentProject(recentProject)}
+                >
+                  <span>
+                    <strong>{recentProject.name}</strong>
+                    <small>#{recentProject.code} · {recentProject.username}</small>
+                  </span>
+                  <CaretRight size={20} />
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </main>
     </div>
   );
@@ -1254,6 +1322,7 @@ function App() {
   const [draftExpense, setDraftExpense] = useState(null);
   const [appError, setAppError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
+  const [recentProjects, setRecentProjects] = useState(() => readRecentProjects());
 
   const currentProject = project || fallbackProject;
 
@@ -1265,6 +1334,7 @@ function App() {
     setMembers(detail.members);
     setExpenses(detail.expenses);
     setSettlementHistory(snapshots);
+    return { ...detail, settlementHistory: snapshots };
   };
 
   useEffect(() => {
@@ -1280,8 +1350,13 @@ function App() {
 
       try {
         if (hasBackendConfig && session.mode === 'backend' && session.projectId) {
-          await loadProjectState(session.projectId);
+          const detail = await loadProjectState(session.projectId);
           if (!cancelled) {
+            setRecentProjects(rememberRecentProject({
+              project: detail.project,
+              username: session.username,
+              mode: 'backend',
+            }));
             setSettledNotice('');
             setScreen('home');
           }
@@ -1300,6 +1375,11 @@ function App() {
             setSettlementHistory(stored.settlementHistory);
             setSettledNotice('');
             setScreen('home');
+            setRecentProjects(rememberRecentProject({
+              project: stored.project,
+              username: session.username,
+              mode: 'local',
+            }));
           }
           return;
         }
@@ -1340,6 +1420,7 @@ function App() {
 
       saveLocalProjectState(nextState);
       writeProjectSession({ mode: 'local', username: name, code: nextState.project.code });
+      setRecentProjects(rememberRecentProject({ project: nextState.project, username: name, mode: 'local' }));
       setProject(nextState.project);
       setActivePeriod(nextState.activePeriod);
       setMembers(nextState.members);
@@ -1355,6 +1436,7 @@ function App() {
       const member = await joinProject({ code, displayName: name });
       await loadProjectState(member.project.id);
       writeProjectSession({ mode: 'backend', username: name, projectId: member.project.id });
+      setRecentProjects(rememberRecentProject({ project: member.project, username: name, mode: 'backend' }));
       setScreen('home');
     } catch (error) {
       setAppError(error.message || '加入项目失败');
@@ -1395,6 +1477,7 @@ function App() {
         settlementHistory: nextHistory,
       });
       writeProjectSession({ mode: 'local', username: created.username, code: nextProject.code });
+      setRecentProjects(rememberRecentProject({ project: nextProject, username: created.username, mode: 'local' }));
       setProject(nextProject);
       setActivePeriod(nextPeriod);
       setMembers(nextMembers);
@@ -1416,6 +1499,7 @@ function App() {
       });
       await loadProjectState(createdProject.id);
       writeProjectSession({ mode: 'backend', username: created.username, projectId: createdProject.id });
+      setRecentProjects(rememberRecentProject({ project: createdProject, username: created.username, mode: 'backend' }));
       setScreen('home');
     } catch (error) {
       setAppError(error.message || '创建项目失败');
@@ -1648,6 +1732,56 @@ function App() {
     setSettingsOpen(false);
   };
 
+  const handleOpenRecentProject = async (recentProject) => {
+    setUsername(recentProject.username);
+    setAppError('');
+    setIsBusy(true);
+
+    try {
+      if (hasBackendConfig && recentProject.mode === 'backend') {
+        await loadProjectState(recentProject.id);
+        writeProjectSession({ mode: 'backend', username: recentProject.username, projectId: recentProject.id });
+        setRecentProjects(rememberRecentProject({
+          project: recentProject,
+          username: recentProject.username,
+          mode: 'backend',
+        }));
+        setSettledNotice('');
+        setScreen('home');
+        return;
+      }
+
+      if (!hasBackendConfig && recentProject.mode === 'local') {
+        const stored = loadLocalProjectState(recentProject.code);
+        if (!stored) throw new Error('stored project not found');
+
+        writeProjectSession({ mode: 'local', username: recentProject.username, code: stored.project.code });
+        setRecentProjects(rememberRecentProject({
+          project: stored.project,
+          username: recentProject.username,
+          mode: 'local',
+        }));
+        setProject(stored.project);
+        setActivePeriod(stored.activePeriod);
+        setMembers(stored.members);
+        setExpenses(stored.expenses);
+        setSettlementHistory(stored.settlementHistory);
+        setSettledNotice('');
+        setScreen('home');
+        return;
+      }
+
+      throw new Error('recent project is unavailable in this mode');
+    } catch {
+      clearProjectSession();
+      setRecentProjects(forgetRecentProject(recentProject.id));
+      setAppError('最近项目打开失败，请用项目码重新加入');
+      setScreen('entry');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   return (
     <div className="app-shell">
       <div className="phone">
@@ -1659,6 +1793,8 @@ function App() {
               setScreen('create');
             }}
             onJoinProject={handleJoinProject}
+            onOpenRecentProject={handleOpenRecentProject}
+            recentProjects={recentProjects}
             appError={appError}
             isBusy={isBusy}
           />

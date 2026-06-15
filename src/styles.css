@@ -293,6 +293,85 @@ button:disabled {
   margin-top: 24px;
 }
 
+.recent-projects {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--surface-highest);
+}
+
+.recent-projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.recent-projects-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.recent-projects-header span {
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.recent-project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-project-row {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid transparent;
+  text-align: left;
+}
+
+.recent-project-row:active {
+  transform: scale(0.99);
+}
+
+.recent-project-row span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recent-project-row strong,
+.recent-project-row small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.recent-project-row strong {
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.recent-project-row small {
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
 .primary-button,
 .secondary-button,
 .cancel-button,
