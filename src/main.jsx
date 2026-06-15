@@ -115,10 +115,12 @@ function buildLocalDraft(sourceType, text = '') {
   }
 
   return {
-    amount: 40,
-    currency: 'USD',
-    description: 'Starbucks Coffee',
-    confidence: 0.78,
+    amount: 0,
+    currency: 'CNY',
+    description: '',
+    confidence: 0,
+    payerName: '',
+    participantNames: [],
   };
 }
 
@@ -649,7 +651,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
   const [exchangeRateProvider, setExchangeRateProvider] = useState(draft.exchangeRateProvider);
   const [exchangeRateTimestamp, setExchangeRateTimestamp] = useState(draft.exchangeRateTimestamp);
   const [localError, setLocalError] = useState('');
-  const [manualOpen, setManualOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState((draft.confidence ?? 0) === 0);
   const [payerMemberId, setPayerMemberId] = useState(draft.payerMemberId ?? members[0]?.id);
   const [participantIds, setParticipantIds] = useState(
     draft.participantMemberIds?.length ? draft.participantMemberIds : members.map((member) => member.id),
@@ -703,7 +705,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
         <section className="form-stack">
           <section className="source-card">
             <span>{sourceTypeLabel(draft.sourceType)}</span>
-            <strong>{draft.sourceName ?? 'AI 自动生成草稿'}</strong>
+            <strong>{draft.sourceName ?? ((draft.confidence ?? 0) === 0 ? '待手动补全草稿' : 'AI 自动生成草稿')}</strong>
           </section>
           <div className="edit-grid">
             <label className="form-field">
@@ -778,7 +780,11 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
             />
           </label>
           {manualOpen ? (
-            <p className="manual-note">可在保存前修正 AI 识别的金额、币种、付款人、参与人和描述。</p>
+            <p className="manual-note">
+              {(draft.confidence ?? 0) === 0
+                ? '当前草稿需要手动补全金额、币种、付款人、参与人和描述。'
+                : '可在保存前修正 AI 识别的金额、币种、付款人、参与人和描述。'}
+            </p>
           ) : null}
           {localError ? <p className="error-text" role="alert">{localError}</p> : null}
           {appError ? <p className="error-text" role="alert">{appError}</p> : null}
