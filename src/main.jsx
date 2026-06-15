@@ -171,6 +171,13 @@ function inferPayerMemberId({ members, text }) {
   return members[0]?.id;
 }
 
+function sourceTypeLabel(sourceType) {
+  if (sourceType === 'photo') return '收据照片';
+  if (sourceType === 'screenshot') return '支付截图';
+  if (sourceType === 'text') return '粘贴文字';
+  return 'AI 草稿';
+}
+
 function Avatar({ member, size = 'md' }) {
   const initials = member?.initials ?? memberName(member).slice(0, 1).toUpperCase();
   const color = member?.color ?? '#e1e3e4';
@@ -495,28 +502,53 @@ function AiSheet({ onClose, onConfirm, isBusy }) {
           <span><Sparkle size={16} weight="fill" />AI 将自动识别金额、币种和描述</span>
         </div>
         <div className="sheet-options">
-          {options.map((option) => (
-            <button
-              className="sheet-option"
-              key={option.title}
-              disabled={isBusy}
-              onClick={() => {
-                setError('');
-                if (option.sourceType === 'text') {
-                  setTextMode(true);
-                  return;
-                }
-                onConfirm({ sourceType: option.sourceType });
-              }}
-            >
-              <div>{option.icon}</div>
-              <span>
-                <strong>{option.title}</strong>
-                <small>{option.desc}</small>
-              </span>
-              <CaretRight size={20} />
-            </button>
-          ))}
+          {options.map((option) => {
+            const content = (
+              <>
+                <div>{option.icon}</div>
+                <span>
+                  <strong>{option.title}</strong>
+                  <small>{option.desc}</small>
+                </span>
+                <CaretRight size={20} />
+              </>
+            );
+
+            if (option.sourceType === 'text') {
+              return (
+                <button
+                  className="sheet-option"
+                  key={option.title}
+                  disabled={isBusy}
+                  onClick={() => {
+                    setError('');
+                    setTextMode(true);
+                  }}
+                >
+                  {content}
+                </button>
+              );
+            }
+
+            return (
+              <label className={`sheet-option ${isBusy ? 'disabled' : ''}`} key={option.title}>
+                {content}
+                <input
+                  className="file-input"
+                  type="file"
+                  accept="image/*"
+                  capture={option.sourceType === 'photo' ? 'environment' : undefined}
+                  disabled={isBusy}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    setError('');
+                    onConfirm({ sourceType: option.sourceType, file });
+                  }}
+                />
+              </label>
+            );
+          })}
         </div>
         {textMode ? (
           <form
@@ -612,6 +644,10 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
         </section>
 
         <section className="form-stack">
+          <section className="source-card">
+            <span>{sourceTypeLabel(draft.sourceType)}</span>
+            <strong>{draft.sourceName ?? 'AI 自动生成草稿'}</strong>
+          </section>
           <div className="edit-grid">
             <label className="form-field">
               <span>原始金额</span>
@@ -706,6 +742,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
             payerMemberId: payer.id,
             participantMemberIds: participantIds,
             sourceType: draft.sourceType,
+            sourceName: draft.sourceName,
           })}
         >
           {isBusy ? '保存中...' : '保存账单'}
@@ -975,6 +1012,7 @@ function App() {
           payer_member_id: draft.payerMemberId,
           participant_member_ids: draft.participantMemberIds,
           source_type: draft.sourceType,
+          source_name: draft.sourceName,
           created_at: new Date().toISOString(),
         },
         ...items,
@@ -1020,7 +1058,7 @@ function App() {
     }
   };
 
-  const openDraftForConfirmation = async ({ sourceType, text = '' }) => {
+  const openDraftForConfirmation = async ({ sourceType, text = '', file }) => {
     setAppError('');
     setIsBusy(true);
 
@@ -1030,7 +1068,7 @@ function App() {
       if (hasBackendConfig || sourceType === 'text') {
         try {
           const response = hasBackendConfig
-            ? await createAiDraft({ projectId: currentProject.id, sourceType, text })
+            ? await createAiDraft({ projectId: currentProject.id, sourceType, text, file })
             : { draft: buildLocalDraft(sourceType, text) };
           parsedDraft = response.draft ?? parsedDraft;
         } catch {
@@ -1046,6 +1084,7 @@ function App() {
       setDraftExpense({
         ...parsedDraft,
         sourceType,
+        sourceName: file?.name,
         payerMemberId: inferPayerMemberId({ members, text: parsedDraft.description }),
         participantMemberIds: members.map((member) => member.id),
         exchangeRate: rate.rate,

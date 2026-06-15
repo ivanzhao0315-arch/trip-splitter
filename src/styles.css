@@ -799,6 +799,12 @@ button:disabled {
   background: #fff;
   border: 1px solid var(--outline-variant);
   text-align: left;
+  cursor: pointer;
+}
+
+.sheet-option.disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .sheet-option > div {
@@ -809,6 +815,10 @@ button:disabled {
   border-radius: 999px;
   color: #121c2a;
   background: #d9e3f6;
+}
+
+.file-input {
+  display: none;
 }
 
 .sheet-option span {
@@ -878,6 +888,30 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 112px;
   gap: 10px;
+}
+
+.source-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-low);
+  border: 1px solid var(--surface-highest);
+}
+
+.source-card span {
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
+.source-card strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 20px;
+  word-break: break-all;
 }
 
 .amount-card {
