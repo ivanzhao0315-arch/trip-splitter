@@ -19,6 +19,9 @@ dist/
 build/
 coverage/
 
+# Supabase CLI local state
+supabase/.temp/
+
 # Python
 __pycache__/
 *.py[cod]

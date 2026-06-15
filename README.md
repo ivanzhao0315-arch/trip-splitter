@@ -34,3 +34,13 @@ npm audit --audit-level=high
 Copy `.env.example` to `.env.local`. Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `EXCHANGE_RATE_PROVIDER_URL`, `EXCHANGE_RATE_PROVIDER_KEY`, and `OPENAI_API_KEY` from the provider dashboards. `OPENAI_VISION_MODEL` controls the model used by screenshot/receipt parsing. Do not commit real secrets.
 
 `SUPABASE_SERVICE_ROLE_KEY` is only for backend/server functions. Never expose it in browser code.
+
+## Supabase Backend
+
+To switch from local demo mode to a real shared backend, create a Supabase project, apply the migrations in `supabase/migrations/`, and set `VITE_SUPABASE_URL` plus `VITE_SUPABASE_ANON_KEY` in `.env.local`.
+
+Detailed setup and verification steps are in [docs/supabase-setup.md](docs/supabase-setup.md).
+
+## GitHub Pages Deployment
+
+The repository includes a GitHub Pages workflow. Configure repository secrets `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then run the `Deploy GitHub Pages` workflow or push to `main`.
