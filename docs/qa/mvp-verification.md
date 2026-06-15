@@ -31,6 +31,7 @@
 - [ ] Expense is split equally among selected participants.
 - [ ] Expense save rejects payer or participant ids that do not belong to the current project.
 - [ ] Non-project currency expense stores original amount and converted amount.
+- [ ] Recent detail rows show original amount/currency and exchange-rate source for non-project currency expenses.
 - [ ] Non-project currency expense tries the server exchange-rate provider before using local fallback rates.
 - [ ] Exchange-rate endpoint accepts pair and table-style provider responses and rejects missing rates.
 - [ ] Settlement view shows simplified transfers.

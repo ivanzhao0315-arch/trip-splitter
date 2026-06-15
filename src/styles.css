@@ -672,7 +672,8 @@ button:disabled {
 }
 
 .expense-copy p,
-.expense-amount span {
+.expense-amount span,
+.expense-amount small {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
@@ -693,6 +694,14 @@ button:disabled {
   display: block;
   font-size: 17px;
   line-height: 24px;
+}
+
+.expense-amount small {
+  display: block;
+  max-width: 104px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .ai-fab {

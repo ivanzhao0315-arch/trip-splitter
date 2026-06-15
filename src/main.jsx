@@ -181,6 +181,14 @@ function sourceTypeLabel(sourceType) {
   return 'AI 草稿';
 }
 
+function originalAmountLabel(expense, projectCurrency) {
+  if (!expense.original_currency || expense.original_currency === projectCurrency || expense.original_amount_minor == null) {
+    return '';
+  }
+  const originalAmount = formatMoney(fromMinorUnits(expense.original_amount_minor), expense.original_currency);
+  return `原 ${originalAmount} · ${expense.exchange_rate_provider ?? '汇率'}`;
+}
+
 function Avatar({ member, size = 'md' }) {
   const initials = member?.initials ?? memberName(member).slice(0, 1).toUpperCase();
   const color = member?.color ?? '#e1e3e4';
@@ -475,22 +483,26 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
             <button onClick={onOpenSettlement}>查看结算</button>
           </div>
           <div className="expense-list">
-            {expenses.map((expense) => (
-              <article className="expense-row" key={expense.id}>
-                <div className="expense-icon"><Receipt size={22} /></div>
-                <div className="expense-copy">
-                  <h4>{expense.description}</h4>
-                  <p>
-                    {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分
-                    {expense.source_name ? ` · ${sourceTypeLabel(expense.source_type)} ${expense.source_name}` : ''}
-                  </p>
-                </div>
-                <div className="expense-amount">
-                  <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
-                  <span>{new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              </article>
-            ))}
+            {expenses.map((expense) => {
+              const originalLabel = originalAmountLabel(expense, project.default_currency);
+              return (
+                <article className="expense-row" key={expense.id}>
+                  <div className="expense-icon"><Receipt size={22} /></div>
+                  <div className="expense-copy">
+                    <h4>{expense.description}</h4>
+                    <p>
+                      {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分
+                      {expense.source_name ? ` · ${sourceTypeLabel(expense.source_type)} ${expense.source_name}` : ''}
+                    </p>
+                  </div>
+                  <div className="expense-amount">
+                    <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
+                    {originalLabel ? <small>{originalLabel}</small> : null}
+                    <span>{new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       </main>
