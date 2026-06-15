@@ -91,6 +91,8 @@ const fallbackExpenses = [
   },
 ];
 
+const LOCAL_PROJECTS_KEY = 'trip-splitter:local-projects';
+
 const currencies = [
   { code: 'CNY', label: 'CNY - 人民币 (¥)' },
   { code: 'USD', label: 'USD - 美元 ($)' },
@@ -159,6 +161,39 @@ function createLocalMember(displayName) {
     initials: displayName.slice(0, 1).toUpperCase(),
     color: '#e1e3e4',
   };
+}
+
+function readLocalProjects() {
+  try {
+    return JSON.parse(window.localStorage.getItem(LOCAL_PROJECTS_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function writeLocalProjects(projects) {
+  try {
+    window.localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(projects));
+  } catch {
+    // Local persistence is a dev/offline convenience; core in-memory flow should keep working.
+  }
+}
+
+function saveLocalProjectState({ project, activePeriod, members, expenses, settlementHistory }) {
+  if (!project?.code) return;
+  const projects = readLocalProjects();
+  projects[normalizeProjectCode(project.code)] = {
+    project,
+    activePeriod,
+    members,
+    expenses,
+    settlementHistory,
+  };
+  writeLocalProjects(projects);
+}
+
+function loadLocalProjectState(code) {
+  return readLocalProjects()[normalizeProjectCode(code)] ?? null;
 }
 
 function sourceTypeLabel(sourceType) {
@@ -1006,12 +1041,22 @@ function App() {
     setAppError('');
 
     if (!hasBackendConfig) {
-      const nextPeriod = { ...fallbackPeriod, id: `local-period-${Date.now()}`, label: createCurrentPeriodLabel() };
-      setProject({ ...fallbackProject, code, active_period_id: nextPeriod.id });
-      setActivePeriod(nextPeriod);
-      setMembers([{ id: 'local-member', display_name: name, initials: name[0], color: '#22c55e' }]);
-      setExpenses([]);
-      setSettlementHistory([]);
+      const stored = loadLocalProjectState(code);
+      if (!stored) {
+        setAppError('项目码不存在，请确认后重试');
+        return;
+      }
+
+      const existingMember = stored.members.find((member) => member.display_name === name);
+      const nextMembers = existingMember ? stored.members : [...stored.members, createLocalMember(name)];
+      const nextState = { ...stored, members: nextMembers };
+
+      saveLocalProjectState(nextState);
+      setProject(nextState.project);
+      setActivePeriod(nextState.activePeriod);
+      setMembers(nextState.members);
+      setExpenses(nextState.expenses);
+      setSettlementHistory(nextState.settlementHistory);
       setSettledNotice('');
       setScreen('home');
       return;
@@ -1033,20 +1078,38 @@ function App() {
     setAppError('');
 
     if (!hasBackendConfig) {
-      const nextPeriod = { ...fallbackPeriod, id: `local-period-${Date.now()}`, label: createCurrentPeriodLabel() };
-      setProject({
+      const nextPeriod = {
+        ...fallbackPeriod,
+        id: `local-period-${Date.now()}`,
+        project_id: `local-project-${created.code}`,
+        label: createCurrentPeriodLabel(),
+      };
+      const nextProject = {
         ...fallbackProject,
+        id: `local-project-${created.code}`,
         name: created.name,
         code: created.code,
         default_currency: created.currency,
         project_type: created.projectType,
         budget_amount_minor: created.budgetAmount.trim() ? toMinorUnits(created.budgetAmount) : null,
         active_period_id: nextPeriod.id,
+      };
+      const nextMembers = [{ id: 'local-member', display_name: created.username, initials: created.username[0], color: '#22c55e' }];
+      const nextExpenses = [];
+      const nextHistory = [];
+
+      saveLocalProjectState({
+        project: nextProject,
+        activePeriod: nextPeriod,
+        members: nextMembers,
+        expenses: nextExpenses,
+        settlementHistory: nextHistory,
       });
+      setProject(nextProject);
       setActivePeriod(nextPeriod);
-      setMembers([{ id: 'local-member', display_name: created.username, initials: created.username[0], color: '#22c55e' }]);
-      setExpenses([]);
-      setSettlementHistory([]);
+      setMembers(nextMembers);
+      setExpenses(nextExpenses);
+      setSettlementHistory(nextHistory);
       setSettledNotice('');
       setScreen('home');
       return;
@@ -1074,25 +1137,32 @@ function App() {
     setAppError('');
 
     if (!hasBackendConfig) {
-      setExpenses((items) => [
-        {
-          id: `local-expense-${Date.now()}`,
-          description: draft.description,
-          original_amount_minor: toMinorUnits(draft.amount),
-          original_currency: draft.currency,
-          converted_amount_minor: toMinorUnits(draft.convertedAmount),
-          project_currency: currentProject.default_currency,
-          exchange_rate: draft.exchangeRate,
-          exchange_rate_provider: draft.exchangeRateProvider,
-          exchange_rate_timestamp: draft.exchangeRateTimestamp,
-          payer_member_id: draft.payerMemberId,
-          participant_member_ids: draft.participantMemberIds,
-          source_type: draft.sourceType,
-          source_name: draft.sourceName,
-          created_at: new Date().toISOString(),
-        },
-        ...items,
-      ]);
+      const nextExpense = {
+        id: `local-expense-${Date.now()}`,
+        description: draft.description,
+        original_amount_minor: toMinorUnits(draft.amount),
+        original_currency: draft.currency,
+        converted_amount_minor: toMinorUnits(draft.convertedAmount),
+        project_currency: currentProject.default_currency,
+        exchange_rate: draft.exchangeRate,
+        exchange_rate_provider: draft.exchangeRateProvider,
+        exchange_rate_timestamp: draft.exchangeRateTimestamp,
+        payer_member_id: draft.payerMemberId,
+        participant_member_ids: draft.participantMemberIds,
+        source_type: draft.sourceType,
+        source_name: draft.sourceName,
+        created_at: new Date().toISOString(),
+      };
+      const nextExpenses = [nextExpense, ...expenses];
+
+      saveLocalProjectState({
+        project: currentProject,
+        activePeriod,
+        members,
+        expenses: nextExpenses,
+        settlementHistory,
+      });
+      setExpenses(nextExpenses);
       setDraftExpense(null);
       setSettledNotice('');
       setScreen('home');
@@ -1117,7 +1187,15 @@ function App() {
     setAppError('');
 
     if (!hasBackendConfig) {
-      setMembers((items) => [...items, createLocalMember(displayName)]);
+      const nextMembers = [...members, createLocalMember(displayName)];
+      saveLocalProjectState({
+        project: currentProject,
+        activePeriod,
+        members: nextMembers,
+        expenses,
+        settlementHistory,
+      });
+      setMembers(nextMembers);
       setMemberDialogOpen(false);
       return;
     }
@@ -1214,14 +1292,24 @@ function App() {
       const nextPeriod = {
         ...fallbackPeriod,
         id: `local-period-${Date.now()}`,
+        project_id: currentProject.id,
         label: createCurrentPeriodLabel(),
         started_at: new Date().toISOString(),
       };
+      const nextHistory = [snapshot, ...settlementHistory];
+      const nextProject = { ...currentProject, active_period_id: nextPeriod.id };
 
-      setSettlementHistory((items) => [snapshot, ...items]);
+      saveLocalProjectState({
+        project: nextProject,
+        activePeriod: nextPeriod,
+        members,
+        expenses: [],
+        settlementHistory: nextHistory,
+      });
+      setSettlementHistory(nextHistory);
       setExpenses([]);
       setActivePeriod(nextPeriod);
-      setProject((current) => ({ ...(current ?? currentProject), active_period_id: nextPeriod.id }));
+      setProject(nextProject);
       setSettledNotice(`周期 ${activePeriod.label} 已归档至历史结算`);
       return;
     }
