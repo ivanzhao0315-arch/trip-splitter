@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowLeft,
@@ -50,6 +50,7 @@ import {
   updateProjectSettings,
 } from './services/projectService';
 import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
+import { subscribeProjectRealtime } from './services/realtimeService';
 import { summarizeExpensesByCategory } from './domain/splitting';
 import './styles.css';
 
@@ -1863,11 +1864,12 @@ function App() {
   const [draftExpense, setDraftExpense] = useState(null);
   const [appError, setAppError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
+  const [syncNotice, setSyncNotice] = useState('');
   const [recentProjects, setRecentProjects] = useState(() => readRecentProjects());
 
   const currentProject = project || fallbackProject;
 
-  const loadProjectState = async (projectId) => {
+  const loadProjectState = useCallback(async (projectId) => {
     const detail = await fetchProjectDetail(projectId);
     const snapshots = await fetchSettlementSnapshots(projectId);
     setProject(detail.project);
@@ -1876,7 +1878,13 @@ function App() {
     setExpenses(detail.expenses);
     setSettlementHistory(snapshots);
     return { ...detail, settlementHistory: snapshots };
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!syncNotice) return undefined;
+    const timer = window.setTimeout(() => setSyncNotice(''), 2500);
+    return () => window.clearTimeout(timer);
+  }, [syncNotice]);
 
   useEffect(() => {
     const session = readProjectSession();
@@ -1951,6 +1959,49 @@ function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasBackendConfig || !project?.id) return undefined;
+
+    let cancelled = false;
+    let refreshTimer = null;
+    const projectId = project.id;
+
+    const scheduleRefresh = ({ notify = true } = {}) => {
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(async () => {
+        if (cancelled) return;
+
+        try {
+          const detail = await loadProjectState(projectId);
+          if (cancelled) return;
+
+          setRecentProjects(rememberRecentProject({
+            project: detail.project,
+            username,
+            mode: 'backend',
+          }));
+          if (notify) setSyncNotice('已同步最新多人变更');
+        } catch {
+          if (!cancelled) setSyncNotice('同步失败，请稍后重试');
+        }
+      }, 500);
+    };
+
+    const unsubscribe = subscribeProjectRealtime({
+      projectId,
+      onChange: scheduleRefresh,
+      onStatusChange: (status) => {
+        if (status === 'SUBSCRIBED') scheduleRefresh({ notify: false });
+      },
+    });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(refreshTimer);
+      unsubscribe();
+    };
+  }, [loadProjectState, project?.id, username]);
 
   const handleJoinProject = async (name, code) => {
     setUsername(name);
@@ -2714,6 +2765,7 @@ function App() {
             isBusy={isBusy}
           />
         ) : null}
+        {syncNotice ? <div className="toast sync-toast" role="status">{syncNotice}</div> : null}
       </div>
     </div>
   );

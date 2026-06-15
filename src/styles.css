@@ -2060,6 +2060,10 @@ button:disabled {
   font-weight: 700;
 }
 
+.sync-toast {
+  bottom: 96px;
+}
+
 @media (max-width: 520px) {
   .app-shell {
     padding: 0;
