@@ -1,3 +1,9 @@
 # 虚拟人解说
 
-This repository contains the project files for 虚拟人解说.
+项目代号：ECHO-1
+
+这是虚拟人解说项目的 Git 仓库。
+
+## 开始
+
+后续可以在这里补充项目说明、运行方式和开发约定。
