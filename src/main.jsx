@@ -693,6 +693,7 @@ function ProjectHome({
 }) {
   const [expenseQuery, setExpenseQuery] = useState('');
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('全部');
+  const [expenseSort, setExpenseSort] = useState('newest');
   const [expenseCopyNotice, setExpenseCopyNotice] = useState('');
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
@@ -723,6 +724,7 @@ function ProjectHome({
     members,
     query: expenseQuery,
     category: expenseCategoryFilter,
+    sort: expenseSort,
   });
   const hasExpenseFilters = expenseQuery.trim() || expenseCategoryFilter !== '全部';
 
@@ -840,6 +842,18 @@ function ProjectHome({
                   {expenseCategories.map((item) => (
                     <option key={item} value={item}>{item}</option>
                   ))}
+                </select>
+              </label>
+              <label className="expense-sort-field">
+                <span>排序</span>
+                <select
+                  value={expenseSort}
+                  onChange={(event) => setExpenseSort(event.target.value)}
+                >
+                  <option value="newest">最新</option>
+                  <option value="oldest">最早</option>
+                  <option value="amount_desc">金额高</option>
+                  <option value="amount_asc">金额低</option>
                 </select>
               </label>
             </div>

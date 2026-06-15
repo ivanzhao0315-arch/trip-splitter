@@ -16,6 +16,8 @@ const expenses = [
     payer_member_id: 'chen',
     participant_member_ids: ['chen', 'zhang'],
     source_name: 'receipt.jpg',
+    converted_amount_minor: 6000,
+    created_at: '2026-06-15T08:00:00.000Z',
   },
   {
     id: 'e2',
@@ -24,6 +26,8 @@ const expenses = [
     notes: '',
     payer_member_id: 'ivan',
     participant_member_ids: ['ivan'],
+    converted_amount_minor: 2500,
+    created_at: '2026-06-15T10:00:00.000Z',
   },
   {
     id: 'e3',
@@ -32,6 +36,8 @@ const expenses = [
     notes: 'lake view',
     payer_member_id: 'chen',
     participant_member_ids: ['chen'],
+    converted_amount_minor: 12000,
+    created_at: '2026-06-14T22:00:00.000Z',
   },
 ];
 
@@ -55,5 +61,14 @@ describe('expense filters', () => {
     const filtered = filterExpenses({ expenses, members, query: 'taxi', category: '餐饮' });
 
     expect(filtered).toEqual([]);
+  });
+
+  it('sorts filtered expenses without mutating the input list', () => {
+    const sortedByNewest = filterExpenses({ expenses, members });
+    const sortedByAmount = filterExpenses({ expenses, members, sort: 'amount_desc' });
+
+    expect(sortedByNewest.map((expense) => expense.id)).toEqual(['e2', 'e1', 'e3']);
+    expect(sortedByAmount.map((expense) => expense.id)).toEqual(['e3', 'e1', 'e2']);
+    expect(expenses.map((expense) => expense.id)).toEqual(['e1', 'e2', 'e3']);
   });
 });

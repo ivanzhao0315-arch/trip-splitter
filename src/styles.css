@@ -837,13 +837,14 @@ button:disabled {
 
 .expense-filter-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 112px;
+  grid-template-columns: minmax(0, 1fr) 112px 112px;
   gap: 10px;
   margin-bottom: 12px;
 }
 
 .expense-search-field,
-.expense-category-filter {
+.expense-category-filter,
+.expense-sort-field {
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -851,7 +852,8 @@ button:disabled {
 }
 
 .expense-search-field span,
-.expense-category-filter span {
+.expense-category-filter span,
+.expense-sort-field span {
   color: var(--muted);
   font-size: 12px;
   line-height: 16px;
@@ -859,7 +861,8 @@ button:disabled {
 }
 
 .expense-search-field input,
-.expense-category-filter select {
+.expense-category-filter select,
+.expense-sort-field select {
   width: 100%;
   height: 42px;
   border-radius: 10px;
