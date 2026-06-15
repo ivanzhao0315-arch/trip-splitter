@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowLeft,
@@ -95,6 +95,7 @@ const fallbackExpenses = [
 ];
 
 const LOCAL_PROJECTS_KEY = 'trip-splitter:local-projects';
+const LOCAL_SESSION_KEY = 'trip-splitter:current-session';
 
 const currencies = [
   { code: 'CNY', label: 'CNY - 人民币 (¥)' },
@@ -190,6 +191,30 @@ function saveLocalProjectState({ project, activePeriod, members, expenses, settl
 
 function loadLocalProjectState(code) {
   return readLocalProjects()[normalizeProjectCode(code)] ?? null;
+}
+
+function readProjectSession() {
+  try {
+    return JSON.parse(window.localStorage.getItem(LOCAL_SESSION_KEY) ?? 'null');
+  } catch {
+    return null;
+  }
+}
+
+function writeProjectSession(session) {
+  try {
+    window.localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(session));
+  } catch {
+    // Session restore is a convenience; users can still re-enter a project code.
+  }
+}
+
+function clearProjectSession() {
+  try {
+    window.localStorage.removeItem(LOCAL_SESSION_KEY);
+  } catch {
+    // Ignore storage failures; manual join/create still works.
+  }
 }
 
 function sourceTypeLabel(sourceType) {
@@ -1238,6 +1263,62 @@ function App() {
     setSettlementHistory(snapshots);
   };
 
+  useEffect(() => {
+    const session = readProjectSession();
+    if (!session?.username) return;
+
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      setUsername(session.username);
+      setAppError('');
+      setIsBusy(true);
+
+      try {
+        if (hasBackendConfig && session.mode === 'backend' && session.projectId) {
+          await loadProjectState(session.projectId);
+          if (!cancelled) {
+            setSettledNotice('');
+            setScreen('home');
+          }
+          return;
+        }
+
+        if (!hasBackendConfig && session.mode === 'local' && session.code) {
+          const stored = loadLocalProjectState(session.code);
+          if (!stored) throw new Error('stored project not found');
+
+          if (!cancelled) {
+            setProject(stored.project);
+            setActivePeriod(stored.activePeriod);
+            setMembers(stored.members);
+            setExpenses(stored.expenses);
+            setSettlementHistory(stored.settlementHistory);
+            setSettledNotice('');
+            setScreen('home');
+          }
+          return;
+        }
+
+        clearProjectSession();
+      } catch {
+        clearProjectSession();
+        if (!cancelled) {
+          setAppError('上次项目恢复失败，请重新输入项目码');
+          setScreen('entry');
+        }
+      } finally {
+        if (!cancelled) setIsBusy(false);
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleJoinProject = async (name, code) => {
     setUsername(name);
     setAppError('');
@@ -1254,6 +1335,7 @@ function App() {
       const nextState = { ...stored, members: nextMembers };
 
       saveLocalProjectState(nextState);
+      writeProjectSession({ mode: 'local', username: name, code: nextState.project.code });
       setProject(nextState.project);
       setActivePeriod(nextState.activePeriod);
       setMembers(nextState.members);
@@ -1268,6 +1350,7 @@ function App() {
     try {
       const member = await joinProject({ code, displayName: name });
       await loadProjectState(member.project.id);
+      writeProjectSession({ mode: 'backend', username: name, projectId: member.project.id });
       setScreen('home');
     } catch (error) {
       setAppError(error.message || '加入项目失败');
@@ -1307,6 +1390,7 @@ function App() {
         expenses: nextExpenses,
         settlementHistory: nextHistory,
       });
+      writeProjectSession({ mode: 'local', username: created.username, code: nextProject.code });
       setProject(nextProject);
       setActivePeriod(nextPeriod);
       setMembers(nextMembers);
@@ -1327,6 +1411,7 @@ function App() {
         budgetAmount: created.budgetAmount,
       });
       await loadProjectState(createdProject.id);
+      writeProjectSession({ mode: 'backend', username: created.username, projectId: createdProject.id });
       setScreen('home');
     } catch (error) {
       setAppError(error.message || '创建项目失败');
