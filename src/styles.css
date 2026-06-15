@@ -1178,6 +1178,19 @@ button:disabled {
   font-size: 18px;
 }
 
+.copy-transfer-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .transfer-row {
   margin: 0 12px 12px;
   display: grid;
@@ -1204,6 +1217,13 @@ button:disabled {
   color: var(--muted);
   font-size: 14px;
   line-height: 20px;
+}
+
+.share-notice {
+  margin: 0 16px 14px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .history-row {

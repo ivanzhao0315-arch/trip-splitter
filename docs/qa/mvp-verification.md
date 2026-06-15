@@ -25,6 +25,7 @@
 - [ ] Expense is split equally among selected participants.
 - [ ] Non-project currency expense stores original amount and converted amount.
 - [ ] Settlement view shows simplified transfers.
+- [ ] Settlement view can copy a Chinese transfer message suitable for WeChat group chat.
 - [ ] Marking a period as settled creates a historical snapshot.
 - [ ] Adding a later expense does not mutate the old snapshot.
 

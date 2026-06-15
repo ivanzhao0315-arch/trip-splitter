@@ -28,6 +28,7 @@ import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
 import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel } from './domain/periods';
+import { buildSettlementShareText } from './domain/settlementShare';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
 import { fetchExchangeRate } from './services/exchangeRateService';
@@ -819,6 +820,24 @@ function SettlementScreen({
   appError,
 }) {
   const { balances, transfers } = buildCurrentSettlement({ members, expenses });
+  const [shareNotice, setShareNotice] = useState('');
+
+  const copySettlementText = async () => {
+    const text = buildSettlementShareText({
+      project,
+      period: activePeriod,
+      transfers,
+      currency: project.default_currency,
+    });
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNotice('结算文案已复制，可直接发到微信群');
+    } catch {
+      window.prompt('复制结算文案', text);
+      setShareNotice('已生成结算文案');
+    }
+  };
 
   return (
     <div className="screen">
@@ -851,7 +870,14 @@ function SettlementScreen({
         <section className="transfer-card">
           <div className="transfer-title">
             <h3>最佳结算方案</h3>
-            <Sparkle size={20} weight="fill" />
+            <button
+              className="copy-transfer-button"
+              type="button"
+              onClick={copySettlementText}
+              aria-label="复制结算文案"
+            >
+              <Copy size={18} />
+            </button>
           </div>
           {transfers.length ? (
             transfers.map((transfer) => (
@@ -865,6 +891,7 @@ function SettlementScreen({
           ) : (
             <p className="transfer-empty">当前没有需要互相转账的余额。</p>
           )}
+          {shareNotice ? <p className="share-notice">{shareNotice}</p> : null}
         </section>
 
         <section className="section-block">
