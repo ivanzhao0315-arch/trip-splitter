@@ -1262,7 +1262,6 @@ function App() {
         ...snapshotPayload,
         id: `local-snapshot-${Date.now()}`,
         created_at: new Date().toISOString(),
-        period_label: activePeriod.label,
         total_minor: expenses.reduce((sum, expense) => sum + expense.converted_amount_minor, 0),
       };
       const nextPeriod = {
@@ -1298,7 +1297,7 @@ function App() {
         members,
         expenses,
       });
-      setSettlementHistory((items) => [{ ...snapshot, period_label: activePeriod.label }, ...items]);
+      setSettlementHistory((items) => [snapshot, ...items]);
       setExpenses([]);
       setActivePeriod(nextPeriod);
       setProject((current) => ({ ...(current ?? currentProject), active_period_id: nextPeriod.id }));

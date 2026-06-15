@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createCurrentPeriodLabel, createNextPeriodLabel } from '../periods';
+import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from '../periods';
 
 describe('period labels', () => {
   it('formats the current monthly period', () => {
@@ -15,5 +15,19 @@ describe('period labels', () => {
 
   it('uses the new month when the current date has moved on', () => {
     expect(createNextPeriodLabel('2026-06 #3', new Date('2026-07-01T00:00:00Z'))).toBe('2026-07');
+  });
+
+  it('stores the settled period label in snapshots', () => {
+    expect(buildSettlementSnapshot({
+      project: { id: 'project-1', default_currency: 'CNY' },
+      period: { id: 'period-1', label: '2026-06 #2' },
+      expenses: [{ id: 'expense-1' }],
+      balances: [],
+      transfers: [],
+    })).toMatchObject({
+      project_id: 'project-1',
+      period_id: 'period-1',
+      period_label: '2026-06 #2',
+    });
   });
 });

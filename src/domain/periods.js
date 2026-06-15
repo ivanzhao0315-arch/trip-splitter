@@ -20,6 +20,7 @@ export function buildSettlementSnapshot({ project, period, expenses, balances, t
   return {
     project_id: project.id,
     period_id: period.id,
+    period_label: period.label,
     project_currency: project.default_currency,
     included_expense_ids: expenses.map((expense) => expense.id),
     member_balance_payload: balances,
