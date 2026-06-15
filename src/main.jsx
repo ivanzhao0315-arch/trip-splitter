@@ -1779,6 +1779,16 @@ function ProjectSettingsSheet({
     }
   };
 
+  const copyProjectCode = async () => {
+    try {
+      await navigator.clipboard.writeText(project.code);
+      setCopyNotice('项目码已复制');
+    } catch {
+      window.prompt('复制项目码', project.code);
+      setCopyNotice('可手动复制项目码');
+    }
+  };
+
   const exportExpenses = () => {
     const csv = buildExpenseCsv({ project, period: activePeriod, members, expenses });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -1878,6 +1888,11 @@ function ProjectSettingsSheet({
           <Copy size={20} />
           复制邀请文案
         </button>
+        <button className="secondary-button settings-action-button" type="button" onClick={copyProjectCode}>
+          <Copy size={20} />
+          复制项目码
+        </button>
+        {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
         <button className="secondary-button settings-export-button" type="button" onClick={exportExpenses}>
           <DownloadSimple size={20} />
           导出本周期明细
@@ -1886,7 +1901,6 @@ function ProjectSettingsSheet({
           <DownloadSimple size={20} />
           导出历史结算
         </button>
-        {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
         <button className="switch-project-button" type="button" onClick={onSwitchProject}>
           切换项目
           <small>仅退出当前设备，不删除账本数据</small>

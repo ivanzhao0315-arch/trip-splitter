@@ -1329,6 +1329,11 @@ button:disabled {
   width: 100%;
 }
 
+.settings-action-button {
+  width: 100%;
+  margin-top: 10px;
+}
+
 .settings-export-button {
   width: 100%;
   margin-top: 10px;
