@@ -36,7 +36,12 @@ import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabe
 import { buildProjectInviteText } from './domain/projectInvite';
 import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
 import { filterExpenses } from './domain/expenseFilters';
-import { buildExpenseCsv, createExpenseExportFilename } from './domain/expenseExport';
+import {
+  buildExpenseCsv,
+  buildSettlementHistoryCsv,
+  createExpenseExportFilename,
+  createSettlementHistoryExportFilename,
+} from './domain/expenseExport';
 import { createAiDraft, discardAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
@@ -1736,6 +1741,21 @@ function ProjectSettingsSheet({
     setCopyNotice('本周期账单 CSV 已导出');
   };
 
+  const exportSettlementHistory = () => {
+    const csv = buildSettlementHistoryCsv({ project, settlementHistory });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = createSettlementHistoryExportFilename({ project });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setCopyNotice(settlementHistory.length ? '历史结算 CSV 已导出' : '已导出空的历史结算模板');
+  };
+
   return (
     <div className="modal-layer">
       <button className="modal-backdrop" onClick={onClose} aria-label="关闭" />
@@ -1808,6 +1828,10 @@ function ProjectSettingsSheet({
         <button className="secondary-button settings-export-button" type="button" onClick={exportExpenses}>
           <DownloadSimple size={20} />
           导出本周期明细
+        </button>
+        <button className="secondary-button settings-export-button" type="button" onClick={exportSettlementHistory}>
+          <DownloadSimple size={20} />
+          导出历史结算
         </button>
         {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
         <button className="switch-project-button" type="button" onClick={onSwitchProject}>
