@@ -906,7 +906,7 @@ function SettlementScreen({
             <span>当前周期</span>
             <strong><CalendarBlank size={20} />{activePeriod.label}</strong>
           </div>
-          <button>切换周期 <CaretDown size={17} /></button>
+          <small>结算后自动进入下一周期</small>
         </section>
 
         <section className="balance-card">
@@ -955,7 +955,7 @@ function SettlementScreen({
         <section className="section-block">
           <div className="section-header">
             <h3>历史结算</h3>
-            <button>查看全部</button>
+            <span>{settlementHistory.length} 条</span>
           </div>
           {settlementHistory.length ? (
             settlementHistory.map((item) => {

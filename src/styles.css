@@ -605,6 +605,13 @@ button:disabled {
   font-weight: 700;
 }
 
+.section-header span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
 .member-strip {
   display: flex;
   gap: 16px;
@@ -1192,16 +1199,12 @@ button:disabled {
   font-size: 18px;
 }
 
-.period-card button {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 10px;
-  border-radius: 8px;
+.period-card small {
+  max-width: 132px;
   color: var(--muted);
-  background: var(--surface-low);
-  border: 1px solid var(--outline-variant);
+  font-size: 12px;
+  line-height: 16px;
+  text-align: right;
 }
 
 .balance-row {
