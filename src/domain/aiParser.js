@@ -1,7 +1,9 @@
 const CURRENCY_PATTERNS = [
   { currency: 'USD', regex: /\$\s?(\d+(?:\.\d{1,2})?)/ },
   { currency: 'CNY', regex: /(?:¥|RMB|CNY)\s?(\d+(?:\.\d{1,2})?)/i },
+  { currency: 'JPY', regex: /(?:JPY|日元)\s?(\d+(?:\.\d{1,2})?)/i },
   { currency: 'EUR', regex: /€\s?(\d+(?:\.\d{1,2})?)/ },
+  { currency: 'HKD', regex: /(?:HKD|港币)\s?(\d+(?:\.\d{1,2})?)/i },
   { currency: 'GBP', regex: /£\s?(\d+(?:\.\d{1,2})?)/ },
   { currency: 'KRW', regex: /₩\s?(\d+(?:\.\d{1,2})?)/ },
 ];

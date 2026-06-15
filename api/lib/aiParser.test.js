@@ -17,4 +17,12 @@ describe('parseExpenseText', () => {
       confidence: 0.42,
     });
   });
+
+  it('extracts JPY amounts from travel text', () => {
+    expect(parseExpenseText('东京便利店 JPY 1280 Ivan 已付')).toMatchObject({
+      amount: 1280,
+      currency: 'JPY',
+      confidence: 0.82,
+    });
+  });
 });

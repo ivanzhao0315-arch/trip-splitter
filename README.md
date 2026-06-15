@@ -31,6 +31,6 @@ npm audit --audit-level=high
 
 ## Environment
 
-Copy `.env.example` to `.env.local`. Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `EXCHANGE_RATE_PROVIDER_URL`, `EXCHANGE_RATE_PROVIDER_KEY`, and `OPENAI_API_KEY` from the provider dashboards. Do not commit real secrets.
+Copy `.env.example` to `.env.local`. Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `EXCHANGE_RATE_PROVIDER_URL`, `EXCHANGE_RATE_PROVIDER_KEY`, and `OPENAI_API_KEY` from the provider dashboards. `OPENAI_VISION_MODEL` controls the model used by screenshot/receipt parsing. Do not commit real secrets.
 
 `SUPABASE_SERVICE_ROLE_KEY` is only for backend/server functions. Never expose it in browser code.

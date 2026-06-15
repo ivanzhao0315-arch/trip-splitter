@@ -19,6 +19,7 @@
 - [ ] Project home shows current period.
 - [ ] AI entry sheet opens.
 - [ ] Text AI draft detects amount and currency.
+- [ ] Photo and screenshot AI draft paths send the uploaded image to the server AI endpoint when `OPENAI_API_KEY` is configured.
 - [ ] User can confirm an expense.
 - [ ] Expense is split equally among selected participants.
 - [ ] Non-project currency expense stores original amount and converted amount.
