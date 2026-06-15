@@ -13,14 +13,14 @@
 
 - [AI-first Shared Ledger Product Design](docs/superpowers/specs/2026-06-15-ai-first-shared-ledger-design.md)
 
-## Local Development
+## Development
 
 ```bash
 npm install
-npm run dev
+npm run dev -- --port 5178 --strictPort
 ```
 
-## Verification
+## Quality Checks
 
 ```bash
 npm run test:run
