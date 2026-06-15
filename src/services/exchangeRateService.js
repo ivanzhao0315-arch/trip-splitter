@@ -20,6 +20,24 @@ export async function fetchExchangeRate({ fromCurrency, toCurrency }) {
   return response.json();
 }
 
+function resolveLocalFallbackRate({ fromCurrency, toCurrency, fallbackRates }) {
+  const directRate = fallbackRates?.[fromCurrency]?.[toCurrency];
+  if (directRate) return directRate;
+
+  const inverseRate = fallbackRates?.[toCurrency]?.[fromCurrency];
+  if (inverseRate) return 1 / inverseRate;
+
+  const fromToCny = fallbackRates?.[fromCurrency]?.CNY;
+  const cnyToTarget = fallbackRates?.CNY?.[toCurrency];
+  if (fromToCny && cnyToTarget) return fromToCny * cnyToTarget;
+
+  const cnyToFrom = fallbackRates?.CNY?.[fromCurrency];
+  const targetToCny = fallbackRates?.[toCurrency]?.CNY;
+  if (cnyToFrom && targetToCny) return (1 / cnyToFrom) * (1 / targetToCny);
+
+  throw new Error('缺少本地兜底汇率');
+}
+
 export async function resolveExchangeRateWithFallback({
   fromCurrency,
   toCurrency,
@@ -38,7 +56,7 @@ export async function resolveExchangeRateWithFallback({
     return await fetchRate({ fromCurrency, toCurrency });
   } catch {
     return {
-      rate: fallbackRates?.[fromCurrency]?.[toCurrency] ?? 1,
+      rate: resolveLocalFallbackRate({ fromCurrency, toCurrency, fallbackRates }),
       provider: 'local-fallback',
       timestamp: new Date().toISOString(),
     };

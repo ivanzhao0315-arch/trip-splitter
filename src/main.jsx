@@ -100,14 +100,18 @@ const currencies = [
   { code: 'JPY', label: 'JPY - 日元 (¥)' },
   { code: 'EUR', label: 'EUR - 欧元 (€)' },
   { code: 'HKD', label: 'HKD - 港币 ($)' },
+  { code: 'GBP', label: 'GBP - 英镑 (£)' },
+  { code: 'KRW', label: 'KRW - 韩元 (₩)' },
 ];
 
 const fallbackRates = {
-  CNY: { USD: 0.14, EUR: 0.13, JPY: 21.8, HKD: 1.08 },
-  USD: { CNY: 7.25, EUR: 0.93, JPY: 157.4, HKD: 7.82 },
-  EUR: { CNY: 7.8, USD: 1.08, JPY: 169.2, HKD: 8.42 },
-  JPY: { CNY: 0.046, USD: 0.0064, EUR: 0.0059, HKD: 0.05 },
-  HKD: { CNY: 0.93, USD: 0.128, EUR: 0.119, JPY: 20.1 },
+  CNY: { USD: 0.14, EUR: 0.13, JPY: 21.8, HKD: 1.08, GBP: 0.11, KRW: 190 },
+  USD: { CNY: 7.25, EUR: 0.93, JPY: 157.4, HKD: 7.82, GBP: 0.8, KRW: 1375 },
+  EUR: { CNY: 7.8, USD: 1.08, JPY: 169.2, HKD: 8.42, GBP: 0.86, KRW: 1482 },
+  JPY: { CNY: 0.046, USD: 0.0064, EUR: 0.0059, HKD: 0.05, GBP: 0.005, KRW: 8.72 },
+  HKD: { CNY: 0.93, USD: 0.128, EUR: 0.119, JPY: 20.1, GBP: 0.1, KRW: 176 },
+  GBP: { CNY: 9.2, USD: 1.25, EUR: 1.16, JPY: 199, HKD: 9.78, KRW: 1718 },
+  KRW: { CNY: 0.0053, USD: 0.00073, EUR: 0.00067, JPY: 0.115, HKD: 0.0057, GBP: 0.00058 },
 };
 
 function buildLocalDraft(sourceType, text = '') {
@@ -126,6 +130,17 @@ function buildLocalDraft(sourceType, text = '') {
 }
 
 async function resolveExchangeRate({ fromCurrency, toCurrency }) {
+  if (!hasBackendConfig) {
+    return resolveExchangeRateWithFallback({
+      fromCurrency,
+      toCurrency,
+      fallbackRates,
+      fetchRate: async () => {
+        throw new Error('Backend exchange-rate provider is not configured');
+      },
+    });
+  }
+
   return resolveExchangeRateWithFallback({ fromCurrency, toCurrency, fallbackRates });
 }
 

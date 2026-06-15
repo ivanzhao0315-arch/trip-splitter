@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { resolveExchangeRateWithFallback } from '../exchangeRateService';
 
 const fallbackRates = {
+  CNY: { USD: 0.14, EUR: 0.13 },
   USD: { CNY: 7.25 },
+  EUR: { CNY: 7.8 },
 };
 
 describe('exchange rate resolution', () => {
@@ -59,5 +61,50 @@ describe('exchange rate resolution', () => {
       provider: 'identity',
     });
     expect(fetchRate).not.toHaveBeenCalled();
+  });
+
+  it('uses an inverse local fallback rate when direct fallback is missing', async () => {
+    const fetchRate = vi.fn(async () => {
+      throw new Error('provider unavailable');
+    });
+
+    const resolved = await resolveExchangeRateWithFallback({
+      fromCurrency: 'CNY',
+      toCurrency: 'USD',
+      fallbackRates: { USD: { CNY: 7.25 } },
+      fetchRate,
+    });
+
+    expect(resolved.rate).toBeCloseTo(1 / 7.25);
+    expect(resolved.provider).toBe('local-fallback');
+  });
+
+  it('uses CNY as a local fallback bridge between supported currencies', async () => {
+    const fetchRate = vi.fn(async () => {
+      throw new Error('provider unavailable');
+    });
+
+    const resolved = await resolveExchangeRateWithFallback({
+      fromCurrency: 'USD',
+      toCurrency: 'EUR',
+      fallbackRates,
+      fetchRate,
+    });
+
+    expect(resolved.rate).toBeCloseTo(7.25 * 0.13);
+    expect(resolved.provider).toBe('local-fallback');
+  });
+
+  it('does not silently use 1:1 when no local fallback path exists', async () => {
+    const fetchRate = vi.fn(async () => {
+      throw new Error('provider unavailable');
+    });
+
+    await expect(resolveExchangeRateWithFallback({
+      fromCurrency: 'GBP',
+      toCurrency: 'KRW',
+      fallbackRates: {},
+      fetchRate,
+    })).rejects.toThrow('缺少本地兜底汇率');
   });
 });
