@@ -1,0 +1,1598 @@
+<!-- Design System -->
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#ffffff",
+                    "primary-container": "#22c55e",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-highest": "#e1e3e4",
+                    "inverse-surface": "#2e3132",
+                    "background": "#f8f9fa",
+                    "on-surface-variant": "#3d4a3d",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "primary-fixed": "#6bff8f",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface": "#191c1d",
+                    "on-background": "#191c1d",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f3f4f5",
+                    "on-tertiary-fixed-variant": "#404754",
+                    "secondary-fixed-dim": "#bdc7d9",
+                    "surface-dim": "#d9dadb",
+                    "surface-tint": "#006e2f",
+                    "on-secondary-fixed": "#121c2a",
+                    "surface-container-high": "#e7e8e9",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#4ae176",
+                    "tertiary-fixed-dim": "#c0c7d6",
+                    "surface-container": "#edeeef",
+                    "tertiary-container": "#a5acbb",
+                    "on-primary-container": "#004b1e",
+                    "primary": "#006e2f",
+                    "outline-variant": "#bccbb9",
+                    "surface-variant": "#e1e3e4",
+                    "on-secondary-fixed-variant": "#3d4756",
+                    "secondary-fixed": "#d9e3f6",
+                    "surface": "#f8f9fa",
+                    "secondary": "#555f6f",
+                    "inverse-on-surface": "#f0f1f2",
+                    "outline": "#6d7b6c",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed": "#151c27",
+                    "on-secondary-container": "#596373",
+                    "on-primary-fixed-variant": "#005321",
+                    "tertiary-fixed": "#dce2f3",
+                    "secondary-container": "#d6e0f3",
+                    "tertiary": "#585f6c",
+                    "surface-bright": "#f8f9fa",
+                    "on-primary-fixed": "#002109",
+                    "on-tertiary-container": "#39404d",
+                    "primary-fixed-dim": "#4ae176"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "12px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "xl": "32px",
+                    "container-margin": "16px",
+                    "unit": "4px",
+                    "xs": "4px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "price-display": ["Plus Jakarta Sans"],
+                    "body-md": ["Inter, PingFang SC"],
+                    "headline-md": ["Plus Jakarta Sans, PingFang SC"],
+                    "headline-sm": ["Plus Jakarta Sans, PingFang SC"],
+                    "body-lg": ["Inter, PingFang SC"],
+                    "headline-lg": ["Plus Jakarta Sans, PingFang SC"],
+                    "label-md": ["Inter, PingFang SC"]
+            },
+            "fontSize": {
+                    "price-display": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f8f9fa;
+            color: #191c1d;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 231, 235, 0.5);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-body-md min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-md h-[52px] bg-surface border-b border-surface-container-highest">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary" data-icon="arrow_back">arrow_back</span>
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface">杭州周末游</h1>
+</div>
+<div class="flex items-center gap-xs bg-surface-container-low px-sm py-1 rounded-full border border-outline-variant hover:bg-surface-container-high transition-colors cursor-pointer active:scale-95 duration-150">
+<span class="font-label-md text-label-md text-primary">#A7K2</span>
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="content_copy">content_copy</span>
+</div>
+</header>
+<main class="pt-[68px] px-md space-y-md">
+<!-- Summary Bento Grid -->
+<section class="grid grid-cols-2 gap-gutter">
+<div class="col-span-2 p-lg rounded-xl bg-primary text-on-primary relative overflow-hidden">
+<!-- Decorative background pattern -->
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+<div class="relative z-10">
+<p class="font-label-md text-label-md opacity-80 mb-sm">总计支出 (CNY)</p>
+<div class="flex items-baseline gap-xs">
+<span class="font-price-display text-headline-sm opacity-70">¥</span>
+<h2 class="font-price-display text-price-display">2,450.00</h2>
+</div>
+</div>
+</div>
+<div class="p-md rounded-xl bg-white border border-surface-container-highest">
+<p class="font-label-md text-label-md text-on-surface-variant mb-xs">我的余额</p>
+<p class="font-headline-sm text-headline-sm text-primary">+¥120.00</p>
+</div>
+<div class="p-md rounded-xl bg-white border border-surface-container-highest flex items-center justify-between">
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-xs">成员</p>
+<p class="font-headline-sm text-headline-sm text-on-surface">3 人</p>
+</div>
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-secondary-container flex items-center justify-center overflow-hidden">
+<img alt="小陈" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqSjRJTAQMIUvSYHKsjWlbvD5odkNjkf_TAXJRHeZX-ZaIvIWwvrxrYq382SXAWfHSx48wsNi-JbE62KZik8qZVC7UeEH5O91G92EPjqZgAYYRNkCRZpJ6tNG26i_egzaHtr2h1A9_bepv34DJAGYh7ij9w42JMbIvtXOtlCVfTTluWSVXsFLAqf-le9PKqqU7dlymp3h100TXzqYIW0MCoCg2awOVMN1MLnKMyzWuWWsPKFl1Ais4rbJ0_qOrdCqbBQQCyf-RnjE"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-tertiary-container flex items-center justify-center overflow-hidden">
+<img alt="张三" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkKP1ykpzldGwEp5wRX3nImUfhfNQbRM86piAAxtk2DWM8amj2xAgHzZQWiem-ytoYB6ftMBuQjdieKAWEeUfyHYqbMVzEmumNh2oKfj6otuaanraGQy1XHo0jYAz5kXncx-1CJqsVuGYCuWIo-5esXk4YyD0wyh2NeizZJlyecLFQQEc_PMS-NFkt1NKqmBgmB_4qqfYAdA0Ofww2EtB2nKIuBxakaauiibz6bbKJ88pEso5R27ttccQ4kH9Jpr39Fqud2JOyhgY"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="Ivan" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFsQx1ptRtzRLSIQQ-s0C6k_STUQ2gIHWjs5dH-UHE6XLcbayJ9wZqFLhdaBtMHGsL3z9MfSY1RYU-I6yrgJOAM1v_rkgB6XayvsRNQJhH7bT847TEEz4fqeqglpa_ruaeptt1wwDoZd2inr9A5tBle-mUb56H_xuVNqrp0T96v_LmDeMGJ_nQgVVCnckHVGpOn9gRlQRSJuT_6FzQzoBdgsX94PuYG2MPY-EzqFDDxSMD8h4Y_2HssHfO3nsR_CAMxUCh1n0DpHg"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Member Quick View -->
+<section class="space-y-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm">小组成员</h3>
+<span class="text-primary font-label-md text-label-md">管理成员</span>
+</div>
+<div class="flex gap-md overflow-x-auto pb-sm no-scrollbar">
+<div class="flex-shrink-0 flex flex-col items-center gap-xs">
+<div class="w-14 h-14 rounded-full bg-white border border-surface-container-highest p-1">
+<img alt="小陈" class="w-full h-full rounded-full bg-secondary-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVmZQ2JsbTAGk1AVCCrA_IdZqANbdXS5_lIqLcVENHWuyaDTNcBKiiuhd-_Vc9PwaXpC-aqAHJ6_T-nOvJ9x4Hc_ZcD6WDZY5_4i0gc8HeCALXs36egn5B0_Z3QK536OcD4F-Aem4rVC_OO62we-0-Ian4XR5NYFb53SM_kED5EST9AfCmmRmRoYUcQo9ZLUOP6rMCrLny738x8JwcbclhBX6cJutWjDtzX3N_l4w2cWZMwgrN9mFvyhWFSu4-CH6y0EHGyMFTg0s"/>
+</div>
+<span class="font-label-md text-label-md">小陈</span>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-xs">
+<div class="w-14 h-14 rounded-full bg-white border border-surface-container-highest p-1">
+<img alt="张三" class="w-full h-full rounded-full bg-tertiary-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvwxZqjFyGIyq12hetPDc5WmK1Qj5UItoLiNrWYd3u0FydYlTboEZYKw4m7LilZ_KpgqevNblUX1KE2HO3eDaOlmCIhibTAj8nRZLO4w-5aRw5221JqBPxZkd3UX4xSpQCb1U0Ok87n-ja4KaxOAl5ZjkLIBaM-eFd3yZCjJeqPLL4hlLWaz0Mgin0e0Xi5VN6YZMBGJNkil1KjSGl82zts14qDOcaE0LMbdNDC_S95TzjoMh1y8lhHHdMelpAujGkzkN2-tLF2WQ"/>
+</div>
+<span class="font-label-md text-label-md">张三</span>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-xs">
+<div class="w-14 h-14 rounded-full bg-white border border-surface-container-highest p-1">
+<img alt="Ivan" class="w-full h-full rounded-full bg-primary-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDD80mh8__5oxr1I2J5LTC86nsfO37aOhGza4o9gWg__fssxjVjmm133Wmp4aE6gtqlXGB4LlAhHwXD7hdcKzqk6bXgFYUr22okhKCCIpBXC03JWsqzKxziqmCYiU6ct-1tLv21x-UaOTihElGsvd0wLjQznkeeu_Gexy1QxkM8re-gKcikmabJgxj1s3jxC58EG9M0z4nXhqAi3VAcTgiwJvvNzdjCKUmIoJ2jvqL8cQJAFsliTgsZMkH6jzlV2hGUdJZObWqEGrY"/>
+</div>
+<span class="font-label-md text-label-md">Ivan</span>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-xs">
+<div class="w-14 h-14 rounded-full border border-dashed border-outline flex items-center justify-center text-outline">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</div>
+<span class="font-label-md text-label-md text-outline">添加</span>
+</div>
+</div>
+</section>
+<!-- Recent Expenses -->
+<section class="space-y-sm">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm">最近明细</h3>
+<span class="text-on-surface-variant font-label-md text-label-md">查看全部</span>
+</div>
+<div class="space-y-gutter">
+<!-- Expense Item 1 -->
+<div class="bg-white border border-surface-container-highest rounded-xl p-md flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="restaurant">restaurant</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface truncate">晚餐</h4>
+<p class="font-label-md text-label-md text-on-surface-variant flex items-center gap-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                            小陈支付 · 3人平分
+                        </p>
+</div>
+<div class="text-right">
+<p class="font-headline-sm text-headline-sm text-on-surface">¥400.00</p>
+<p class="font-label-md text-label-md text-on-surface-variant">今天 19:30</p>
+</div>
+</div>
+<!-- Expense Item 2 -->
+<div class="bg-white border border-surface-container-highest rounded-xl p-md flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="commute">commute</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface truncate">打车</h4>
+<p class="font-label-md text-label-md text-on-surface-variant flex items-center gap-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            张三支付 · 2人平分
+                        </p>
+</div>
+<div class="text-right">
+<p class="font-headline-sm text-headline-sm text-on-surface">¥86.50</p>
+<p class="font-label-md text-label-md text-on-surface-variant">今天 15:10</p>
+</div>
+</div>
+<!-- Expense Item 3 -->
+<div class="bg-white border border-surface-container-highest rounded-xl p-md flex items-center gap-md opacity-80">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="hotel">hotel</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface truncate">民宿房费</h4>
+<p class="font-label-md text-label-md text-on-surface-variant flex items-center gap-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                            Ivan支付 · 全员平分
+                        </p>
+</div>
+<div class="text-right">
+<p class="font-headline-sm text-headline-sm text-on-surface">¥1,200.00</p>
+<p class="font-label-md text-label-md text-on-surface-variant">昨天 14:00</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Primary FAB -->
+<button class="fixed bottom-24 right-md flex items-center gap-sm bg-primary-container text-on-primary-container px-lg py-md rounded-2xl shadow-lg hover:brightness-110 active:scale-95 transition-all duration-200 z-50">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-headline-sm text-headline-sm">AI 记账</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-[64px] px-sm pb-safe bg-surface border-t border-surface-container-highest">
+<!-- Active: 明细 -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 transition-transform duration-150 scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+<span class="font-label-md text-label-md">明细</span>
+</a>
+<!-- Inactive: 统计 -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="font-label-md text-label-md">统计</span>
+</a>
+<!-- Inactive: 成员 -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md">成员</span>
+</a>
+<!-- Inactive: 设置 -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">设置</span>
+</a>
+</nav>
+<script>
+        // Simple touch feedback for interactive elements
+        document.querySelectorAll('button, a, .cursor-pointer').forEach(el => {
+            el.addEventListener('touchstart', () => el.classList.add('opacity-70'));
+            el.addEventListener('touchend', () => el.classList.remove('opacity-70'));
+        });
+
+        // Copy code interaction
+        const copyBtn = document.querySelector('[data-icon="content_copy"]').parentElement;
+        copyBtn.addEventListener('click', () => {
+            const code = copyBtn.querySelector('.font-label-md').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = copyBtn.querySelector('.font-label-md').innerText;
+                copyBtn.querySelector('.font-label-md').innerText = '已复制';
+                setTimeout(() => {
+                    copyBtn.querySelector('.font-label-md').innerText = originalText;
+                }, 2000);
+            });
+        });
+    </script>
+</body></html>
+
+<!-- 项目首页 -->
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>分账助手 - 登录</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#ffffff",
+                    "primary-container": "#22c55e",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-highest": "#e1e3e4",
+                    "inverse-surface": "#2e3132",
+                    "background": "#f8f9fa",
+                    "on-surface-variant": "#3d4a3d",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "primary-fixed": "#6bff8f",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface": "#191c1d",
+                    "on-background": "#191c1d",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f3f4f5",
+                    "on-tertiary-fixed-variant": "#404754",
+                    "secondary-fixed-dim": "#bdc7d9",
+                    "surface-dim": "#d9dadb",
+                    "surface-tint": "#006e2f",
+                    "on-secondary-fixed": "#121c2a",
+                    "surface-container-high": "#e7e8e9",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#4ae176",
+                    "tertiary-fixed-dim": "#c0c7d6",
+                    "surface-container": "#edeeef",
+                    "tertiary-container": "#a5acbb",
+                    "on-primary-container": "#004b1e",
+                    "primary": "#006e2f",
+                    "outline-variant": "#bccbb9",
+                    "surface-variant": "#e1e3e4",
+                    "on-secondary-fixed-variant": "#3d4756",
+                    "secondary-fixed": "#d9e3f6",
+                    "surface": "#f8f9fa",
+                    "secondary": "#555f6f",
+                    "inverse-on-surface": "#f0f1f2",
+                    "outline": "#6d7b6c",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed": "#151c27",
+                    "on-secondary-container": "#596373",
+                    "on-primary-fixed-variant": "#005321",
+                    "tertiary-fixed": "#dce2f3",
+                    "secondary-container": "#d6e0f3",
+                    "tertiary": "#585f6c",
+                    "surface-bright": "#f8f9fa",
+                    "on-primary-fixed": "#002109",
+                    "on-tertiary-container": "#39404d",
+                    "primary-fixed-dim": "#4ae176"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "12px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "xl": "32px",
+                    "container-margin": "16px",
+                    "unit": "4px",
+                    "xs": "4px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "price-display": ["Plus Jakarta Sans"],
+                    "body-md": ["Inter, PingFang SC"],
+                    "headline-md": ["Plus Jakarta Sans, PingFang SC"],
+                    "headline-sm": ["Plus Jakarta Sans, PingFang SC"],
+                    "body-lg": ["Inter, PingFang SC"],
+                    "headline-lg": ["Plus Jakarta Sans, PingFang SC"],
+                    "label-md": ["Inter, PingFang SC"]
+            },
+            "fontSize": {
+                    "price-display": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f8f9fa;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .touch-active:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface antialiased">
+<!-- Top App Bar (As specified in JSON hierarchy, but stripped for focused entry) -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-center px-md h-[52px] bg-surface border-b border-surface-container-highest">
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface">分账助手</h1>
+</header>
+<main class="min-h-screen pt-[52px] pb-xl px-md flex flex-col items-center justify-center max-w-[480px] mx-auto">
+<!-- Hero Visual Section -->
+<div class="w-full mb-xl">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-container mb-md">
+<img alt="Financial clarity concept" class="w-full h-full object-cover" data-alt="A clean and professional digital illustration representing financial transparency and collaboration. Two people are standing in a bright, modern office space looking at a giant, floating 3D bar chart made of soft green glass. The environment is minimalist with high-key lighting, soft shadows, and a predominantly white and light gray color palette with vibrant green accents. The overall mood is calm, trustworthy, and efficient." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAehf98fcoilWFKWpkKdr9rLxnmDqqjiL2vBPX6plVaglwiVxTCPVzyAUCanZoxNIv6z8lpiXYq-aykJpP845-Xf1RGRzRQK-Ep7WwMrR0TEdSUm1jjL24EC8yv06W-YolScgxLGPnmmgkUk2epasvRQJ_4pF2hSsyh0W05HgItm9lIRD68VzLaDOdbWYALwUdwIT6WrLZGan2CEmwfkKnAeDvpizYvl21iv9akP9lG3NeuRHHIUBte8IBnfXpGCKNTnqv4Araz0xg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+</div>
+<div class="text-center">
+<p class="font-body-lg text-body-lg text-on-surface-variant">透明、公平、高效的群组分账神器</p>
+</div>
+</div>
+<!-- Section 1: Set Username -->
+<section class="w-full mb-lg">
+<div class="bg-surface-container-lowest border border-surface-container-highest rounded-xl p-md">
+<label class="block font-label-md text-label-md text-secondary mb-sm" for="username">设置你的昵称</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-md text-on-surface-variant">person</span>
+<input class="w-full pl-[44px] pr-md py-sm bg-surface border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary-container focus:border-primary-container outline-none transition-all placeholder:text-outline h-[52px] font-body-md text-body-md" id="username" placeholder="输入你的昵称 (例: 小陈)" type="text"/>
+</div>
+</div>
+</section>
+<!-- Section 2: Create or Join -->
+<section class="w-full space-y-gutter">
+<!-- Create Button -->
+<button class="w-full h-[52px] bg-primary-container text-on-primary font-headline-sm text-headline-sm rounded-xl flex items-center justify-center gap-sm shadow-sm hover:opacity-90 active:scale-[0.98] transition-all touch-active">
+<span class="material-symbols-outlined">add_circle</span>
+                创建新项目
+            </button>
+<div class="flex items-center gap-sm px-sm">
+<div class="h-px flex-1 bg-surface-container-highest"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">或者</span>
+<div class="h-px flex-1 bg-surface-container-highest"></div>
+</div>
+<!-- Join Project -->
+<div class="flex gap-sm">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant">tag</span>
+<input class="w-full pl-[44px] pr-md py-sm bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary-container focus:border-primary-container outline-none h-[52px] font-body-md text-body-md tracking-[0.2em]" maxlength="4" placeholder="4位项目代码" type="text"/>
+</div>
+<button class="px-lg h-[52px] bg-surface border border-outline-variant text-primary font-headline-sm text-headline-sm rounded-xl hover:bg-surface-container-low active:scale-[0.98] transition-all touch-active">
+                    加入项目
+                </button>
+</div>
+</section>
+<!-- Footer Help -->
+<footer class="mt-xl text-center">
+<p class="font-label-md text-label-md text-on-surface-variant">
+                点击“创建”或“加入”即表示您同意我们的<br/>
+<a class="text-primary hover:underline" href="#">服务条款</a> 与 <a class="text-primary hover:underline" href="#">隐私政策</a>
+</p>
+</footer>
+</main>
+<!-- Success Feedback Overlay (Hidden by default) -->
+<div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300" id="loadingOverlay">
+<div class="bg-surface rounded-xl p-xl flex flex-col items-center max-w-[280px] text-center shadow-lg transform scale-95 transition-transform duration-300">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center mb-md">
+<span class="material-symbols-outlined text-on-primary text-[32px] animate-pulse">sync</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm mb-xs">正在连接项目...</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">请稍候，我们正在同步最新账目数据</p>
+</div>
+</div>
+<script>
+        // Simple Interaction Logic
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const username = document.getElementById('username').value.trim();
+                if (!username) {
+                    const input = document.getElementById('username');
+                    input.classList.add('border-error');
+                    input.placeholder = "请输入昵称后再继续";
+                    setTimeout(() => {
+                        input.classList.remove('border-error');
+                        input.placeholder = "输入你的昵称 (例: 小陈)";
+                    }, 2000);
+                    return;
+                }
+                
+                // Show Loading Animation
+                const overlay = document.getElementById('loadingOverlay');
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.add('opacity-100');
+                    overlay.querySelector('div').classList.add('scale-100');
+                }, 10);
+
+                // Mock navigation after 1.5s
+                setTimeout(() => {
+                    // console.log("Navigating to dashboard...");
+                    // window.location.href = "/dashboard";
+                    overlay.classList.remove('opacity-100');
+                    overlay.querySelector('div').classList.remove('scale-100');
+                    setTimeout(() => overlay.classList.add('hidden'), 300);
+                }, 1500);
+            });
+        });
+
+        // Numeric constraint for join code
+        const joinInput = document.querySelector('input[placeholder="4位项目代码"]');
+        joinInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    </script>
+</body></html>
+
+<!-- 进入项目 -->
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "primary-container": "#22c55e",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e1e3e4",
+                        "inverse-surface": "#2e3132",
+                        "background": "#f8f9fa",
+                        "on-surface-variant": "#3d4a3d",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#6bff8f",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#191c1d",
+                        "on-background": "#191c1d",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#f3f4f5",
+                        "on-tertiary-fixed-variant": "#404754",
+                        "secondary-fixed-dim": "#bdc7d9",
+                        "surface-dim": "#d9dadb",
+                        "surface-tint": "#006e2f",
+                        "on-secondary-fixed": "#121c2a",
+                        "surface-container-high": "#e7e8e9",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#4ae176",
+                        "tertiary-fixed-dim": "#c0c7d6",
+                        "surface-container": "#edeeef",
+                        "tertiary-container": "#a5acbb",
+                        "on-primary-container": "#004b1e",
+                        "primary": "#006e2f",
+                        "outline-variant": "#bccbb9",
+                        "surface-variant": "#e1e3e4",
+                        "on-secondary-fixed-variant": "#3d4756",
+                        "secondary-fixed": "#d9e3f6",
+                        "surface": "#f8f9fa",
+                        "secondary": "#555f6f",
+                        "inverse-on-surface": "#f0f1f2",
+                        "outline": "#6d7b6c",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#151c27",
+                        "on-secondary-container": "#596373",
+                        "on-primary-fixed-variant": "#005321",
+                        "tertiary-fixed": "#dce2f3",
+                        "secondary-container": "#d6e0f3",
+                        "tertiary": "#585f6c",
+                        "surface-bright": "#f8f9fa",
+                        "on-primary-fixed": "#002109",
+                        "on-tertiary-container": "#39404d",
+                        "primary-fixed-dim": "#4ae176"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "container-margin": "16px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "price-display": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter, PingFang SC"],
+                        "headline-md": ["Plus Jakarta Sans, PingFang SC"],
+                        "headline-sm": ["Plus Jakarta Sans, PingFang SC"],
+                        "body-lg": ["Inter, PingFang SC"],
+                        "headline-lg": ["Plus Jakarta Sans, PingFang SC"],
+                        "label-md": ["Inter, PingFang SC"]
+                    },
+                    "fontSize": {
+                        "price-display": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col items-center">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-md h-[52px] bg-surface border-b border-surface-container-highest">
+<div class="flex items-center gap-sm">
+<button class="p-1 hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined text-primary">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface">创建项目</h1>
+</div>
+<div class="text-on-surface-variant font-label-md">#X8K2P</div>
+</header>
+<main class="w-full max-w-[600px] mt-[52px] px-md py-lg flex flex-col gap-lg">
+<!-- Hero Visual Section -->
+<div class="relative w-full h-48 rounded-xl overflow-hidden bg-surface-container-low border border-surface-container-highest">
+<img alt="Creative Workspace" class="w-full h-full object-cover" data-alt="A clean, minimalist desktop workspace photographed from above, featuring a high-quality leather journal, a sleek metallic pen, and a laptop with a blank green screen. The lighting is soft and natural, emphasizing a bright and professional atmosphere that conveys financial organization and clarity. The color palette is dominated by soft grays and clean whites with a pop of vibrant green, mirroring the modern corporate aesthetic of the app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAr3kLFwF7s6CBEd8Ykd6zalAxUASNI0T5Z4qSvMYMXgVY6KKKVexXZ46qkGoOVMiLsD03Q20WVG8p0TbMXMV1GpYaGMSPLXI4-gaeqB-VMr-8SWXRzEowUXpAQsMBg8d2geg6VkWC5WCC-NnMxgYpC3womTHtmsfHhvrPx5-SWYBpCAzuzG-v4OASLpA6W0JKHZgqPxLrvxewuNUEZ9qYzI1_ZrGknroEQeEZsr5vuuoZKxxLezRwpKlz7uYDe5orMYpUmHj70j-A"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+</div>
+<!-- Form Section -->
+<div class="flex flex-col gap-xl">
+<!-- Project Name Input -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-secondary ml-1" for="project-name">项目名称</label>
+<input class="h-[52px] px-md bg-surface border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary-container focus:border-primary-container outline-none transition-all placeholder:text-outline" id="project-name" placeholder="例如：杭州周末游" type="text"/>
+</div>
+<!-- Currency Selection -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-secondary ml-1" for="currency-select">结算币种</label>
+<div class="relative">
+<select class="w-full h-[52px] px-md bg-surface border border-outline-variant rounded-xl appearance-none focus:ring-2 focus:ring-primary-container focus:border-primary-container outline-none transition-all" id="currency-select">
+<option value="CNY">CNY - 人民币 (¥)</option>
+<option value="USD">USD - 美元 ($)</option>
+<option value="JPY">JPY - 日元 (¥)</option>
+<option value="EUR">EUR - 欧元 (€)</option>
+<option value="HKD">HKD - 港币 ($)</option>
+</select>
+<div class="absolute right-md top-1/2 -translate-y-1/2 pointer-events-none">
+<span class="material-symbols-outlined text-outline">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Helper Text Card -->
+<div class="p-md bg-surface-container-low rounded-xl border border-surface-container-highest flex items-start gap-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">info</span>
+<p class="text-on-surface-variant font-body-md leading-relaxed">
+                    创建后将生成唯一的4位邀请码。您可以邀请朋友加入该项目，实时同步每一笔共同支出。
+                </p>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="mt-lg flex flex-col gap-md">
+<button class="h-[52px] w-full bg-[#22C55E] text-white font-headline-sm rounded-xl active:scale-95 transition-transform duration-150 flex items-center justify-center gap-sm">
+                立即创建
+                <span class="material-symbols-outlined" style="font-variation-settings: 'wght' 600">rocket_launch</span>
+</button>
+<p class="text-center text-outline font-label-md">
+                点击“立即创建”即表示您同意分账助手服务条款
+            </p>
+</div>
+</main>
+<!-- Bottom Navigation Mock (Inactive for this transactional screen but shown for shell context if required) -->
+<!-- Note: Per UI instructions, transactional screens usually hide this. But the JSON includes it. -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-[64px] px-sm pb-safe bg-surface border-t border-surface-container-highest hidden md:hidden">
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-md text-label-md">明细</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="font-label-md text-label-md">统计</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md">成员</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">设置</span>
+</div>
+</nav>
+<script>
+        // Simple Interaction logic for focus states and feedback
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.classList.add('scale-[1.01]');
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.classList.remove('scale-[1.01]');
+            });
+        });
+
+        const primaryBtn = document.querySelector('button.bg-\\[\\#22C55E\\]');
+        primaryBtn.addEventListener('click', () => {
+            const name = document.getElementById('project-name').value;
+            if(!name) {
+                alert('请输入项目名称');
+                return;
+            }
+            primaryBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> 创建中...';
+            setTimeout(() => {
+                primaryBtn.innerHTML = '创建成功！';
+                primaryBtn.classList.replace('bg-[#22C55E]', 'bg-on-surface-variant');
+            }, 1500);
+        });
+    </script>
+</body></html>
+
+<!-- 创建项目 -->
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#ffffff",
+                    "primary-container": "#22c55e",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-highest": "#e1e3e4",
+                    "inverse-surface": "#2e3132",
+                    "background": "#f8f9fa",
+                    "on-surface-variant": "#3d4a3d",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "primary-fixed": "#6bff8f",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface": "#191c1d",
+                    "on-background": "#191c1d",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f3f4f5",
+                    "on-tertiary-fixed-variant": "#404754",
+                    "secondary-fixed-dim": "#bdc7d9",
+                    "surface-dim": "#d9dadb",
+                    "surface-tint": "#006e2f",
+                    "on-secondary-fixed": "#121c2a",
+                    "surface-container-high": "#e7e8e9",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#4ae176",
+                    "tertiary-fixed-dim": "#c0c7d6",
+                    "surface-container": "#edeeef",
+                    "tertiary-container": "#a5acbb",
+                    "on-primary-container": "#004b1e",
+                    "primary": "#006e2f",
+                    "outline-variant": "#bccbb9",
+                    "surface-variant": "#e1e3e4",
+                    "on-secondary-fixed-variant": "#3d4756",
+                    "secondary-fixed": "#d9e3f6",
+                    "surface": "#f8f9fa",
+                    "secondary": "#555f6f",
+                    "inverse-on-surface": "#f0f1f2",
+                    "outline": "#6d7b6c",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed": "#151c27",
+                    "on-secondary-container": "#596373",
+                    "on-primary-fixed-variant": "#005321",
+                    "tertiary-fixed": "#dce2f3",
+                    "secondary-container": "#d6e0f3",
+                    "tertiary": "#585f6c",
+                    "surface-bright": "#f8f9fa",
+                    "on-primary-fixed": "#002109",
+                    "on-tertiary-container": "#39404d",
+                    "primary-fixed-dim": "#4ae176"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "12px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "xl": "32px",
+                    "container-margin": "16px",
+                    "unit": "4px",
+                    "xs": "4px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "price-display": ["Plus Jakarta Sans"],
+                    "body-md": ["Inter, PingFang SC"],
+                    "headline-md": ["Plus Jakarta Sans, PingFang SC"],
+                    "headline-sm": ["Plus Jakarta Sans, PingFang SC"],
+                    "body-lg": ["Inter, PingFang SC"],
+                    "headline-lg": ["Plus Jakarta Sans, PingFang SC"],
+                    "label-md": ["Inter, PingFang SC"]
+            },
+            "fontSize": {
+                    "price-display": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ai-shimmer {
+            background: linear-gradient(90deg, rgba(34,197,94,0) 0%, rgba(34,197,94,0.1) 50%, rgba(34,197,94,0) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .modal-enter {
+            transform: translateY(100%);
+        }
+        .modal-active {
+            transform: translateY(0);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface overflow-hidden">
+<!-- Mock Background Content (Dashboard) -->
+<div class="fixed inset-0 p-md opacity-40 blur-[2px] pointer-events-none">
+<header class="flex justify-between items-center mb-lg">
+<h1 class="font-headline-lg text-headline-lg">分账助手</h1>
+<div class="w-10 h-10 rounded-full bg-surface-container-high"></div>
+</header>
+<div class="grid grid-cols-2 gap-gutter mb-xl">
+<div class="p-md bg-white border border-outline-variant rounded-xl h-32"></div>
+<div class="p-md bg-white border border-outline-variant rounded-xl h-32"></div>
+</div>
+<div class="space-y-sm">
+<div class="h-16 bg-white border border-outline-variant rounded-xl"></div>
+<div class="h-16 bg-white border border-outline-variant rounded-xl"></div>
+<div class="h-16 bg-white border border-outline-variant rounded-xl"></div>
+</div>
+</div>
+<!-- Overlay Backdrop -->
+<div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] transition-opacity duration-300 opacity-100" id="backdrop"></div>
+<!-- AI Input Options Bottom Sheet/Modal -->
+<div class="fixed bottom-0 left-0 right-0 z-[70] flex flex-col items-center justify-end px-md pb-safe" id="modal">
+<div class="w-full max-w-[600px] bg-surface rounded-t-[28px] overflow-hidden modal-active shadow-2xl flex flex-col">
+<!-- Handle -->
+<div class="flex justify-center py-sm">
+<div class="w-8 h-1 bg-surface-container-highest rounded-full"></div>
+</div>
+<!-- Content -->
+<div class="px-lg pb-xl pt-sm">
+<!-- Header -->
+<div class="mb-lg text-center">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-xs">选择记账方式</h2>
+<div class="inline-flex items-center gap-xs px-sm py-1 bg-primary-container/10 rounded-full ai-shimmer">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<p class="font-label-md text-label-md text-primary">AI 将自动识别金额、币种和描述</p>
+</div>
+</div>
+<!-- Options Grid -->
+<div class="grid grid-cols-1 gap-sm">
+<!-- Option 1: Camera -->
+<button class="flex items-center gap-md p-md bg-white border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors active:scale-[0.98] duration-150 text-left group">
+<div class="w-12 h-12 flex items-center justify-center rounded-full bg-secondary-container text-on-secondary-container group-hover:bg-primary-container group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[24px]">photo_camera</span>
+</div>
+<div class="flex-1">
+<span class="font-headline-sm text-headline-sm block">拍摄收据</span>
+<span class="font-body-md text-on-surface-variant text-[13px]">拍照并识别纸质账单明细</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</button>
+<!-- Option 2: Upload Screenshot -->
+<button class="flex items-center gap-md p-md bg-white border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors active:scale-[0.98] duration-150 text-left group">
+<div class="w-12 h-12 flex items-center justify-center rounded-full bg-secondary-container text-on-secondary-container group-hover:bg-primary-container group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[24px]">image</span>
+</div>
+<div class="flex-1">
+<span class="font-headline-sm text-headline-sm block">上传截图</span>
+<span class="font-body-md text-on-surface-variant text-[13px]">微信/支付宝支付详情页截图</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</button>
+<!-- Option 3: Paste Text -->
+<button class="flex items-center gap-md p-md bg-white border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors active:scale-[0.98] duration-150 text-left group">
+<div class="w-12 h-12 flex items-center justify-center rounded-full bg-secondary-container text-on-secondary-container group-hover:bg-primary-container group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[24px]">description</span>
+</div>
+<div class="flex-1">
+<span class="font-headline-sm text-headline-sm block">粘贴文字</span>
+<span class="font-body-md text-on-surface-variant text-[13px]">粘贴群聊记录或账单文本</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</button>
+</div>
+<!-- Footer / Cancel -->
+<div class="mt-lg">
+<button class="w-full h-[52px] font-headline-sm text-headline-sm text-secondary bg-surface-container-high rounded-xl active:opacity-70 transition-opacity" id="cancel-btn">
+                        取消
+                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Background Decorative AI Graphic -->
+<div class="fixed top-0 right-0 -z-10 p-lg opacity-20">
+
+</div>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('modal');
+            const backdrop = document.getElementById('backdrop');
+            const cancelBtn = document.getElementById('cancel-btn');
+
+            const closeModal = () => {
+                modal.firstElementChild.style.transform = 'translateY(100%)';
+                backdrop.style.opacity = '0';
+                setTimeout(() => {
+                    // In a real app, this would route back or close the component
+                    console.log('Modal dismissed');
+                }, 400);
+            };
+
+            cancelBtn.addEventListener('click', closeModal);
+            backdrop.addEventListener('click', closeModal);
+
+            // Click interaction for options
+            const options = document.querySelectorAll('button:not(#cancel-btn)');
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    const label = option.querySelector('.font-headline-sm').textContent;
+                    console.log(`Selected: ${label}`);
+                    // Trigger actual logic here
+                    closeModal();
+                });
+            });
+        });
+    </script>
+</body></html>
+
+<!-- AI 记账方式 -->
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter,+PingFang+SC:wght@100..900&family=Plus+Jakarta+Sans,+PingFang+SC:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#ffffff",
+                    "primary-container": "#22c55e",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-highest": "#e1e3e4",
+                    "inverse-surface": "#2e3132",
+                    "background": "#f8f9fa",
+                    "on-surface-variant": "#3d4a3d",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "primary-fixed": "#6bff8f",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface": "#191c1d",
+                    "on-background": "#191c1d",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f3f4f5",
+                    "on-tertiary-fixed-variant": "#404754",
+                    "secondary-fixed-dim": "#bdc7d9",
+                    "surface-dim": "#d9dadb",
+                    "surface-tint": "#006e2f",
+                    "on-secondary-fixed": "#121c2a",
+                    "surface-container-high": "#e7e8e9",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#4ae176",
+                    "tertiary-fixed-dim": "#c0c7d6",
+                    "surface-container": "#edeeef",
+                    "tertiary-container": "#a5acbb",
+                    "on-primary-container": "#004b1e",
+                    "primary": "#006e2f",
+                    "outline-variant": "#bccbb9",
+                    "surface-variant": "#e1e3e4",
+                    "on-secondary-fixed-variant": "#3d4756",
+                    "secondary-fixed": "#d9e3f6",
+                    "surface": "#f8f9fa",
+                    "secondary": "#555f6f",
+                    "inverse-on-surface": "#f0f1f2",
+                    "outline": "#6d7b6c",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed": "#151c27",
+                    "on-secondary-container": "#596373",
+                    "on-primary-fixed-variant": "#005321",
+                    "tertiary-fixed": "#dce2f3",
+                    "secondary-container": "#d6e0f3",
+                    "tertiary": "#585f6c",
+                    "surface-bright": "#f8f9fa",
+                    "on-primary-fixed": "#002109",
+                    "on-tertiary-container": "#39404d",
+                    "primary-fixed-dim": "#4ae176"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "12px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "xl": "32px",
+                    "container-margin": "16px",
+                    "unit": "4px",
+                    "xs": "4px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "price-display": ["Plus Jakarta Sans"],
+                    "body-md": ["Inter, PingFang SC"],
+                    "headline-md": ["Plus Jakarta Sans, PingFang SC"],
+                    "headline-sm": ["Plus Jakarta Sans, PingFang SC"],
+                    "body-lg": ["Inter, PingFang SC"],
+                    "headline-lg": ["Plus Jakarta Sans, PingFang SC"],
+                    "label-md": ["Inter, PingFang SC"]
+            },
+            "fontSize": {
+                    "price-display": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-md h-[52px] bg-surface border-b border-surface-container-highest">
+<div class="flex items-center gap-2">
+<button aria-label="返回" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-on-surface">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface">确认账单</h1>
+</div>
+<span class="font-body-md text-body-md text-primary font-semibold tracking-wider">#X8K2P</span>
+</header>
+<main class="mt-[52px] px-md py-lg max-w-[600px] mx-auto">
+<!-- Big Amount Display -->
+<section class="mb-lg text-center py-xl bg-surface-container-lowest rounded-xl border border-surface-container-highest mb-gutter">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs">金额</label>
+<div class="flex flex-col items-center">
+<div class="flex items-baseline gap-1">
+<span class="font-price-display text-price-display text-on-surface">$</span>
+<span class="font-price-display text-price-display text-on-surface">40.00</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant mt-1">USD (美元)</div>
+</div>
+</section>
+<!-- Currency Conversion Bento -->
+<section class="mb-lg grid grid-cols-1 gap-gutter">
+<div class="bg-secondary-container/30 p-md rounded-xl border border-secondary-container flex items-center justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-secondary scale-75">currency_exchange</span>
+<span class="font-label-md text-label-md text-on-secondary-container">汇率 1 USD = 7.25 CNY</span>
+</div>
+<div class="font-headline-sm text-headline-sm text-on-secondary-container">折合 ¥290.00</div>
+</div>
+<button class="flex items-center gap-1 px-sm py-1.5 bg-on-secondary rounded-lg border border-outline-variant hover:bg-surface-container-low transition-all active:scale-95">
+<span class="material-symbols-outlined text-sm">refresh</span>
+<span class="font-label-md text-label-md">刷新汇率</span>
+</button>
+</div>
+</section>
+<!-- Form Fields -->
+<div class="space-y-md">
+<!-- Payer -->
+<div class="space-y-sm">
+<label class="font-label-md text-label-md text-on-surface-variant">付款人</label>
+<div class="relative group">
+<div class="w-full h-[52px] bg-white border border-surface-container-highest rounded-xl px-md flex items-center justify-between hover:border-primary transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-xs">陈</div>
+<span class="font-body-lg text-body-lg">小陈</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Participants -->
+<div class="space-y-sm">
+<label class="font-label-md text-label-md text-on-surface-variant">参与人 (3人)</label>
+<div class="flex flex-wrap gap-sm bg-white p-sm border border-surface-container-highest rounded-xl min-h-[52px] items-center">
+<!-- Participant Chip Active -->
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary rounded-lg text-primary">
+<span class="font-label-md text-label-md">小陈</span>
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary rounded-lg text-primary">
+<span class="font-label-md text-label-md">张三</span>
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary rounded-lg text-primary">
+<span class="font-label-md text-label-md">Ivan</span>
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+</div>
+<!-- Add more trigger -->
+<button class="w-8 h-8 rounded-full border border-dashed border-outline flex items-center justify-center text-outline hover:text-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Description -->
+<div class="space-y-sm">
+<label class="font-label-md text-label-md text-on-surface-variant">描述</label>
+<div class="relative">
+<input class="w-full h-[52px] bg-white border border-surface-container-highest rounded-xl px-md focus:border-primary focus:ring-0 transition-colors font-body-lg text-body-lg" type="text" value="Starbucks Coffee"/>
+<div class="absolute right-md top-1/2 -translate-y-1/2 flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">coffee</span>
+</div>
+</div>
+</div>
+<!-- Receipt/Image Mockup -->
+<div class="mt-lg">
+<div class="w-full h-32 rounded-xl overflow-hidden relative group border border-surface-container-highest">
+<img class="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-500" data-alt="A macro close-up photograph of a delicious Starbucks latte with intricate latte art on top, sitting on a rustic wooden table within a cozy, modern cafe environment. The background is softly blurred, showing the warm glow of hanging Edison bulbs and a clean, minimalist interior design. The lighting is soft and inviting, reflecting a high-end corporate lifestyle aesthetic with a palette of warm ambers and deep browns." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpdOrea8lwLO3GS53ZRM3vV41VKokX2GxFCQPRT0j5vB_DqYcjZsqyYjI0mrOfdNz9B2JOIvYlDy0NBnYyEofX_hkYKldal1e0LE0KefTamU_f5MCjGKk-_xgqTXwnIKYM4j7EVPoPUgvkgO05jioB3LCFTF2ih6mjeYqrKb70WaRSgTRsdJpl_Q-Dh6TVrLS-jV-anaS1yHfrXIuF1jMeYraP9jb1UZ50kArmp3jFqh_7k_NRk-mH8IIQhgKy8PchVRbuWe439Cc"/>
+<div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="text-white font-label-md text-label-md bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">查看收据</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Actions Container -->
+<div class="fixed bottom-0 left-0 w-full bg-surface border-t border-surface-container-highest px-md pt-sm pb-safe h-[110px] flex flex-col gap-2 justify-center z-50">
+<button class="w-full h-[52px] bg-primary-container text-on-primary font-headline-sm text-headline-sm rounded-xl flex items-center justify-center active:scale-[0.98] transition-transform">
+            保存账单
+        </button>
+<button class="w-full h-8 text-secondary font-label-md text-label-md flex items-center justify-center hover:text-primary transition-colors">
+            手动修改
+        </button>
+</div>
+<!-- Interaction Script -->
+<script>
+        document.querySelectorAll('button, .cursor-pointer').forEach(el => {
+            el.addEventListener('touchstart', function() {
+                this.classList.add('opacity-70');
+            });
+            el.addEventListener('touchend', function() {
+                this.classList.remove('opacity-70');
+            });
+        });
+
+        // Floating particle effect for the currency section background
+        const createParticle = () => {
+            const container = document.querySelector('.bg-secondary-container\\/30');
+            if(!container) return;
+            const particle = document.createElement('div');
+            particle.className = 'absolute bg-primary-container opacity-20 rounded-full pointer-events-none';
+            const size = Math.random() * 4 + 2;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            container.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 2000);
+        };
+        setInterval(createParticle, 500);
+    </script>
+</body></html>
+
+<!-- 确认账单 -->
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter,+PingFang+SC:wght@100..900&family=Plus+Jakarta+Sans,+PingFang+SC:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: "Inter, PingFang SC", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "primary-container": "#22c55e",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e1e3e4",
+                        "inverse-surface": "#2e3132",
+                        "background": "#f8f9fa",
+                        "on-surface-variant": "#3d4a3d",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#6bff8f",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#191c1d",
+                        "on-background": "#191c1d",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#f3f4f5",
+                        "on-tertiary-fixed-variant": "#404754",
+                        "secondary-fixed-dim": "#bdc7d9",
+                        "surface-dim": "#d9dadb",
+                        "surface-tint": "#006e2f",
+                        "on-secondary-fixed": "#121c2a",
+                        "surface-container-high": "#e7e8e9",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#4ae176",
+                        "tertiary-fixed-dim": "#c0c7d6",
+                        "surface-container": "#edeeef",
+                        "tertiary-container": "#a5acbb",
+                        "on-primary-container": "#004b1e",
+                        "primary": "#006e2f",
+                        "outline-variant": "#bccbb9",
+                        "surface-variant": "#e1e3e4",
+                        "on-secondary-fixed-variant": "#3d4756",
+                        "secondary-fixed": "#d9e3f6",
+                        "surface": "#f8f9fa",
+                        "secondary": "#555f6f",
+                        "inverse-on-surface": "#f0f1f2",
+                        "outline": "#6d7b6c",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#151c27",
+                        "on-secondary-container": "#596373",
+                        "on-primary-fixed-variant": "#005321",
+                        "tertiary-fixed": "#dce2f3",
+                        "secondary-container": "#d6e0f3",
+                        "tertiary": "#585f6c",
+                        "surface-bright": "#f8f9fa",
+                        "on-primary-fixed": "#002109",
+                        "on-tertiary-container": "#39404d",
+                        "primary-fixed-dim": "#4ae176"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "container-margin": "16px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "price-display": ["Plus Jakarta Sans"],
+                        "body-md": ["\"Inter, PingFang SC\""],
+                        "headline-md": ["\"Plus Jakarta Sans, PingFang SC\""],
+                        "headline-sm": ["\"Plus Jakarta Sans, PingFang SC\""],
+                        "body-lg": ["\"Inter, PingFang SC\""],
+                        "headline-lg": ["\"Plus Jakarta Sans, PingFang SC\""],
+                        "label-md": ["\"Inter, PingFang SC\""]
+                    },
+                    "fontSize": {
+                        "price-display": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-md h-[52px] bg-surface border-b border-surface-container-highest">
+<div class="flex items-center gap-sm">
+<button class="material-symbols-outlined text-primary p-2 hover:bg-surface-container-low rounded-full transition-colors">arrow_back</button>
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface">结算汇总</h1>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant px-3 py-1 bg-surface-container rounded-full">
+            #X8K2P
+        </div>
+</header>
+<main class="pt-[68px] px-md max-w-2xl mx-auto space-y-md">
+<!-- Period Selector -->
+<section class="flex items-center justify-between bg-surface border border-surface-container-highest p-md rounded-xl">
+<div class="space-y-xs">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">当前周期</span>
+<div class="flex items-center gap-xs text-primary font-headline-sm text-headline-sm">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+<span>2026-06</span>
+</div>
+</div>
+<button class="flex items-center gap-xs px-3 py-2 bg-surface-container-low text-on-surface-variant rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors">
+<span class="font-label-md text-label-md">切换周期</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</section>
+<!-- Balance Summary (Bento-style Cards) -->
+<section class="grid grid-cols-2 gap-gutter">
+<div class="col-span-2 p-md bg-surface border border-surface-container-highest rounded-xl">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-sm">净支出状态</h3>
+<div class="space-y-3">
+<!-- Member 1 -->
+<div class="flex items-center justify-between py-2 border-b border-surface-container-low">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold">小</div>
+<span class="font-body-lg text-body-lg">小陈 (你)</span>
+</div>
+<div class="text-right">
+<div class="font-headline-sm text-headline-sm text-primary">+¥170.00</div>
+<div class="font-label-md text-label-md text-on-surface-variant">待收</div>
+</div>
+</div>
+<!-- Member 2 -->
+<div class="flex items-center justify-between py-2 border-b border-surface-container-low">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center text-on-surface font-bold">张</div>
+<span class="font-body-lg text-body-lg">张三</span>
+</div>
+<div class="text-right">
+<div class="font-headline-sm text-headline-sm text-error">-¥96.00</div>
+<div class="font-label-md text-label-md text-on-surface-variant">应付</div>
+</div>
+</div>
+<!-- Member 3 -->
+<div class="flex items-center justify-between py-2">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center text-on-surface font-bold">I</div>
+<span class="font-body-lg text-body-lg">Ivan</span>
+</div>
+<div class="text-right">
+<div class="font-headline-sm text-headline-sm text-error">-¥74.00</div>
+<div class="font-label-md text-label-md text-on-surface-variant">应付</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Transfer Suggestions (Highlighted UI Pattern) -->
+<section class="bg-primary-container/10 border border-primary-container rounded-xl overflow-hidden">
+<div class="bg-primary-container px-md py-2 flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-on-primary">最佳结算方案</span>
+<span class="material-symbols-outlined text-on-primary">bolt</span>
+</div>
+<div class="p-md space-y-md">
+<div class="flex items-center justify-between bg-surface p-sm rounded-lg border border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<div class="text-on-surface font-medium">张三</div>
+<span class="material-symbols-outlined text-primary animate-pulse">trending_flat</span>
+<div class="text-on-surface font-medium">小陈</div>
+</div>
+<div class="font-price-display text-headline-md text-on-surface">¥96.00</div>
+</div>
+<div class="flex items-center justify-between bg-surface p-sm rounded-lg border border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<div class="text-on-surface font-medium">Ivan</div>
+<span class="material-symbols-outlined text-primary animate-pulse">trending_flat</span>
+<div class="text-on-surface font-medium">小陈</div>
+</div>
+<div class="font-price-display text-headline-md text-on-surface">¥74.00</div>
+</div>
+</div>
+</section>
+<!-- History Section -->
+<section>
+<div class="flex items-center justify-between mb-sm px-2">
+<h2 class="font-headline-sm text-headline-sm">历史结算</h2>
+<button class="text-primary font-label-md text-label-md">查看全部</button>
+</div>
+<div class="space-y-sm">
+<!-- History Item 1 -->
+<div class="bg-surface border border-surface-container-highest p-md rounded-xl flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="bg-surface-container-low w-12 h-12 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">check_circle</span>
+</div>
+<div>
+<div class="font-body-lg text-body-lg font-medium">2026年05月结算</div>
+<div class="font-label-md text-label-md text-on-surface-variant">3人参与 · 2笔转账</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-headline-sm text-headline-sm">¥450.00</div>
+<div class="font-label-md text-label-md text-on-surface-variant">2026-06-01</div>
+</div>
+</div>
+<!-- History Item 2 -->
+<div class="bg-surface border border-surface-container-highest p-md rounded-xl flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="bg-surface-container-low w-12 h-12 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">check_circle</span>
+</div>
+<div>
+<div class="font-body-lg text-body-lg font-medium">2026年04月结算</div>
+<div class="font-label-md text-label-md text-on-surface-variant">3人参与 · 1笔转账</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-headline-sm text-headline-sm">¥1,230.50</div>
+<div class="font-label-md text-label-md text-on-surface-variant">2026-05-01</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Fixed Bottom Action -->
+<div class="fixed bottom-[64px] left-0 w-full px-md py-4 bg-background/80 backdrop-blur-md z-40">
+<button class="w-full h-[52px] bg-primary-container text-on-primary font-headline-sm text-headline-sm rounded-xl flex items-center justify-center gap-sm active:scale-95 transition-transform" id="settle-btn">
+<span class="material-symbols-outlined">verified</span>
+            标记为已结算
+        </button>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-[64px] px-sm pb-safe bg-surface border-t border-surface-container-highest">
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-md text-label-md mt-1">明细</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 scale-95 transition-transform cursor-pointer">
+<span class="material-symbols-outlined">leaderboard</span>
+<span class="font-label-md text-label-md mt-1">统计</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-md text-label-md mt-1">成员</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md mt-1">设置</span>
+</div>
+</nav>
+<!-- Micro-interactions Script -->
+<script>
+        document.getElementById('settle-btn').addEventListener('click', function() {
+            const btn = this;
+            const originalContent = btn.innerHTML;
+            
+            // Visual feedback
+            btn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                处理中...
+            `;
+            btn.classList.add('opacity-80', 'pointer-events-none');
+
+            setTimeout(() => {
+                btn.innerHTML = `<span class="material-symbols-outlined">done_all</span> 结算成功`;
+                btn.classList.remove('bg-primary-container');
+                btn.classList.add('bg-primary');
+                
+                // Alert simulation
+                const toast = document.createElement('div');
+                toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface px-6 py-3 rounded-full font-label-md text-label-md shadow-lg z-[100] transition-opacity duration-300';
+                toast.textContent = '周期 2026-06 已归档至历史结算';
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }, 1500);
+        });
+    </script>
+</body></html>

@@ -7,6 +7,7 @@
 当前轻量移动端 MVP 设计见：
 
 - [Lightweight Mobile MVP Design](docs/superpowers/specs/2026-06-15-lightweight-mobile-mvp-design.md)
+- [Stitch Design Notes](docs/design/stitch-design-notes.md)
 
 早期完整方向文档见：
 
