@@ -451,7 +451,7 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
   );
 }
 
-function ProjectHome({ project, activePeriod, members, expenses, currentUsername, onOpenAi, onOpenSettlement, onAddMember }) {
+function ProjectHome({ project, activePeriod, members, expenses, currentUsername, onOpenAi, onOpenSettlement, onAddMember, onOpenSettings }) {
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
   const remainingMinor = budgetMinor - totalMinor;
@@ -561,7 +561,7 @@ function ProjectHome({ project, activePeriod, members, expenses, currentUsername
         <Sparkle size={22} weight="fill" />
         AI 记账
       </button>
-      <BottomNav active="details" onStats={onOpenSettlement} onMembers={onAddMember} />
+      <BottomNav active="details" onStats={onOpenSettlement} onMembers={onAddMember} onSettings={onOpenSettings} />
     </div>
   );
 }
@@ -949,6 +949,7 @@ function SettlementScreen({
   settlementHistory,
   onBack,
   onOpenMembers,
+  onOpenSettings,
   onSettled,
   settledNotice,
   isBusy,
@@ -1069,17 +1070,74 @@ function SettlementScreen({
         </button>
       </div>
       {settledNotice ? <div className="toast">{settledNotice}</div> : null}
-      <BottomNav active="stats" onDetails={onBack} onMembers={onOpenMembers} />
+      <BottomNav active="stats" onDetails={onBack} onMembers={onOpenMembers} onSettings={onOpenSettings} />
     </div>
   );
 }
 
-function BottomNav({ active, onDetails, onStats, onMembers }) {
+function ProjectSettingsSheet({ project, activePeriod, members, expenses, settlementHistory, onClose }) {
+  const [copyNotice, setCopyNotice] = useState('');
+  const totalMinor = expenses.reduce((sum, expense) => sum + expense.converted_amount_minor, 0);
+  const budgetMinor = project.budget_amount_minor ?? 0;
+  const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
+  const budgetLabel = budgetMinor > 0 ? formatMoney(fromMinorUnits(budgetMinor), project.default_currency) : '未设置';
+  const rows = [
+    ['项目类型', projectTypeLabel],
+    ['项目码', project.code],
+    ['结算币种', project.default_currency],
+    ['预算', budgetLabel],
+    ['当前周期', activePeriod.label],
+    ['成员', `${members.length} 人`],
+    ['本周期账单', `${expenses.length} 笔 · ${formatMoney(fromMinorUnits(totalMinor), project.default_currency)}`],
+    ['历史结算', `${settlementHistory.length} 条`],
+  ];
+
+  const copyInvite = async () => {
+    const inviteText = buildProjectInviteText({ projectName: project.name, code: project.code });
+
+    try {
+      await navigator.clipboard.writeText(inviteText);
+      setCopyNotice('邀请文案已复制');
+    } catch {
+      window.prompt('复制邀请文案', inviteText);
+      setCopyNotice('可手动复制邀请文案');
+    }
+  };
+
+  return (
+    <div className="modal-layer">
+      <button className="modal-backdrop" onClick={onClose} aria-label="关闭" />
+      <section className="settings-sheet">
+        <div className="sheet-handle" />
+        <div className="settings-header">
+          <h2>项目设置</h2>
+          <p>{project.name}</p>
+        </div>
+        <div className="settings-list">
+          {rows.map(([label, value]) => (
+            <div className="settings-row" key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
+        <button className="primary-button" type="button" onClick={copyInvite}>
+          <Copy size={20} />
+          复制邀请文案
+        </button>
+        {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
+        <button className="cancel-button" type="button" onClick={onClose}>关闭</button>
+      </section>
+    </div>
+  );
+}
+
+function BottomNav({ active, onDetails, onStats, onMembers, onSettings }) {
   const items = [
     { id: 'details', label: '明细', icon: <Receipt size={22} />, onClick: onDetails },
     { id: 'stats', label: '统计', icon: <ChartBar size={22} />, onClick: onStats },
     { id: 'members', label: '成员', icon: <UsersThree size={22} />, onClick: onMembers },
-    { id: 'settings', label: '设置', icon: <GearSix size={22} />, disabled: true },
+    { id: 'settings', label: '设置', icon: <GearSix size={22} />, onClick: onSettings },
   ];
   return (
     <nav className="bottom-nav" aria-label="项目导航">
@@ -1111,6 +1169,7 @@ function App() {
   const [activePeriod, setActivePeriod] = useState(fallbackPeriod);
   const [members, setMembers] = useState(fallbackMembers);
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [settledNotice, setSettledNotice] = useState('');
   const [settlementHistory, setSettlementHistory] = useState([]);
@@ -1472,6 +1531,7 @@ function App() {
               setAppError('');
               setMemberDialogOpen(true);
             }}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
         )}
         {screen === 'confirm' && draftExpense && (
@@ -1498,6 +1558,7 @@ function App() {
               setAppError('');
               setMemberDialogOpen(true);
             }}
+            onOpenSettings={() => setSettingsOpen(true)}
             onSettled={handleSettleActivePeriod}
             settledNotice={settledNotice}
             isBusy={isBusy}
@@ -1517,6 +1578,16 @@ function App() {
             onSubmit={handleAddMember}
             appError={appError}
             isBusy={isBusy}
+          />
+        ) : null}
+        {settingsOpen ? (
+          <ProjectSettingsSheet
+            project={currentProject}
+            activePeriod={activePeriod}
+            members={members}
+            expenses={expenses}
+            settlementHistory={settlementHistory}
+            onClose={() => setSettingsOpen(false)}
           />
         ) : null}
       </div>
