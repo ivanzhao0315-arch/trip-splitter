@@ -22,6 +22,7 @@
 - [ ] Project home shows current period.
 - [ ] AI entry sheet opens.
 - [ ] Text AI draft detects amount and currency.
+- [ ] Text AI draft uses the server AI endpoint to infer payer and participants when `OPENAI_API_KEY` is configured.
 - [ ] AI draft preselects payer and participants when names can be inferred from the source.
 - [ ] Photo and screenshot AI draft paths send the uploaded image to the server AI endpoint when `OPENAI_API_KEY` is configured.
 - [ ] User can confirm an expense.

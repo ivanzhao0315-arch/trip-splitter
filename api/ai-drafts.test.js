@@ -15,6 +15,8 @@ describe('ai draft endpoint', () => {
   });
 
   it('returns a normalized draft for text input', async () => {
+    vi.stubEnv('OPENAI_API_KEY', '');
+
     const formData = new FormData();
     formData.set('projectId', 'project-1');
     formData.set('sourceType', 'text');
@@ -31,6 +33,67 @@ describe('ai draft endpoint', () => {
         amount: 1280,
         currency: 'JPY',
       },
+    });
+  });
+
+  it('uses OpenAI structured parsing for text input when configured', async () => {
+    vi.stubEnv('OPENAI_API_KEY', 'test-key');
+    vi.stubGlobal('fetch', vi.fn(async (_url, options) => {
+      const body = JSON.parse(options.body);
+      const schema = body.text.format.schema;
+      const prompt = body.input[0].content[0].text;
+
+      expect(prompt).toContain('账单文字');
+      expect(prompt).toContain('张三 已付');
+      expect(schema.required).toContain('payerName');
+      expect(schema.required).toContain('participantNames');
+
+      return new Response(JSON.stringify({
+        output_text: JSON.stringify({
+          amount: 96,
+          currency: 'CNY',
+          description: '打车',
+          payerName: '张三',
+          participantNames: ['小陈', 'Ivan'],
+          confidence: 0.9,
+        }),
+      }), { status: 200 });
+    }));
+
+    const formData = new FormData();
+    formData.set('projectId', 'project-1');
+    formData.set('sourceType', 'text');
+    formData.set('text', '张三 已付 打车 ¥96，平分 小陈 Ivan');
+
+    const response = await postAiDraft(formData);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.draft).toMatchObject({
+      amount: 96,
+      currency: 'CNY',
+      description: '打车',
+      payerName: '张三',
+      participantNames: ['小陈', 'Ivan'],
+    });
+  });
+
+  it('falls back to deterministic text parsing when OpenAI text parsing fails', async () => {
+    vi.stubEnv('OPENAI_API_KEY', 'test-key');
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('failed', { status: 500 })));
+
+    const formData = new FormData();
+    formData.set('projectId', 'project-1');
+    formData.set('sourceType', 'text');
+    formData.set('text', '东京便利店 JPY 1280 Ivan 已付');
+
+    const response = await postAiDraft(formData);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.draft).toMatchObject({
+      amount: 1280,
+      currency: 'JPY',
     });
   });
 
