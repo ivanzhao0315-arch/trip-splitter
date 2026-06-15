@@ -510,7 +510,7 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
         <Sparkle size={22} weight="fill" />
         AI 记账
       </button>
-      <BottomNav active="details" />
+      <BottomNav active="details" onStats={onOpenSettlement} onMembers={onAddMember} />
     </div>
   );
 }
@@ -863,6 +863,7 @@ function SettlementScreen({
   expenses,
   settlementHistory,
   onBack,
+  onOpenMembers,
   onSettled,
   settledNotice,
   isBusy,
@@ -982,26 +983,37 @@ function SettlementScreen({
         </button>
       </div>
       {settledNotice ? <div className="toast">{settledNotice}</div> : null}
-      <BottomNav active="stats" />
+      <BottomNav active="stats" onDetails={onBack} onMembers={onOpenMembers} />
     </div>
   );
 }
 
-function BottomNav({ active }) {
+function BottomNav({ active, onDetails, onStats, onMembers }) {
   const items = [
-    { id: 'details', label: '明细', icon: <Receipt size={22} /> },
-    { id: 'stats', label: '统计', icon: <ChartBar size={22} /> },
-    { id: 'members', label: '成员', icon: <UsersThree size={22} /> },
-    { id: 'settings', label: '设置', icon: <GearSix size={22} /> },
+    { id: 'details', label: '明细', icon: <Receipt size={22} />, onClick: onDetails },
+    { id: 'stats', label: '统计', icon: <ChartBar size={22} />, onClick: onStats },
+    { id: 'members', label: '成员', icon: <UsersThree size={22} />, onClick: onMembers },
+    { id: 'settings', label: '设置', icon: <GearSix size={22} />, disabled: true },
   ];
   return (
-    <nav className="bottom-nav">
-      {items.map((item) => (
-        <button className={active === item.id ? 'active' : ''} key={item.id}>
-          {item.icon}
-          <span>{item.label}</span>
-        </button>
-      ))}
+    <nav className="bottom-nav" aria-label="项目导航">
+      {items.map((item) => {
+        const isActive = active === item.id;
+        const disabled = item.disabled === true;
+        return (
+          <button
+            aria-current={isActive ? 'page' : undefined}
+            className={isActive ? 'active' : ''}
+            disabled={disabled}
+            key={item.id}
+            onClick={item.onClick}
+            type="button"
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -1388,6 +1400,10 @@ function App() {
             expenses={expenses}
             settlementHistory={settlementHistory}
             onBack={() => setScreen('home')}
+            onOpenMembers={() => {
+              setAppError('');
+              setMemberDialogOpen(true);
+            }}
             onSettled={handleSettleActivePeriod}
             settledNotice={settledNotice}
             isBusy={isBusy}
