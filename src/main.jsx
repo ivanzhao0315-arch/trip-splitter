@@ -29,6 +29,7 @@ import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
 import { findMemberByDisplayName, normalizeMemberDisplayName, upsertMemberByIdentity } from './domain/members';
 import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
+import { buildProjectInviteText } from './domain/projectInvite';
 import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
@@ -233,15 +234,16 @@ function Avatar({ member, size = 'md' }) {
 function TopBar({ title, code, onBack }) {
   const [copyNotice, setCopyNotice] = useState('');
 
-  const copyProjectCode = async () => {
+  const copyProjectInvite = async () => {
     if (!code) return;
+    const inviteText = buildProjectInviteText({ projectName: title, code });
 
     try {
-      await navigator.clipboard.writeText(code);
-      setCopyNotice('项目码已复制');
+      await navigator.clipboard.writeText(inviteText);
+      setCopyNotice('邀请文案已复制');
     } catch {
-      window.prompt('复制项目码', code);
-      setCopyNotice('可手动复制项目码');
+      window.prompt('复制邀请文案', inviteText);
+      setCopyNotice('可手动复制邀请文案');
     }
   };
 
@@ -257,7 +259,7 @@ function TopBar({ title, code, onBack }) {
       </div>
       {code ? (
         <div className="code-share">
-          <button className="code-pill" type="button" onClick={copyProjectCode} aria-label="复制项目码">
+          <button className="code-pill" type="button" onClick={copyProjectInvite} aria-label="复制项目邀请">
             <span>#{code}</span>
             <Copy size={15} />
           </button>
