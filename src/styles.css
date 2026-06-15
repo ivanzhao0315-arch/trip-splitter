@@ -856,6 +856,7 @@ button:disabled {
 }
 
 .expense-copy p,
+.expense-copy small,
 .expense-amount span,
 .expense-amount small {
   margin: 0;
@@ -865,6 +866,14 @@ button:disabled {
 }
 
 .expense-copy p {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.expense-notes {
+  display: block;
+  max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

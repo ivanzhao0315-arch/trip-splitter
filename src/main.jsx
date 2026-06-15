@@ -110,6 +110,8 @@ const currencies = [
   { code: 'KRW', label: 'KRW - 韩元 (₩)' },
 ];
 
+const expenseCategories = ['餐饮', '交通', '住宿', '购物', '门票', '日用品', '房租', '水电', '其他'];
+
 const fallbackRates = {
   CNY: { USD: 0.14, EUR: 0.13, JPY: 21.8, HKD: 1.08, GBP: 0.11, KRW: 190 },
   USD: { CNY: 7.25, EUR: 0.93, JPY: 157.4, HKD: 7.82, GBP: 0.8, KRW: 1375 },
@@ -129,6 +131,8 @@ function buildLocalDraft(sourceType, text = '') {
     amount: 0,
     currency: 'CNY',
     description: '',
+    category: '其他',
+    notes: '',
     confidence: 0,
     payerName: '',
     participantNames: [],
@@ -324,6 +328,8 @@ function createDraftFromExpense(expense) {
     amount: fromMinorUnits(expense.original_amount_minor ?? expense.converted_amount_minor ?? 0),
     currency: expense.original_currency ?? expense.project_currency ?? 'CNY',
     description: expense.description ?? '',
+    category: expense.category ?? '其他',
+    notes: expense.notes ?? '',
     confidence: 1,
     payerMemberId: expense.payer_member_id,
     participantMemberIds: expense.participant_member_ids ?? [],
@@ -716,9 +722,10 @@ function ProjectHome({
                   <div className="expense-copy">
                     <h4>{expense.description}</h4>
                     <p>
-                      {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分
+                      {expense.category ?? '其他'} · {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分
                       {expense.source_name ? ` · ${sourceTypeLabel(expense.source_type)} ${expense.source_name}` : ''}
                     </p>
+                    {expense.notes ? <small className="expense-notes">{expense.notes}</small> : null}
                   </div>
                   <div className="expense-amount">
                     <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
@@ -925,6 +932,8 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
   const [amount, setAmount] = useState(String(draft.amount));
   const [currency, setCurrency] = useState(draft.currency);
   const [description, setDescription] = useState(draft.description);
+  const [category, setCategory] = useState(draft.category ?? '其他');
+  const [notes, setNotes] = useState(draft.notes ?? '');
   const [createdAtInput, setCreatedAtInput] = useState(toDateTimeInputValue(draft.createdAt));
   const [exchangeRate, setExchangeRate] = useState(draft.exchangeRate);
   const [manualRateInput, setManualRateInput] = useState(String(draft.exchangeRate ?? 1));
@@ -1124,6 +1133,34 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
               onFocus={() => setManualOpen(true)}
             />
           </label>
+          <div className="edit-grid">
+            <label className="form-field">
+              <span>分类</span>
+              <select
+                value={category}
+                onChange={(event) => {
+                  setCategory(event.target.value);
+                  setLocalError('');
+                }}
+              >
+                {expenseCategories.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+            <label className="form-field">
+              <span>备注</span>
+              <input
+                value={notes}
+                onChange={(event) => {
+                  setNotes(event.target.value);
+                  setLocalError('');
+                }}
+                onFocus={() => setManualOpen(true)}
+                placeholder="可选"
+              />
+            </label>
+          </div>
           <label className="form-field">
             <span>账单时间</span>
             <input
@@ -1162,6 +1199,8 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
             exchangeRateProvider,
             exchangeRateTimestamp,
             description: description.trim(),
+            category,
+            notes: notes.trim(),
             payerMemberId: payer.id,
             participantMemberIds: participantIds,
             sourceType: draft.sourceType,
@@ -1657,6 +1696,8 @@ function App() {
                 source_type: draft.sourceType,
                 source_name: draft.sourceName,
                 created_at: draft.createdAt,
+                category: draft.category,
+                notes: draft.notes,
               }
             : expense
         ));
@@ -1706,6 +1747,8 @@ function App() {
         source_type: draft.sourceType,
         source_name: draft.sourceName,
         created_at: draft.createdAt,
+        category: draft.category,
+        notes: draft.notes,
       };
       const nextExpenses = [nextExpense, ...expenses];
 

@@ -89,6 +89,8 @@ const baseExpense = {
   exchangeRateProvider: 'identity',
   exchangeRateTimestamp: '2026-06-15T10:00:00.000Z',
   description: '晚餐',
+  category: '餐饮',
+  notes: '大家一起吃饭',
   payerMemberId: 'ivan',
   participantMemberIds: ['ivan', 'chen', 'chen'],
   sourceType: 'screenshot',
@@ -115,6 +117,8 @@ describe('expense service member validation', () => {
       source_type: 'screenshot',
       source_name: 'wechat-pay.png',
       created_at: '2026-06-14T20:30:00.000Z',
+      category: '餐饮',
+      notes: '大家一起吃饭',
     });
   });
 
@@ -170,6 +174,8 @@ describe('expense service member validation', () => {
           original_amount_minor: 12000,
           converted_amount_minor: 12000,
           description: '晚餐修正',
+          category: '餐饮',
+          notes: '大家一起吃饭',
           payer_member_id: 'ivan',
           participant_member_ids: ['ivan', 'chen'],
           created_at: '2026-06-14T20:30:00.000Z',
