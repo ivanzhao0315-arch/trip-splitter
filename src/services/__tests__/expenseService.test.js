@@ -6,18 +6,21 @@ vi.mock('../apiClient', () => ({
   requireSupabase: () => mockState.client,
 }));
 
-const { createExpense, deleteExpense } = await import('../expenseService');
+const { createExpense, deleteExpense, updateExpense } = await import('../expenseService');
 
 function createMockClient({ members = [] } = {}) {
   const inserts = [];
   const deletes = [];
+  const updates = [];
 
   return {
     inserts,
     deletes,
+    updates,
     from(table) {
       const filters = {};
       let deleteRequested = false;
+      let updateRow = null;
 
       return {
         select() {
@@ -27,10 +30,17 @@ function createMockClient({ members = [] } = {}) {
           deleteRequested = true;
           return this;
         },
+        update(row) {
+          updateRow = row;
+          return this;
+        },
         eq(field, value) {
           filters[field] = value;
           if (deleteRequested && filters.project_id && filters.id) {
             deletes.push({ table, filters: { ...filters } });
+          }
+          if (updateRow && filters.project_id && filters.id) {
+            updates.push({ table, row: updateRow, filters: { ...filters } });
           }
           return this;
         },
@@ -45,6 +55,9 @@ function createMockClient({ members = [] } = {}) {
               && filters.id.includes(member.id)
             )).map((member) => ({ id: member.id }));
             return Promise.resolve(resolve({ data, error: null }));
+          }
+          if (updateRow) {
+            return Promise.resolve(resolve({ data: null, error: null }));
           }
           return Promise.resolve(resolve({ data: null, error: null }));
         },
@@ -127,6 +140,38 @@ describe('expense service member validation', () => {
 
     expect(client.deletes).toEqual([
       { table: 'expenses', filters: { project_id: 'project-1', id: 'expense-1' } },
+    ]);
+  });
+
+  it('updates an expense scoped to the current project', async () => {
+    const client = createMockClient({
+      members: [
+        { id: 'ivan', project_id: 'project-1' },
+        { id: 'chen', project_id: 'project-1' },
+      ],
+    });
+    mockState.client = client;
+
+    await updateExpense({
+      ...baseExpense,
+      expenseId: 'expense-1',
+      amount: 120,
+      convertedAmount: 120,
+      description: '晚餐修正',
+    });
+
+    expect(client.updates).toEqual([
+      {
+        table: 'expenses',
+        filters: { project_id: 'project-1', id: 'expense-1' },
+        row: expect.objectContaining({
+          original_amount_minor: 12000,
+          converted_amount_minor: 12000,
+          description: '晚餐修正',
+          payer_member_id: 'ivan',
+          participant_member_ids: ['ivan', 'chen'],
+        }),
+      },
     ]);
   });
 });

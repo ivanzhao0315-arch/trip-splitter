@@ -106,6 +106,51 @@ export async function createExpense({
   return data;
 }
 
+export async function updateExpense({
+  project,
+  expenseId,
+  amount,
+  currency,
+  convertedAmount,
+  exchangeRate,
+  exchangeRateProvider,
+  exchangeRateTimestamp,
+  description,
+  payerMemberId,
+  participantMemberIds,
+  sourceType = 'manual',
+  sourceName,
+}) {
+  const client = requireSupabase();
+  const normalizedMembers = await normalizeExpenseMembers({
+    client,
+    projectId: project.id,
+    payerMemberId,
+    participantMemberIds,
+  });
+
+  const { error } = await client
+    .from('expenses')
+    .update({
+      original_amount_minor: toMinorUnits(amount),
+      original_currency: currency,
+      converted_amount_minor: toMinorUnits(convertedAmount),
+      project_currency: project.default_currency,
+      exchange_rate: exchangeRate,
+      exchange_rate_provider: exchangeRateProvider,
+      exchange_rate_timestamp: exchangeRateTimestamp,
+      description,
+      payer_member_id: normalizedMembers.payerMemberId,
+      participant_member_ids: normalizedMembers.participantMemberIds,
+      source_type: sourceType,
+      source_name: sourceName ?? null,
+    })
+    .eq('project_id', project.id)
+    .eq('id', expenseId);
+
+  if (error) throw error;
+}
+
 export async function deleteExpense({ projectId, expenseId }) {
   const client = requireSupabase();
   const { error } = await client

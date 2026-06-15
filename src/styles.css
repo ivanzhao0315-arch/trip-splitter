@@ -881,6 +881,14 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
+.expense-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-expense-button,
 .delete-expense-button {
   flex: none;
   width: 34px;
@@ -888,8 +896,15 @@ button:disabled {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: var(--error);
   background: var(--surface-low);
+}
+
+.edit-expense-button {
+  color: var(--primary);
+}
+
+.delete-expense-button {
+  color: var(--error);
 }
 
 .ai-fab {

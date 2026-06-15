@@ -16,6 +16,7 @@ import {
   HouseLine,
   Image,
   ListChecks,
+  PencilSimple,
   Plus,
   Receipt,
   ShareNetwork,
@@ -34,7 +35,7 @@ import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabe
 import { buildProjectInviteText } from './domain/projectInvite';
 import { buildSettlementShareText, summarizeTransfers } from './domain/settlementShare';
 import { createAiDraft } from './services/aiDraftService';
-import { createExpense, deleteExpense, fetchProjectDetail } from './services/expenseService';
+import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
 import { addProjectMember, createProject, joinProject } from './services/projectService';
@@ -288,6 +289,24 @@ function expenseTraceLabel(expense, projectCurrency) {
     }));
   }
   return parts.join(' · ');
+}
+
+function createDraftFromExpense(expense) {
+  return {
+    mode: 'edit',
+    expenseId: expense.id,
+    amount: fromMinorUnits(expense.original_amount_minor ?? expense.converted_amount_minor ?? 0),
+    currency: expense.original_currency ?? expense.project_currency ?? 'CNY',
+    description: expense.description ?? '',
+    confidence: 1,
+    payerMemberId: expense.payer_member_id,
+    participantMemberIds: expense.participant_member_ids ?? [],
+    exchangeRate: Number(expense.exchange_rate ?? 1),
+    exchangeRateProvider: expense.exchange_rate_provider ?? 'identity',
+    exchangeRateTimestamp: expense.exchange_rate_timestamp ?? expense.created_at ?? new Date().toISOString(),
+    sourceType: expense.source_type ?? 'manual',
+    sourceName: expense.source_name ?? null,
+  };
 }
 
 function Avatar({ member, size = 'md' }) {
@@ -555,6 +574,7 @@ function ProjectHome({
   onOpenSettlement,
   onAddMember,
   onOpenSettings,
+  onEditExpense,
   onDeleteExpense,
   isBusy,
 }) {
@@ -657,15 +677,26 @@ function ProjectHome({
                     {traceLabel ? <small>{traceLabel}</small> : null}
                     <span>{new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <button
-                    className="delete-expense-button"
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => onDeleteExpense(expense)}
-                    aria-label={`删除账单 ${expense.description}`}
-                  >
-                    <Trash size={18} />
-                  </button>
+                  <div className="expense-actions">
+                    <button
+                      className="edit-expense-button"
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => onEditExpense(expense)}
+                      aria-label={`编辑账单 ${expense.description}`}
+                    >
+                      <PencilSimple size={18} />
+                    </button>
+                    <button
+                      className="delete-expense-button"
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => onDeleteExpense(expense)}
+                      aria-label={`删除账单 ${expense.description}`}
+                    >
+                      <Trash size={18} />
+                    </button>
+                  </div>
                 </article>
               );
             })}
@@ -842,6 +873,7 @@ function AiSheet({ onClose, onConfirm, isBusy }) {
 }
 
 function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, appError, isBusy }) {
+  const isEditing = draft.mode === 'edit';
   const [amount, setAmount] = useState(String(draft.amount));
   const [currency, setCurrency] = useState(draft.currency);
   const [description, setDescription] = useState(draft.description);
@@ -913,7 +945,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
 
   return (
     <div className="screen">
-      <TopBar title="确认账单" code={project.code} onBack={onBack} />
+      <TopBar title={isEditing ? '编辑账单' : '确认账单'} code={project.code} onBack={onBack} />
       <main className="content confirm-content">
         <section className="amount-card">
           <label>金额</label>
@@ -1068,9 +1100,11 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
             participantMemberIds: participantIds,
             sourceType: draft.sourceType,
             sourceName: draft.sourceName,
+            mode: draft.mode,
+            expenseId: draft.expenseId,
           })}
         >
-          {isBusy ? '保存中...' : saveMissingFields.length ? `补全${saveMissingFields[0]}后保存` : '保存账单'}
+          {isBusy ? '保存中...' : saveMissingFields.length ? `补全${saveMissingFields[0]}后保存` : isEditing ? '保存修改' : '保存账单'}
         </button>
         <button className="text-button" onClick={() => setManualOpen((current) => !current)}>
           {manualOpen ? '收起修改提示' : '手动修改'}
@@ -1533,6 +1567,57 @@ function App() {
   const handleSaveExpense = async (draft) => {
     setAppError('');
 
+    if (draft.mode === 'edit') {
+      if (!hasBackendConfig) {
+        const nextExpenses = expenses.map((expense) => (
+          expense.id === draft.expenseId
+            ? {
+                ...expense,
+                description: draft.description,
+                original_amount_minor: toMinorUnits(draft.amount),
+                original_currency: draft.currency,
+                converted_amount_minor: toMinorUnits(draft.convertedAmount),
+                project_currency: currentProject.default_currency,
+                exchange_rate: draft.exchangeRate,
+                exchange_rate_provider: draft.exchangeRateProvider,
+                exchange_rate_timestamp: draft.exchangeRateTimestamp,
+                payer_member_id: draft.payerMemberId,
+                participant_member_ids: draft.participantMemberIds,
+                source_type: draft.sourceType,
+                source_name: draft.sourceName,
+              }
+            : expense
+        ));
+
+        saveLocalProjectState({
+          project: currentProject,
+          activePeriod,
+          members,
+          expenses: nextExpenses,
+          settlementHistory,
+        });
+        setExpenses(nextExpenses);
+        setDraftExpense(null);
+        setSettledNotice('');
+        setScreen('home');
+        return;
+      }
+
+      setIsBusy(true);
+      try {
+        await updateExpense({ project: currentProject, ...draft });
+        await loadProjectState(currentProject.id);
+        setDraftExpense(null);
+        setSettledNotice('');
+        setScreen('home');
+      } catch (error) {
+        setAppError(error.message || '保存修改失败');
+      } finally {
+        setIsBusy(false);
+      }
+      return;
+    }
+
     if (!hasBackendConfig) {
       const nextExpense = {
         id: `local-expense-${Date.now()}`,
@@ -1609,6 +1694,12 @@ function App() {
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const handleEditExpense = (expense) => {
+    setAppError('');
+    setDraftExpense(createDraftFromExpense(expense));
+    setScreen('confirm');
   };
 
   const handleAddMember = async (displayName) => {
@@ -1875,6 +1966,7 @@ function App() {
               setMemberDialogOpen(true);
             }}
             onOpenSettings={() => setSettingsOpen(true)}
+            onEditExpense={handleEditExpense}
             onDeleteExpense={handleDeleteExpense}
             isBusy={isBusy}
           />
