@@ -744,8 +744,14 @@ button:disabled {
   gap: 6px;
   color: var(--text);
   background: transparent;
+  border: 0;
   font-size: 12px;
   line-height: 16px;
+  cursor: pointer;
+}
+
+.member-chip {
+  padding: 0;
 }
 
 .member-chip > span {

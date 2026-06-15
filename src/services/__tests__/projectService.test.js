@@ -6,17 +6,24 @@ vi.mock('../apiClient', () => ({
   requireSupabase: () => mockState.client,
 }));
 
-const { addProjectMember, joinProject, updateProjectSettings } = await import('../projectService');
+const {
+  addProjectMember,
+  joinProject,
+  updateProjectMember,
+  updateProjectSettings,
+} = await import('../projectService');
 
 function createMockClient({ project, members = [] }) {
   const inserts = [];
   const updates = [];
 
   function findMember(filters) {
-    return members.find((member) => (
-      member.project_id === filters.project_id
-      && member.display_name === filters.display_name
-    ));
+    return members.find((member) => {
+      if (filters.id && member.id !== filters.id) return false;
+      if (filters.project_id && member.project_id !== filters.project_id) return false;
+      if (filters.display_name && member.display_name !== filters.display_name) return false;
+      return true;
+    });
   }
 
   return {
@@ -56,7 +63,13 @@ function createMockClient({ project, members = [] }) {
               : { data: null, error: { message: 'not found' } };
           }
           if (table === 'members') {
-            return { data: findMember(filters), error: null };
+            const member = findMember(filters);
+            if (updateRow) {
+              const data = { ...member, ...updateRow };
+              updates.push({ table, row: updateRow, filters: { ...filters } });
+              return { data, error: null };
+            }
+            return { data: member, error: null };
           }
           return { data: null, error: null };
         },
@@ -119,6 +132,28 @@ describe('project service member joins', () => {
         table: 'projects',
         row: { name: '东京五日游', budget_amount_minor: 120000 },
         filters: { id: project.id },
+      },
+    ]);
+  });
+
+  it('updates a member nickname within the current project', async () => {
+    const project = { id: 'project-1', code: 'A7K2', name: '杭州周末游' };
+    const existingMember = { id: 'member-1', project_id: project.id, display_name: '张三' };
+    const client = createMockClient({ project, members: [existingMember] });
+    mockState.client = client;
+
+    const updated = await updateProjectMember({
+      projectId: project.id,
+      memberId: existingMember.id,
+      displayName: ' 李四 ',
+    });
+
+    expect(updated).toMatchObject({ id: existingMember.id, display_name: '李四' });
+    expect(client.updates).toEqual([
+      {
+        table: 'members',
+        row: { display_name: '李四' },
+        filters: { project_id: project.id, id: existingMember.id },
       },
     ]);
   });

@@ -38,7 +38,7 @@ import { createAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
-import { addProjectMember, createProject, joinProject, updateProjectSettings } from './services/projectService';
+import { addProjectMember, createProject, joinProject, updateProjectMember, updateProjectSettings } from './services/projectService';
 import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
 import { summarizeExpensesByCategory } from './domain/splitting';
 import './styles.css';
@@ -614,6 +614,7 @@ function ProjectHome({
   onOpenAi,
   onOpenSettlement,
   onAddMember,
+  onEditMember,
   onOpenSettings,
   onEditExpense,
   onDeleteExpense,
@@ -687,13 +688,19 @@ function ProjectHome({
           </div>
           <div className="member-strip">
             {members.map((member) => (
-              <div className="member-chip" key={member.id}>
+              <button
+                className="member-chip"
+                key={member.id}
+                type="button"
+                onClick={() => onEditMember(member)}
+                aria-label={`编辑成员 ${memberName(member)}`}
+              >
                 <Avatar member={member} />
                 <span>
                   {memberName(member)}
                   {member.id === currentMemberId ? <b>我</b> : null}
                 </span>
-              </div>
+              </button>
             ))}
             <button className="add-member" onClick={onAddMember}>
               <Plus size={20} />
@@ -768,8 +775,9 @@ function ProjectHome({
   );
 }
 
-function MemberDialog({ onClose, onSubmit, appError, isBusy }) {
-  const [displayName, setDisplayName] = useState('');
+function MemberDialog({ member, onClose, onSubmit, appError, isBusy }) {
+  const isEditing = Boolean(member);
+  const [displayName, setDisplayName] = useState(member?.display_name ?? '');
   const [error, setError] = useState('');
 
   return (
@@ -783,10 +791,10 @@ function MemberDialog({ onClose, onSubmit, appError, isBusy }) {
             setError('请输入成员昵称');
             return;
           }
-          onSubmit(displayName.trim());
+          onSubmit(displayName.trim(), member);
         }}
       >
-        <h2>添加成员</h2>
+        <h2>{isEditing ? '编辑成员' : '添加成员'}</h2>
         <label className="form-field">
           <span>成员昵称</span>
           <input
@@ -795,13 +803,13 @@ function MemberDialog({ onClose, onSubmit, appError, isBusy }) {
               setDisplayName(event.target.value);
               setError('');
             }}
-            placeholder="例：张三"
+            placeholder={isEditing ? '输入新的昵称' : '例：张三'}
           />
         </label>
         {error ? <p className="error-text" role="alert">{error}</p> : null}
         {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         <button className="primary-button" type="submit" disabled={isBusy}>
-          {isBusy ? '添加中...' : '添加成员'}
+          {isBusy ? '保存中...' : isEditing ? '保存成员' : '添加成员'}
         </button>
         <button className="cancel-button" type="button" onClick={onClose}>取消</button>
       </form>
@@ -1571,6 +1579,7 @@ function App() {
   const [activePeriod, setActivePeriod] = useState(fallbackPeriod);
   const [members, setMembers] = useState(fallbackMembers);
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [settledNotice, setSettledNotice] = useState('');
@@ -1944,6 +1953,83 @@ function App() {
     }
   };
 
+  const handleUpdateMember = async (member, displayName) => {
+    setAppError('');
+    const normalizedName = normalizeMemberDisplayName(displayName);
+    const duplicateMember = findMemberByDisplayName(members, normalizedName);
+    const currentMember = findMemberByDisplayName(members, username);
+    const isCurrentMember = currentMember?.id === member.id;
+
+    if (duplicateMember && duplicateMember.id !== member.id) {
+      setAppError('成员昵称已存在');
+      return;
+    }
+
+    const applyUpdatedMember = (updatedMember) => {
+      const nextMembers = members.map((item) => (
+        item.id === updatedMember.id
+          ? {
+              ...item,
+              ...updatedMember,
+              display_name: normalizedName,
+              initials: normalizedName.slice(0, 1).toUpperCase(),
+            }
+          : item
+      ));
+
+      if (!hasBackendConfig) {
+        saveLocalProjectState({
+          project: currentProject,
+          activePeriod,
+          members: nextMembers,
+          expenses,
+          settlementHistory,
+        });
+      }
+
+      if (isCurrentMember) {
+        setUsername(normalizedName);
+        writeProjectSession(
+          hasBackendConfig
+            ? { mode: 'backend', username: normalizedName, projectId: currentProject.id }
+            : { mode: 'local', username: normalizedName, code: currentProject.code }
+        );
+      }
+
+      setMembers(nextMembers);
+      setEditingMember(null);
+      setMemberDialogOpen(false);
+    };
+
+    if (!hasBackendConfig) {
+      applyUpdatedMember({ ...member, display_name: normalizedName });
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      const updatedMember = await updateProjectMember({
+        projectId: currentProject.id,
+        memberId: member.id,
+        displayName: normalizedName,
+      });
+      applyUpdatedMember(updatedMember);
+    } catch (error) {
+      setAppError(error.message || '保存成员失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleSubmitMemberDialog = (displayName, member) => {
+    if (member) {
+      handleUpdateMember(member, displayName);
+      return;
+    }
+
+    handleAddMember(displayName);
+  };
+
   const openDraftForConfirmation = async ({ sourceType, text = '', file }) => {
     setAppError('');
     setIsBusy(true);
@@ -2080,6 +2166,7 @@ function App() {
     setAppError('');
     setAiOpen(false);
     setMemberDialogOpen(false);
+    setEditingMember(null);
     setSettingsOpen(false);
   };
 
@@ -2208,6 +2295,12 @@ function App() {
             onOpenSettlement={() => setScreen('settlement')}
             onAddMember={() => {
               setAppError('');
+              setEditingMember(null);
+              setMemberDialogOpen(true);
+            }}
+            onEditMember={(member) => {
+              setAppError('');
+              setEditingMember(member);
               setMemberDialogOpen(true);
             }}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -2238,6 +2331,7 @@ function App() {
             onBack={() => setScreen('home')}
             onOpenMembers={() => {
               setAppError('');
+              setEditingMember(null);
               setMemberDialogOpen(true);
             }}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -2256,8 +2350,12 @@ function App() {
         ) : null}
         {memberDialogOpen ? (
           <MemberDialog
-            onClose={() => setMemberDialogOpen(false)}
-            onSubmit={handleAddMember}
+            member={editingMember}
+            onClose={() => {
+              setEditingMember(null);
+              setMemberDialogOpen(false);
+            }}
+            onSubmit={handleSubmitMemberDialog}
             appError={appError}
             isBusy={isBusy}
           />

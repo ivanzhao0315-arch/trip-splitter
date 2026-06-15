@@ -134,6 +134,26 @@ export async function addProjectMember({ projectId, displayName }) {
   return findOrCreateMember({ client, projectId, displayName });
 }
 
+export async function updateProjectMember({ projectId, memberId, displayName }) {
+  const client = requireSupabase();
+  const normalizedName = normalizeDisplayName(displayName);
+
+  if (!normalizedName) {
+    throw new Error('请输入成员昵称');
+  }
+
+  const { data, error } = await client
+    .from('members')
+    .update({ display_name: normalizedName })
+    .eq('project_id', projectId)
+    .eq('id', memberId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function updateProjectSettings({ projectId, name, budgetAmount = '' }) {
   const client = requireSupabase();
   const normalizedName = String(name ?? '').trim();
