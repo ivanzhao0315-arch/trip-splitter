@@ -657,7 +657,8 @@ button:disabled {
   background: var(--error);
 }
 
-.budget-detail {
+.budget-detail,
+.balance-detail {
   display: block;
   margin-top: 4px;
   color: var(--muted);

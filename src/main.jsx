@@ -714,6 +714,8 @@ function ProjectHome({
     : currentNetMinor > 0
       ? `待收 ${formatMoney(fromMinorUnits(currentNetMinor), project.default_currency)}`
       : `应付 ${formatMoney(fromMinorUnits(Math.abs(currentNetMinor)), project.default_currency)}`;
+  const currentPaidLabel = formatMoney(fromMinorUnits(currentBalance?.paid_minor ?? 0), project.default_currency);
+  const currentOwedLabel = formatMoney(fromMinorUnits(currentBalance?.owed_minor ?? 0), project.default_currency);
   const filteredExpenses = filterExpenses({
     expenses,
     members,
@@ -753,6 +755,7 @@ function ProjectHome({
             <strong className={currentNetMinor < 0 ? 'negative' : 'positive'}>
               {currentNetLabel}
             </strong>
+            <small className="balance-detail">已付 {currentPaidLabel} · 应摊 {currentOwedLabel}</small>
           </article>
           <article className="mini-card member-card">
             <div>
