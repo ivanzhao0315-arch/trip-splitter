@@ -4,6 +4,10 @@
 
 ## 开始
 
-当前产品设计见：
+当前轻量移动端 MVP 设计见：
+
+- [Lightweight Mobile MVP Design](docs/superpowers/specs/2026-06-15-lightweight-mobile-mvp-design.md)
+
+早期完整方向文档见：
 
 - [AI-first Shared Ledger Product Design](docs/superpowers/specs/2026-06-15-ai-first-shared-ledger-design.md)
