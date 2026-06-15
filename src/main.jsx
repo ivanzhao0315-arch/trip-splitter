@@ -438,6 +438,7 @@ function EntryScreen({
   const [name, setName] = useState(initialName);
   const [joinCode, setJoinCode] = useState(initialJoinCode);
   const [error, setError] = useState('');
+  const [joinError, setJoinError] = useState('');
 
   useEffect(() => {
     if (initialName && !name) setName(initialName);
@@ -454,6 +455,18 @@ function EntryScreen({
     }
     setError('');
     return true;
+  };
+
+  const handleJoin = () => {
+    if (!requireName()) return;
+
+    if (joinCode.length !== 4) {
+      setJoinError('请输入 4 位项目码');
+      return;
+    }
+
+    setJoinError('');
+    onJoinProject(name.trim(), joinCode);
   };
 
   return (
@@ -504,11 +517,14 @@ function EntryScreen({
           <div className="divider"><span>或者</span></div>
 
           <div className="join-row">
-            <div className="text-field">
+            <div className={`text-field ${joinError ? 'has-error' : ''}`}>
               <Tag size={21} />
               <input
                 value={joinCode}
-                onChange={(event) => setJoinCode(normalizeProjectCode(event.target.value))}
+                onChange={(event) => {
+                  setJoinCode(normalizeProjectCode(event.target.value));
+                  setJoinError('');
+                }}
                 maxLength={4}
                 placeholder="4位项目码"
                 className="code-input"
@@ -517,13 +533,12 @@ function EntryScreen({
             <button
               className="secondary-button"
               disabled={isBusy}
-              onClick={() => {
-                if (requireName() && joinCode.length === 4) onJoinProject(name.trim(), joinCode);
-              }}
+              onClick={handleJoin}
             >
               {isBusy ? '处理中...' : joinCode.length === 4 ? '加入邀请' : '加入'}
             </button>
           </div>
+          {joinError ? <p className="join-code-error" role="alert">{joinError}</p> : null}
           {joinCode.length === 4 ? (
             <p className="join-code-hint">已填入邀请项目码 #{joinCode}</p>
           ) : null}

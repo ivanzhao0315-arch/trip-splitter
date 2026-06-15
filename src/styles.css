@@ -469,6 +469,14 @@ button:disabled {
   font-weight: 700;
 }
 
+.join-code-error {
+  margin: -4px 0 0;
+  color: var(--error);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+}
+
 .create-content {
   display: flex;
   flex-direction: column;
