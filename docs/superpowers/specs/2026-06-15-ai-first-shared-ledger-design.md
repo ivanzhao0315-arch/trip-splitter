@@ -49,7 +49,7 @@ Each ledger has:
 
 - Name.
 - Type template: travel, co-living, meal, event, or custom.
-- Currency, defaulting to CNY.
+- Default settlement currency, defaulting to CNY.
 - Members.
 - Expenses.
 - Settlement state.
@@ -90,6 +90,8 @@ The AI parser should produce one or more draft expenses with:
 
 - Amount.
 - Currency.
+- Converted amount in the ledger currency when needed.
+- Exchange rate snapshot when the source currency differs from the ledger currency.
 - Merchant or description.
 - Paid-by candidate.
 - Expense date and time if available.
@@ -111,6 +113,8 @@ Fields:
 
 - Description.
 - Amount.
+- Currency.
+- Exchange rate when currency conversion is used.
 - Paid by.
 - Participants.
 - Split mode.
@@ -187,7 +191,7 @@ The MVP does not initiate payments.
 - `id`
 - `name`
 - `template`
-- `currency`
+- `default_currency`
 - `owner_id`
 - `created_at`
 - `updated_at`
@@ -205,8 +209,13 @@ The MVP does not initiate payments.
 - `id`
 - `ledger_id`
 - `description`
-- `amount`
-- `currency`
+- `original_amount`
+- `original_currency`
+- `converted_amount`
+- `ledger_currency`
+- `exchange_rate`
+- `exchange_rate_provider`
+- `exchange_rate_timestamp`
 - `paid_by_member_id`
 - `expense_date`
 - `category`
@@ -254,7 +263,7 @@ The MVP does not initiate payments.
 - `from_member_id`
 - `to_member_id`
 - `amount`
-- `currency`
+- `ledger_currency`
 - `status`
 - `method`
 - `settled_at`
@@ -274,9 +283,11 @@ Rules:
 
 Initial parsing targets:
 
-- Payment screenshots: amount, merchant, time, payment platform.
-- Receipts: total amount, merchant, time, line items when clear.
-- Chat text: payer, amount, description, participant hints.
+- Payment screenshots: amount, currency, merchant, time, payment platform.
+- Receipts: total amount, currency, merchant, time, line items when clear.
+- Chat text: payer, amount, currency, description, participant hints.
+
+For non-ledger currencies, the app should fetch a real-time exchange rate before confirmation, store the rate as a snapshot, and use the converted ledger-currency amount for balances and settlement. Old expenses should not be silently revalued when exchange rates change later.
 
 Line-item splitting can be explored later. MVP receipt parsing can start with total-level expense extraction.
 
@@ -319,6 +330,8 @@ The MVP is successful if one organizer can:
 - Create a shared ledger in under one minute.
 - Add participants without requiring signups.
 - Upload or paste at least one payment artifact and turn it into a confirmed expense.
+- Detect or manually set the expense currency.
+- Convert non-ledger-currency expenses with a real-time exchange rate snapshot.
 - Manually correct AI mistakes before saving.
 - Record multiple shared expenses.
 - Share a read-only balance view.
@@ -334,7 +347,7 @@ Potential second-phase features:
 - Travel budget planning: estimated budget vs actual spending.
 - WeChat group-friendly share cards.
 - Payment screenshot matching for settlement verification.
-- Multi-currency travel flows and exchange-rate handling.
+- Historical FX charts and automatic revaluation of old expenses.
 - Member accounts for people who want cross-ledger history.
 - Member-side settlement confirmation.
 - Notifications and reminders.

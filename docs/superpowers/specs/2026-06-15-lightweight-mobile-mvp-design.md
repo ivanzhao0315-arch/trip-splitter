@@ -13,6 +13,8 @@ The first version should feel like a small utility, not a full finance app. User
 - Anyone with the project code can enter the project.
 - Usernames are display names only.
 - Equal split is the only split mode in MVP.
+- Expenses can be entered in different currencies.
+- Settlement is shown in the project's default currency.
 - AI helps create draft expenses, but the user confirms before saving.
 - Keep the app mobile-first and fast.
 
@@ -40,6 +42,7 @@ Example username values:
 When creating a project, the user enters:
 
 - Project name.
+- Default settlement currency.
 
 Examples:
 
@@ -57,6 +60,8 @@ Project code rules:
 - Codes should be easy to read and enter.
 
 The project creator immediately enters the project after creation.
+
+The default settlement currency is used for totals, balances, and settlement suggestions. For Chinese users, the default should be `CNY`, but travel projects should allow selecting another settlement currency such as `USD`, `JPY`, `EUR`, `GBP`, `HKD`, `TWD`, `SGD`, or `KRW`.
 
 ## Project Joining
 
@@ -116,10 +121,13 @@ The AI parser creates a draft expense.
 Draft fields:
 
 - Amount.
+- Currency.
 - Payer.
 - Participants.
 - Description.
 - Date/time if detected.
+- Exchange rate if the detected currency differs from the project currency.
+- Converted amount in the project currency.
 
 The user must confirm the draft before it is saved.
 
@@ -128,11 +136,48 @@ The user must confirm the draft before it is saved.
 The confirmation screen must allow editing:
 
 - Amount.
+- Currency.
 - Payer.
 - Participants.
 - Description.
+- Exchange rate when currency conversion is used.
 
 If AI detection fails, the user should still be able to manually complete the expense from the same confirmation screen.
+
+## Currency and Exchange Rates
+
+The app must support expenses in different currencies.
+
+Currency behavior:
+
+- Each project has one default settlement currency.
+- Each expense stores the original amount and original currency.
+- If an expense currency differs from the project currency, the app converts it using a real-time exchange rate.
+- The converted project-currency amount is used for equal split and settlement.
+- The expense detail should still show the original amount and currency for transparency.
+
+AI currency detection:
+
+- AI should detect currency symbols and codes from screenshots, receipts, and pasted text.
+- Examples: `¥`, `CNY`, `RMB`, `$`, `USD`, `HK$`, `JPY`, `円`, `€`, `EUR`, `£`, `GBP`, `₩`, `KRW`.
+- If the currency is ambiguous, default to the project currency and ask the user to confirm.
+
+Exchange rate requirements:
+
+- Fetch a real-time exchange rate when the user confirms an expense in a non-project currency.
+- Store the exchange rate used at confirmation time as a snapshot.
+- Store the rate timestamp and provider name.
+- Do not silently recalculate old expenses when rates change later.
+- Allow the user to refresh the exchange rate before confirming.
+- Allow manual rate override if the user wants to use a card statement rate or cash exchange rate.
+
+Example:
+
+- Project currency: `CNY`
+- Expense: `$40.00 USD`
+- Rate snapshot: `1 USD = 7.25 CNY`
+- Converted amount: `¥290.00 CNY`
+- Equal split and settlement use `¥290.00`.
 
 ## Split Rule
 
@@ -160,6 +205,7 @@ The app calculates:
 - How much each member should pay.
 - Each member's net balance.
 - Simplified transfers from people who owe money to people who should receive money.
+- All settlement totals in the project default currency.
 
 Example:
 
@@ -175,6 +221,7 @@ The MVP can show transfer suggestions only. It does not initiate payment.
 - `id`
 - `name`
 - `code`
+- `default_currency`
 - `created_at`
 
 ### Member
@@ -188,7 +235,13 @@ The MVP can show transfer suggestions only. It does not initiate payment.
 
 - `id`
 - `project_id`
-- `amount`
+- `original_amount`
+- `original_currency`
+- `converted_amount`
+- `project_currency`
+- `exchange_rate`
+- `exchange_rate_provider`
+- `exchange_rate_timestamp`
 - `description`
 - `payer_member_id`
 - `participant_member_ids`
@@ -231,9 +284,10 @@ Core flow:
 3. Project home shows project name, project code, members, total spending, my balance, recent expenses, and a primary AI entry button.
 4. AI entry supports taking a photo, uploading a screenshot, or pasting text.
 5. AI creates a draft expense with amount, payer, participants, description, and date/time if detected.
-6. User confirms or corrects the draft.
-7. App splits the expense equally among selected participants.
-8. Settlement view shows simplified transfers, such as 小陈 -> 我 ¥96.00.
+6. AI detects the payment currency. If it differs from the project currency, the app fetches a real-time exchange rate and shows the converted amount.
+7. User confirms or corrects the draft, including currency and exchange rate if needed.
+8. App splits the converted project-currency amount equally among selected participants.
+9. Settlement view shows simplified transfers in the project currency, such as 小陈 -> 我 ¥96.00.
 
 Design style:
 Mobile-first iPhone app, Chinese interface, clean and practical, true white and cool light gray background, one green accent, readable sans-serif typography, large touch targets, no dark mode, no purple AI glow, no marketing hero, no complex dashboard.
@@ -248,6 +302,8 @@ Mobile-first iPhone app, Chinese interface, clean and practical, true white and 
 - Travel itinerary planning.
 - Roommate recurring bill reminders.
 - Complex split modes.
+- Historical FX charting.
+- Automatic revaluation of old expenses when exchange rates change.
 - Desktop dashboard.
 - Long-term analytics.
 
@@ -260,6 +316,8 @@ The MVP is successful if a small group can:
 - Create a project and share a 4-character code.
 - Join a project using the code.
 - Add an expense through photo, screenshot, or pasted text.
+- Correctly detect or manually set the expense currency.
+- Convert non-project-currency expenses using a real-time exchange rate snapshot.
 - Confirm the AI-generated draft.
 - Split the expense equally.
-- See who owes whom.
+- See who owes whom in the project default currency.
