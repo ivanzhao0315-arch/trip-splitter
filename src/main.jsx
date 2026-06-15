@@ -26,6 +26,7 @@ import {
 import { createProjectCode, normalizeProjectCode } from './domain/codes';
 import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
+import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel } from './domain/periods';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
@@ -157,20 +158,6 @@ function createLocalMember(displayName) {
     initials: displayName.slice(0, 1).toUpperCase(),
     color: '#e1e3e4',
   };
-}
-
-function inferPayerMemberId({ members, text }) {
-  const source = String(text ?? '');
-  const paymentWords = '(已付|支付|付了|付款|垫付|paid)';
-  const payerMatch = members.find((member) => {
-    const escapedName = member.display_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`${escapedName}\\s*.{0,4}\\s*${paymentWords}`, 'i').test(source);
-  });
-  if (payerMatch) return payerMatch.id;
-
-  const exactMatch = members.find((member) => source.includes(member.display_name));
-  if (exactMatch) return exactMatch.id;
-  return members[0]?.id;
 }
 
 function sourceTypeLabel(sourceType) {
@@ -1126,12 +1113,25 @@ function App() {
         toCurrency: currentProject.default_currency,
       });
 
+      const inferenceText = [text, parsedDraft.description].filter(Boolean).join('\n');
+      const payerMemberId = inferPayerMemberId({
+        members,
+        text: inferenceText,
+        payerName: parsedDraft.payerName,
+      });
+      const participantMemberIds = inferParticipantMemberIds({
+        members,
+        text: inferenceText,
+        participantNames: parsedDraft.participantNames,
+        payerMemberId,
+      });
+
       setDraftExpense({
         ...parsedDraft,
         sourceType,
         sourceName: file?.name,
-        payerMemberId: inferPayerMemberId({ members, text: parsedDraft.description }),
-        participantMemberIds: members.map((member) => member.id),
+        payerMemberId,
+        participantMemberIds,
         exchangeRate: rate.rate,
         exchangeRateProvider: rate.provider,
         exchangeRateTimestamp: rate.timestamp,

@@ -15,6 +15,10 @@ function normalizeDraft(draft, fallback = {}) {
     currency: SUPPORTED_CURRENCIES.has(currency) ? currency : 'CNY',
     description: description.slice(0, 80) || '未命名账单',
     confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0,
+    payerName: String(draft?.payerName ?? '').trim(),
+    participantNames: Array.isArray(draft?.participantNames)
+      ? draft.participantNames.map((name) => String(name).trim()).filter(Boolean)
+      : [],
   };
 }
 
@@ -66,7 +70,7 @@ async function parseImageWithOpenAI({ file, sourceType }) {
               text: [
                 '你是中文共享记账工具的账单识别器。',
                 '请从收据、微信支付、支付宝、银行卡或聊天账单截图中识别一笔最主要的支出。',
-                '只返回 JSON，不要解释。字段：amount 数字；currency 三位大写币种；description 简短中文或原文商户描述；confidence 0 到 1。',
+                '只返回 JSON，不要解释。字段：amount 数字；currency 三位大写币种；description 简短中文或原文商户描述；payerName 付款人昵称或空字符串；participantNames 参与人昵称数组；confidence 0 到 1。',
                 `来源类型：${sourceType}`,
               ].join('\n'),
             },
@@ -84,11 +88,16 @@ async function parseImageWithOpenAI({ file, sourceType }) {
           schema: {
             type: 'object',
             additionalProperties: false,
-            required: ['amount', 'currency', 'description', 'confidence'],
+            required: ['amount', 'currency', 'description', 'payerName', 'participantNames', 'confidence'],
             properties: {
               amount: { type: 'number', minimum: 0 },
               currency: { type: 'string', enum: Array.from(SUPPORTED_CURRENCIES) },
               description: { type: 'string' },
+              payerName: { type: 'string' },
+              participantNames: {
+                type: 'array',
+                items: { type: 'string' },
+              },
               confidence: { type: 'number', minimum: 0, maximum: 1 },
             },
           },
@@ -146,6 +155,8 @@ export default async function handler(request) {
       amount: 0,
       currency: 'CNY',
       description: '',
+      payerName: '',
+      participantNames: [],
       confidence: 0,
     },
     status: 'draft',
