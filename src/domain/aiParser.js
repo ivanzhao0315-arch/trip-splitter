@@ -8,6 +8,22 @@ const CURRENCY_PATTERNS = [
   { currency: 'KRW', regex: /₩\s?(\d+(?:\.\d{1,2})?)/ },
 ];
 
+const CATEGORY_PATTERNS = [
+  { category: '餐饮', regex: /餐|饭|晚餐|午餐|早餐|夜宵|咖啡|奶茶|火锅|烧烤|食堂|餐厅|便利店|Starbucks|coffee/i },
+  { category: '交通', regex: /打车|出租|地铁|公交|高铁|火车|机票|航班|滴滴|Uber|taxi|车费/i },
+  { category: '住宿', regex: /酒店|民宿|住宿|房费|Airbnb|hotel/i },
+  { category: '购物', regex: /购物|超市|商场|衣服|鞋|包|免税|买了/i },
+  { category: '门票', regex: /门票|票|景区|博物馆|演唱会|电影|展览/i },
+  { category: '日用品', regex: /日用品|纸巾|洗衣|清洁|牙膏|洗发|沐浴|用品/i },
+  { category: '房租', regex: /房租|租金|rent/i },
+  { category: '水电', regex: /水电|电费|水费|燃气|煤气|网费|宽带|物业/i },
+];
+
+function inferCategory(source) {
+  const text = String(source ?? '');
+  return CATEGORY_PATTERNS.find((item) => item.regex.test(text))?.category ?? '其他';
+}
+
 function toIsoAtLocalTime({ year, month, day, hour = 12, minute = 0 }) {
   const date = new Date(year, month - 1, day, hour, minute, 0, 0);
   return Number.isNaN(date.getTime()) ? '' : date.toISOString();
@@ -92,6 +108,7 @@ export function parseExpenseText(text, now = new Date()) {
     amount: matched?.amount ?? (genericAmount ? Number(genericAmount) : 0),
     currency: matched?.currency ?? 'CNY',
     description: source.slice(0, 80) || '未命名账单',
+    category: inferCategory(source),
     confidence: matched ? 0.82 : 0.42,
     createdAt,
   };

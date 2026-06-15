@@ -26,8 +26,15 @@ describe('parseExpenseText', () => {
     expect(parseExpenseText('东京便利店 JPY 1280 Ivan 已付')).toMatchObject({
       amount: 1280,
       currency: 'JPY',
+      category: '餐饮',
       confidence: 0.82,
     });
+  });
+
+  it('infers expense categories from common text hints', () => {
+    expect(parseExpenseText('滴滴打车 ¥96 张三 已付')).toMatchObject({ category: '交通' });
+    expect(parseExpenseText('民宿房费 ¥1200 Ivan 已付')).toMatchObject({ category: '住宿' });
+    expect(parseExpenseText('水电网费 ¥300 大家平分')).toMatchObject({ category: '水电' });
   });
 
   it('extracts Chinese month-day and time without treating date numbers as amount', () => {

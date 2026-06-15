@@ -124,12 +124,14 @@ describe('ai draft endpoint', () => {
       expect(schema.required).toContain('payerName');
       expect(schema.required).toContain('participantNames');
       expect(schema.required).toContain('createdAt');
+      expect(schema.required).toContain('category');
 
       return new Response(JSON.stringify({
         output_text: JSON.stringify({
           amount: 96,
           currency: 'CNY',
           description: '打车',
+          category: '交通',
           payerName: '张三',
           participantNames: ['小陈', 'Ivan'],
           confidence: 0.9,
@@ -151,6 +153,7 @@ describe('ai draft endpoint', () => {
       amount: 96,
       currency: 'CNY',
       description: '打车',
+      category: '交通',
       payerName: '张三',
       participantNames: ['小陈', 'Ivan'],
       createdAt: '2026-06-14T12:30:00.000Z',
@@ -214,6 +217,7 @@ describe('ai draft endpoint', () => {
       expect(schema.required).toContain('payerName');
       expect(schema.required).toContain('participantNames');
       expect(schema.required).toContain('createdAt');
+      expect(schema.required).toContain('category');
       expect(schema.properties.participantNames.type).toBe('array');
 
       return new Response(JSON.stringify({
@@ -221,6 +225,7 @@ describe('ai draft endpoint', () => {
           amount: 88,
           currency: 'CNY',
           description: '微信支付晚餐',
+          category: '餐饮',
           payerName: '张三',
           participantNames: ['张三', 'Ivan'],
           confidence: 0.91,
