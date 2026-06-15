@@ -96,3 +96,27 @@ export function simplifyTransfers(balances) {
 
   return transfers;
 }
+
+export function summarizeExpensesByCategory(expenses) {
+  const totals = new Map();
+  let totalMinor = 0;
+
+  for (const expense of expenses) {
+    const amountMinor = Number(expense.converted_amount_minor ?? 0);
+    if (!Number.isFinite(amountMinor) || amountMinor <= 0) continue;
+
+    const category = String(expense.category ?? '').trim() || '其他';
+    const current = totals.get(category) ?? { category, amount_minor: 0, count: 0 };
+    current.amount_minor += amountMinor;
+    current.count += 1;
+    totals.set(category, current);
+    totalMinor += amountMinor;
+  }
+
+  return Array.from(totals.values())
+    .map((item) => ({
+      ...item,
+      percentage: totalMinor > 0 ? Math.round((item.amount_minor / totalMinor) * 100) : 0,
+    }))
+    .sort((a, b) => b.amount_minor - a.amount_minor || a.category.localeCompare(b.category));
+}

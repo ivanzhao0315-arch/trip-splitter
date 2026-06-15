@@ -724,6 +724,10 @@ button:disabled {
   font-weight: 700;
 }
 
+.section-header.compact {
+  margin-bottom: 4px;
+}
+
 .member-strip {
   display: flex;
   gap: 16px;
@@ -1499,6 +1503,60 @@ button:disabled {
 .period-card,
 .balance-card {
   padding: 16px;
+}
+
+.category-card {
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--surface-highest);
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: center;
+}
+
+.category-row strong,
+.category-row b {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.category-row span,
+.category-empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.category-row div:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.category-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-low);
+}
+
+.category-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary-container);
 }
 
 .period-card {

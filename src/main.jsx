@@ -40,6 +40,7 @@ import { resolveExchangeRateWithFallback } from './services/exchangeRateService'
 import { hasBackendConfig } from './services/apiClient';
 import { addProjectMember, createProject, joinProject } from './services/projectService';
 import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
+import { summarizeExpensesByCategory } from './domain/splitting';
 import './styles.css';
 
 const fallbackProject = {
@@ -1259,6 +1260,7 @@ function SettlementScreen({
   appError,
 }) {
   const { balances, transfers } = buildCurrentSettlement({ members, expenses });
+  const categorySummary = summarizeExpensesByCategory(expenses);
   const [shareNotice, setShareNotice] = useState('');
 
   const copySettlementText = async () => {
@@ -1304,6 +1306,31 @@ function SettlementScreen({
               </div>
             </div>
           ))}
+        </section>
+
+        <section className="category-card">
+          <div className="section-header compact">
+            <h3>分类支出</h3>
+            <span>{categorySummary.length} 类</span>
+          </div>
+          {categorySummary.length ? (
+            <div className="category-list">
+              {categorySummary.map((item) => (
+                <div className="category-row" key={item.category}>
+                  <div>
+                    <strong>{item.category}</strong>
+                    <span>{item.count} 笔 · {item.percentage}%</span>
+                  </div>
+                  <b>{formatMoney(fromMinorUnits(item.amount_minor), project.default_currency)}</b>
+                  <div className="category-bar" aria-label={`${item.category} 占比 ${item.percentage}%`}>
+                    <span style={{ width: `${item.percentage}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="category-empty">本周期还没有分类支出。</p>
+          )}
         </section>
 
         <section className="transfer-card">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculatePeriodBalances, createEqualSplits, simplifyTransfers } from '../splitting';
+import { calculatePeriodBalances, createEqualSplits, simplifyTransfers, summarizeExpensesByCategory } from '../splitting';
 
 const members = [
   { id: 'chen', display_name: '小陈' },
@@ -46,6 +46,21 @@ describe('equal splitting', () => {
     expect(transfers).toEqual([
       { from_member_id: 'zhang', from_name: '张三', to_member_id: 'chen', to_name: '小陈', amount_minor: 9600 },
       { from_member_id: 'ivan', from_name: 'Ivan', to_member_id: 'chen', to_name: '小陈', amount_minor: 7400 },
+    ]);
+  });
+
+  it('summarizes expenses by category', () => {
+    const summary = summarizeExpensesByCategory([
+      { converted_amount_minor: 12000, category: '住宿' },
+      { converted_amount_minor: 3000, category: '交通' },
+      { converted_amount_minor: 6000, category: '住宿' },
+      { converted_amount_minor: 2000, category: '' },
+    ]);
+
+    expect(summary).toEqual([
+      { category: '住宿', amount_minor: 18000, count: 2, percentage: 78 },
+      { category: '交通', amount_minor: 3000, count: 1, percentage: 13 },
+      { category: '其他', amount_minor: 2000, count: 1, percentage: 9 },
     ]);
   });
 });
