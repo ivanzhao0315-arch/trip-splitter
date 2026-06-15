@@ -15,6 +15,7 @@ The first version should feel like a small utility, not a full finance app. User
 - Equal split is the only split mode in MVP.
 - Expenses can be entered in different currencies.
 - Settlement is shown in the project's default currency.
+- Projects can accumulate expenses over time and settle by period.
 - AI helps create draft expenses, but the user confirms before saving.
 - Keep the app mobile-first and fast.
 
@@ -96,8 +97,11 @@ Required elements:
 - Recent expenses.
 - Primary AI entry button.
 - Settlement summary.
+- Current settlement period.
 
 The project code should be easy to copy or show to others.
+
+Projects are ongoing by default. Users can keep adding payment records after a settlement. A settlement should not close the project.
 
 ## AI Expense Entry
 
@@ -214,6 +218,44 @@ Example:
 
 The MVP can show transfer suggestions only. It does not initiate payment.
 
+## Periodic Settlement
+
+The app must support accumulating payment information over time because some projects are settled periodically.
+
+Examples:
+
+- Roommates settle rent, utilities, and daily supplies every month.
+- Friends on a long trip settle every few days.
+- A recurring group activity settles after each event.
+
+MVP behavior:
+
+- A project has one active settlement period.
+- New expenses are added to the active period by default.
+- The settlement view calculates balances for the active period.
+- When users finish a settlement, the app can mark the active period as settled.
+- Marking a period as settled creates a settlement snapshot.
+- After settlement, the project remains open and a new active period starts.
+- Historical settled periods remain viewable.
+
+Settlement snapshot requirements:
+
+- Store the period start and end time.
+- Store the expenses included in the period.
+- Store member balances at settlement time.
+- Store suggested transfers at settlement time.
+- Store the project currency used for the settlement.
+- Do not change a historical settlement snapshot when later expenses are added.
+
+The MVP should provide simple labels for periods:
+
+- `当前周期`
+- `2026-06`
+- `第 1 次结算`
+- Custom name entered by the user if needed.
+
+The MVP does not need automatic calendar billing rules. Users can manually mark a period as settled and start the next one.
+
 ## Data Model
 
 ### Project
@@ -222,6 +264,7 @@ The MVP can show transfer suggestions only. It does not initiate payment.
 - `name`
 - `code`
 - `default_currency`
+- `active_period_id`
 - `created_at`
 
 ### Member
@@ -235,6 +278,7 @@ The MVP can show transfer suggestions only. It does not initiate payment.
 
 - `id`
 - `project_id`
+- `period_id`
 - `original_amount`
 - `original_currency`
 - `converted_amount`
@@ -246,6 +290,27 @@ The MVP can show transfer suggestions only. It does not initiate payment.
 - `payer_member_id`
 - `participant_member_ids`
 - `source_type`
+- `created_at`
+
+### Settlement Period
+
+- `id`
+- `project_id`
+- `label`
+- `status`
+- `started_at`
+- `ended_at`
+- `settled_at`
+
+### Settlement Snapshot
+
+- `id`
+- `project_id`
+- `period_id`
+- `project_currency`
+- `included_expense_ids`
+- `member_balance_payload`
+- `transfer_payload`
 - `created_at`
 
 ### AI Draft
@@ -287,7 +352,8 @@ Core flow:
 6. AI detects the payment currency. If it differs from the project currency, the app fetches a real-time exchange rate and shows the converted amount.
 7. User confirms or corrects the draft, including currency and exchange rate if needed.
 8. App splits the converted project-currency amount equally among selected participants.
-9. Settlement view shows simplified transfers in the project currency, such as 小陈 -> 我 ¥96.00.
+9. Settlement view shows simplified transfers for the current settlement period in the project currency, such as 小陈 -> 我 ¥96.00.
+10. User can mark the current period as settled, save a settlement snapshot, and continue adding future expenses to a new period.
 
 Design style:
 Mobile-first iPhone app, Chinese interface, clean and practical, true white and cool light gray background, one green accent, readable sans-serif typography, large touch targets, no dark mode, no purple AI glow, no marketing hero, no complex dashboard.
@@ -300,7 +366,7 @@ Mobile-first iPhone app, Chinese interface, clean and practical, true white and 
 - Payment integration.
 - Budget planning.
 - Travel itinerary planning.
-- Roommate recurring bill reminders.
+- Automatic recurring bill reminders.
 - Complex split modes.
 - Historical FX charting.
 - Automatic revaluation of old expenses when exchange rates change.
@@ -321,3 +387,5 @@ The MVP is successful if a small group can:
 - Confirm the AI-generated draft.
 - Split the expense equally.
 - See who owes whom in the project default currency.
+- Mark a settlement period as settled.
+- Continue adding new expenses after settlement without changing historical settlement records.

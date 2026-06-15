@@ -52,6 +52,7 @@ Each ledger has:
 - Default settlement currency, defaulting to CNY.
 - Members.
 - Expenses.
+- Active settlement period.
 - Settlement state.
 - Share links.
 
@@ -147,8 +148,32 @@ The MVP supports:
 - Owner marking a suggested transfer as settled.
 - Recording settlement method as text: WeChat, Alipay, cash, bank transfer, or other.
 - Showing remaining unsettled balances.
+- Ongoing ledgers where expenses can continue after a period is settled.
+- Historical settlement snapshots for previous periods.
 
 The MVP does not initiate payments.
+
+### 6. Periodic Settlement
+
+Some ledgers are ongoing and need periodic settlement.
+
+Examples:
+
+- Roommates settling monthly household costs.
+- Friends settling a long trip every few days.
+- A repeated group activity settling after each event.
+
+The MVP should support:
+
+- One active settlement period per ledger.
+- New expenses added to the active period by default.
+- Settlement calculations scoped to the active period.
+- Marking the active period as settled.
+- Saving a settlement snapshot when a period is settled.
+- Starting a new active period after settlement.
+- Viewing previous settled periods.
+
+Historical settlement snapshots should not change when new expenses are added later.
 
 ## Core User Flow
 
@@ -182,7 +207,8 @@ The MVP does not initiate payments.
 2. Participants view balances without registering.
 3. At the end of the activity or month, owner opens settlement.
 4. App shows simplified transfer suggestions.
-5. Owner marks transfers as settled.
+5. Owner marks the current period as settled.
+6. App saves a settlement snapshot and starts a new active period for future expenses.
 
 ## Data Model
 
@@ -192,6 +218,7 @@ The MVP does not initiate payments.
 - `name`
 - `template`
 - `default_currency`
+- `active_period_id`
 - `owner_id`
 - `created_at`
 - `updated_at`
@@ -208,6 +235,7 @@ The MVP does not initiate payments.
 
 - `id`
 - `ledger_id`
+- `period_id`
 - `description`
 - `original_amount`
 - `original_currency`
@@ -267,6 +295,27 @@ The MVP does not initiate payments.
 - `status`
 - `method`
 - `settled_at`
+
+### Settlement Period
+
+- `id`
+- `ledger_id`
+- `label`
+- `status`
+- `started_at`
+- `ended_at`
+- `settled_at`
+
+### Settlement Snapshot
+
+- `id`
+- `ledger_id`
+- `period_id`
+- `ledger_currency`
+- `included_expense_ids`
+- `member_balance_payload`
+- `transfer_payload`
+- `created_at`
 
 ## AI Parsing Principles
 
@@ -336,7 +385,8 @@ The MVP is successful if one organizer can:
 - Record multiple shared expenses.
 - Share a read-only balance view.
 - See simplified settlement suggestions.
-- Mark transfers as settled.
+- Mark a settlement period as settled.
+- Continue adding expenses after settlement without changing historical settlement records.
 
 ## Later Roadmap
 
@@ -350,5 +400,6 @@ Potential second-phase features:
 - Historical FX charts and automatic revaluation of old expenses.
 - Member accounts for people who want cross-ledger history.
 - Member-side settlement confirmation.
+- Automatic recurring bill reminders.
 - Notifications and reminders.
 - Export to CSV or spreadsheet.
