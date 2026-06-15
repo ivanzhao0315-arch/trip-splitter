@@ -1143,6 +1143,14 @@ button:disabled {
   text-align: right;
 }
 
+.history-empty {
+  margin: 0;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
 .toast {
   position: absolute;
   z-index: 80;

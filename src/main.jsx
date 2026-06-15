@@ -26,12 +26,13 @@ import {
 import { createProjectCode, normalizeProjectCode } from './domain/codes';
 import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
+import { buildSettlementSnapshot, createCurrentPeriodLabel } from './domain/periods';
 import { createAiDraft } from './services/aiDraftService';
 import { createExpense, fetchProjectDetail } from './services/expenseService';
 import { fetchExchangeRate } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
 import { createProject, joinProject } from './services/projectService';
-import { buildCurrentSettlement } from './services/settlementService';
+import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
 import './styles.css';
 
 const fallbackProject = {
@@ -40,6 +41,14 @@ const fallbackProject = {
   code: 'A7K2',
   default_currency: 'CNY',
   active_period_id: 'local-period',
+};
+
+const fallbackPeriod = {
+  id: 'local-period',
+  project_id: 'local-project',
+  label: createCurrentPeriodLabel(),
+  status: 'active',
+  started_at: new Date().toISOString(),
 };
 
 const fallbackMembers = [
@@ -324,7 +333,7 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
   );
 }
 
-function ProjectHome({ project, members, expenses, onOpenAi, onOpenSettlement }) {
+function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpenSettlement }) {
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const memberById = new Map(members.map((member) => [member.id, member]));
 
@@ -334,7 +343,7 @@ function ProjectHome({ project, members, expenses, onOpenAi, onOpenSettlement })
       <main className="content with-nav">
         <section className="summary-grid">
           <article className="total-card">
-            <p>总计支出 ({project.default_currency})</p>
+            <p>总计支出 ({project.default_currency}) · {activePeriod.label}</p>
             <h2>{formatMoney(fromMinorUnits(totalMinor), project.default_currency)}</h2>
           </article>
           <article className="mini-card">
@@ -557,7 +566,29 @@ function PickerRow({ label, value, member }) {
   );
 }
 
-function SettlementScreen({ project, members, expenses, onBack, onSettled, settled }) {
+function settlementHistoryMeta(snapshot) {
+  const balances = snapshot.member_balance_payload ?? [];
+  const transfers = snapshot.transfer_payload ?? [];
+  const totalMinor = snapshot.total_minor ?? balances.reduce((sum, balance) => sum + balance.paid_minor, 0);
+  return {
+    memberCount: balances.length,
+    transferCount: transfers.length,
+    totalMinor,
+  };
+}
+
+function SettlementScreen({
+  project,
+  activePeriod,
+  members,
+  expenses,
+  settlementHistory,
+  onBack,
+  onSettled,
+  settledNotice,
+  isBusy,
+  appError,
+}) {
   const { balances, transfers } = buildCurrentSettlement({ members, expenses });
 
   return (
@@ -567,7 +598,7 @@ function SettlementScreen({ project, members, expenses, onBack, onSettled, settl
         <section className="period-card">
           <div>
             <span>当前周期</span>
-            <strong><CalendarBlank size={20} />2026-06</strong>
+            <strong><CalendarBlank size={20} />{activePeriod.label}</strong>
           </div>
           <button>切换周期 <CaretDown size={17} /></button>
         </section>
@@ -612,31 +643,40 @@ function SettlementScreen({ project, members, expenses, onBack, onSettled, settl
             <h3>历史结算</h3>
             <button>查看全部</button>
           </div>
-          {[
-            { title: '2026年05月结算', meta: '3人参与 · 2笔转账', amount: 450, date: '2026-06-01' },
-            { title: '2026年04月结算', meta: '3人参与 · 1笔转账', amount: 1230.5, date: '2026-05-01' },
-          ].map((item) => (
-            <article className="history-row" key={item.title}>
-              <CheckCircle size={25} />
-              <div>
-                <strong>{item.title}</strong>
-                <span>{item.meta}</span>
-              </div>
-              <div>
-                <strong>{formatMoney(item.amount, project.default_currency)}</strong>
-                <span>{item.date}</span>
-              </div>
-            </article>
-          ))}
+          {settlementHistory.length ? (
+            settlementHistory.map((item) => {
+              const meta = settlementHistoryMeta(item);
+              return (
+                <article className="history-row" key={item.id ?? item.created_at}>
+                  <CheckCircle size={25} />
+                  <div>
+                    <strong>{item.period_label ?? activePeriod.label} 结算</strong>
+                    <span>{meta.memberCount}人参与 · {meta.transferCount}笔转账</span>
+                  </div>
+                  <div>
+                    <strong>{formatMoney(fromMinorUnits(meta.totalMinor), project.default_currency)}</strong>
+                    <span>{new Date(item.created_at).toLocaleDateString('zh-CN')}</span>
+                  </div>
+                </article>
+              );
+            })
+          ) : (
+            <p className="history-empty">还没有历史结算。</p>
+          )}
+          {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         </section>
       </main>
       <div className="bottom-actions nav-offset">
-        <button className={`primary-button ${settled ? 'settled' : ''}`} onClick={onSettled}>
+        <button
+          className={`primary-button ${settledNotice ? 'settled' : ''}`}
+          disabled={isBusy || expenses.length === 0}
+          onClick={onSettled}
+        >
           <CheckCircle size={22} weight="fill" />
-          {settled ? '结算成功' : '标记为已结算'}
+          {settledNotice ? '结算成功' : expenses.length === 0 ? '暂无待结算账单' : '标记为已结算'}
         </button>
       </div>
-      {settled ? <div className="toast">周期 2026-06 已归档至历史结算</div> : null}
+      {settledNotice ? <div className="toast">{settledNotice}</div> : null}
       <BottomNav active="stats" />
     </div>
   );
@@ -665,9 +705,11 @@ function App() {
   const [screen, setScreen] = useState('entry');
   const [username, setUsername] = useState('');
   const [project, setProject] = useState(null);
+  const [activePeriod, setActivePeriod] = useState(fallbackPeriod);
   const [members, setMembers] = useState(fallbackMembers);
   const [aiOpen, setAiOpen] = useState(false);
-  const [settled, setSettled] = useState(false);
+  const [settledNotice, setSettledNotice] = useState('');
+  const [settlementHistory, setSettlementHistory] = useState([]);
   const [expenses, setExpenses] = useState(fallbackExpenses);
   const [draftExpense, setDraftExpense] = useState(null);
   const [appError, setAppError] = useState('');
@@ -677,9 +719,12 @@ function App() {
 
   const loadProjectState = async (projectId) => {
     const detail = await fetchProjectDetail(projectId);
+    const snapshots = await fetchSettlementSnapshots(projectId);
     setProject(detail.project);
+    setActivePeriod(detail.activePeriod);
     setMembers(detail.members);
     setExpenses(detail.expenses);
+    setSettlementHistory(snapshots);
   };
 
   const handleJoinProject = async (name, code) => {
@@ -687,9 +732,13 @@ function App() {
     setAppError('');
 
     if (!hasBackendConfig) {
-      setProject({ ...fallbackProject, code });
+      const nextPeriod = { ...fallbackPeriod, id: `local-period-${Date.now()}`, label: createCurrentPeriodLabel() };
+      setProject({ ...fallbackProject, code, active_period_id: nextPeriod.id });
+      setActivePeriod(nextPeriod);
       setMembers([{ id: 'local-member', display_name: name, initials: name[0], color: '#22c55e' }]);
       setExpenses([]);
+      setSettlementHistory([]);
+      setSettledNotice('');
       setScreen('home');
       return;
     }
@@ -710,14 +759,19 @@ function App() {
     setAppError('');
 
     if (!hasBackendConfig) {
+      const nextPeriod = { ...fallbackPeriod, id: `local-period-${Date.now()}`, label: createCurrentPeriodLabel() };
       setProject({
         ...fallbackProject,
         name: created.name,
         code: created.code,
         default_currency: created.currency,
+        active_period_id: nextPeriod.id,
       });
+      setActivePeriod(nextPeriod);
       setMembers([{ id: 'local-member', display_name: created.username, initials: created.username[0], color: '#22c55e' }]);
       setExpenses([]);
+      setSettlementHistory([]);
+      setSettledNotice('');
       setScreen('home');
       return;
     }
@@ -760,6 +814,8 @@ function App() {
         },
         ...items,
       ]);
+      setDraftExpense(null);
+      setSettledNotice('');
       setScreen('home');
       return;
     }
@@ -768,6 +824,8 @@ function App() {
     try {
       await createExpense({ project: currentProject, ...draft });
       await loadProjectState(currentProject.id);
+      setDraftExpense(null);
+      setSettledNotice('');
       setScreen('home');
     } catch (error) {
       setAppError(error.message || '保存账单失败');
@@ -838,6 +896,63 @@ function App() {
     }
   };
 
+  const handleSettleActivePeriod = async () => {
+    setAppError('');
+    setSettledNotice('');
+
+    if (expenses.length === 0) return;
+
+    if (!hasBackendConfig) {
+      const { balances, transfers } = buildCurrentSettlement({ members, expenses });
+      const snapshotPayload = buildSettlementSnapshot({
+        project: currentProject,
+        period: activePeriod,
+        expenses,
+        balances,
+        transfers,
+      });
+      const snapshot = {
+        ...snapshotPayload,
+        id: `local-snapshot-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        period_label: activePeriod.label,
+        total_minor: expenses.reduce((sum, expense) => sum + expense.converted_amount_minor, 0),
+      };
+      const nextPeriod = {
+        ...fallbackPeriod,
+        id: `local-period-${Date.now()}`,
+        label: createCurrentPeriodLabel(),
+        started_at: new Date().toISOString(),
+      };
+
+      setSettlementHistory((items) => [snapshot, ...items]);
+      setExpenses([]);
+      setActivePeriod(nextPeriod);
+      setProject((current) => ({ ...(current ?? currentProject), active_period_id: nextPeriod.id }));
+      setSettledNotice(`周期 ${activePeriod.label} 已归档至历史结算`);
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      const { snapshot, nextPeriod } = await settleActivePeriod({
+        project: currentProject,
+        period: activePeriod,
+        members,
+        expenses,
+      });
+      setSettlementHistory((items) => [{ ...snapshot, period_label: activePeriod.label }, ...items]);
+      setExpenses([]);
+      setActivePeriod(nextPeriod);
+      setProject((current) => ({ ...(current ?? currentProject), active_period_id: nextPeriod.id }));
+      setSettledNotice(`周期 ${activePeriod.label} 已归档至历史结算`);
+    } catch (error) {
+      setAppError(error.message || '结算失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   return (
     <div className="app-shell">
       <div className="phone">
@@ -865,6 +980,7 @@ function App() {
         {screen === 'home' && (
           <ProjectHome
             project={currentProject}
+            activePeriod={activePeriod}
             members={members}
             expenses={expenses}
             onOpenAi={() => setAiOpen(true)}
@@ -886,11 +1002,15 @@ function App() {
         {screen === 'settlement' && (
           <SettlementScreen
             project={currentProject}
+            activePeriod={activePeriod}
             members={members}
             expenses={expenses}
+            settlementHistory={settlementHistory}
             onBack={() => setScreen('home')}
-            onSettled={() => setSettled(true)}
-            settled={settled}
+            onSettled={handleSettleActivePeriod}
+            settledNotice={settledNotice}
+            isBusy={isBusy}
+            appError={appError}
           />
         )}
         {aiOpen ? (

@@ -12,6 +12,14 @@ export async function fetchProjectDetail(projectId) {
   if (projectError) throw projectError;
   if (membersError) throw membersError;
 
+  const { data: activePeriod, error: periodError } = await client
+    .from('settlement_periods')
+    .select('*')
+    .eq('id', project.active_period_id)
+    .single();
+
+  if (periodError) throw periodError;
+
   const { data: expenses, error: expensesError } = await client
     .from('expenses')
     .select('*')
@@ -21,7 +29,7 @@ export async function fetchProjectDetail(projectId) {
 
   if (expensesError) throw expensesError;
 
-  return { project, members, expenses };
+  return { project, members, activePeriod, expenses };
 }
 
 export async function createExpense({
