@@ -38,7 +38,14 @@ import { createAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig } from './services/apiClient';
-import { addProjectMember, createProject, joinProject, updateProjectMember, updateProjectSettings } from './services/projectService';
+import {
+  addProjectMember,
+  createProject,
+  deleteProjectMember,
+  joinProject,
+  updateProjectMember,
+  updateProjectSettings,
+} from './services/projectService';
 import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
 import { summarizeExpensesByCategory } from './domain/splitting';
 import './styles.css';
@@ -775,7 +782,7 @@ function ProjectHome({
   );
 }
 
-function MemberDialog({ member, onClose, onSubmit, appError, isBusy }) {
+function MemberDialog({ member, onClose, onSubmit, onDelete, appError, isBusy }) {
   const isEditing = Boolean(member);
   const [displayName, setDisplayName] = useState(member?.display_name ?? '');
   const [error, setError] = useState('');
@@ -811,6 +818,17 @@ function MemberDialog({ member, onClose, onSubmit, appError, isBusy }) {
         <button className="primary-button" type="submit" disabled={isBusy}>
           {isBusy ? '保存中...' : isEditing ? '保存成员' : '添加成员'}
         </button>
+        {isEditing ? (
+          <button
+            className="danger-button"
+            type="button"
+            disabled={isBusy}
+            onClick={() => onDelete(member)}
+          >
+            <Trash size={18} />
+            删除成员
+          </button>
+        ) : null}
         <button className="cancel-button" type="button" onClick={onClose}>取消</button>
       </form>
     </div>
@@ -2021,6 +2039,57 @@ function App() {
     }
   };
 
+  const handleDeleteMember = async (member) => {
+    setAppError('');
+    const currentMember = findMemberByDisplayName(members, username);
+
+    if (currentMember?.id === member.id) {
+      setAppError('不能删除当前使用的成员');
+      return;
+    }
+
+    const isUsedByExpense = expenses.some((expense) => (
+      expense.payer_member_id === member.id
+      || (expense.participant_member_ids ?? []).includes(member.id)
+    ));
+
+    if (isUsedByExpense) {
+      setAppError('该成员已有账单记录，不能删除');
+      return;
+    }
+
+    const confirmed = window.confirm(`删除成员「${memberName(member)}」？该操作仅适用于还没有账单记录的成员。`);
+    if (!confirmed) return;
+
+    const nextMembers = members.filter((item) => item.id !== member.id);
+
+    if (!hasBackendConfig) {
+      saveLocalProjectState({
+        project: currentProject,
+        activePeriod,
+        members: nextMembers,
+        expenses,
+        settlementHistory,
+      });
+      setMembers(nextMembers);
+      setEditingMember(null);
+      setMemberDialogOpen(false);
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      await deleteProjectMember({ projectId: currentProject.id, memberId: member.id });
+      setMembers(nextMembers);
+      setEditingMember(null);
+      setMemberDialogOpen(false);
+    } catch (error) {
+      setAppError(error.message || '删除成员失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const handleSubmitMemberDialog = (displayName, member) => {
     if (member) {
       handleUpdateMember(member, displayName);
@@ -2356,6 +2425,7 @@ function App() {
               setMemberDialogOpen(false);
             }}
             onSubmit={handleSubmitMemberDialog}
+            onDelete={handleDeleteMember}
             appError={appError}
             isBusy={isBusy}
           />

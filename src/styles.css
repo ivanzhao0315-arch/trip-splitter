@@ -934,6 +934,19 @@ button:disabled {
   color: var(--error);
 }
 
+.danger-button {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(187, 26, 26, 0.24);
+  color: var(--error);
+  background: rgba(187, 26, 26, 0.08);
+  font-weight: 800;
+}
+
 .ai-fab {
   position: absolute;
   z-index: 30;

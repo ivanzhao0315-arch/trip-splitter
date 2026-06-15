@@ -154,6 +154,43 @@ export async function updateProjectMember({ projectId, memberId, displayName }) 
   return data;
 }
 
+export async function deleteProjectMember({ projectId, memberId }) {
+  const client = requireSupabase();
+
+  const [
+    { data: payerExpenses, error: payerError },
+    { data: participantExpenses, error: participantError },
+  ] = await Promise.all([
+    client
+      .from('expenses')
+      .select('id, description')
+      .eq('project_id', projectId)
+      .eq('payer_member_id', memberId)
+      .limit(1),
+    client
+      .from('expenses')
+      .select('id, description')
+      .eq('project_id', projectId)
+      .contains('participant_member_ids', [memberId])
+      .limit(1),
+  ]);
+
+  if (payerError) throw payerError;
+  if (participantError) throw participantError;
+
+  if (payerExpenses?.length || participantExpenses?.length) {
+    throw new Error('该成员已有账单记录，不能删除');
+  }
+
+  const { error } = await client
+    .from('members')
+    .delete()
+    .eq('project_id', projectId)
+    .eq('id', memberId);
+
+  if (error) throw error;
+}
+
 export async function updateProjectSettings({ projectId, name, budgetAmount = '' }) {
   const client = requireSupabase();
   const normalizedName = String(name ?? '').trim();

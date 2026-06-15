@@ -8,14 +8,16 @@ vi.mock('../apiClient', () => ({
 
 const {
   addProjectMember,
+  deleteProjectMember,
   joinProject,
   updateProjectMember,
   updateProjectSettings,
 } = await import('../projectService');
 
-function createMockClient({ project, members = [] }) {
+function createMockClient({ project, members = [], expenses = [] }) {
   const inserts = [];
   const updates = [];
+  const deletes = [];
 
   function findMember(filters) {
     return members.find((member) => {
@@ -29,9 +31,12 @@ function createMockClient({ project, members = [] }) {
   return {
     inserts,
     updates,
+    deletes,
     from(table) {
       const filters = {};
       let updateRow = null;
+      let deleteRequested = false;
+      let containsFilter = null;
 
       return {
         select() {
@@ -41,8 +46,23 @@ function createMockClient({ project, members = [] }) {
           updateRow = row;
           return this;
         },
+        delete() {
+          deleteRequested = true;
+          return this;
+        },
+        contains(field, value) {
+          containsFilter = { field, value };
+          return this;
+        },
+        limit() {
+          return this;
+        },
         eq(field, value) {
           filters[field] = value;
+          if (deleteRequested && table === 'members' && filters.project_id && filters.id) {
+            deletes.push({ table, filters: { ...filters } });
+            return { error: null };
+          }
           return this;
         },
         maybeSingle: async () => {
@@ -83,6 +103,26 @@ function createMockClient({ project, members = [] }) {
               };
             },
           };
+        },
+        then(resolve) {
+          if (table === 'expenses') {
+            let data = expenses.filter((expense) => (
+              (!filters.project_id || expense.project_id === filters.project_id)
+              && (!filters.payer_member_id || expense.payer_member_id === filters.payer_member_id)
+            ));
+
+            if (containsFilter) {
+              data = data.filter((expense) => {
+                const values = expense[containsFilter.field] ?? [];
+                return containsFilter.value.every((value) => values.includes(value));
+              });
+            }
+
+            resolve({ data: data.slice(0, 1), error: null });
+            return;
+          }
+
+          resolve({ data: null, error: null });
         },
       };
     },
@@ -156,5 +196,42 @@ describe('project service member joins', () => {
         filters: { project_id: project.id, id: existingMember.id },
       },
     ]);
+  });
+
+  it('deletes a member when no expenses reference them', async () => {
+    const project = { id: 'project-1', code: 'A7K2', name: '杭州周末游' };
+    const existingMember = { id: 'member-1', project_id: project.id, display_name: '张三' };
+    const client = createMockClient({ project, members: [existingMember] });
+    mockState.client = client;
+
+    await deleteProjectMember({ projectId: project.id, memberId: existingMember.id });
+
+    expect(client.deletes).toEqual([
+      { table: 'members', filters: { project_id: project.id, id: existingMember.id } },
+    ]);
+  });
+
+  it('rejects deleting a member used by an expense participant list', async () => {
+    const project = { id: 'project-1', code: 'A7K2', name: '杭州周末游' };
+    const existingMember = { id: 'member-1', project_id: project.id, display_name: '张三' };
+    const client = createMockClient({
+      project,
+      members: [existingMember],
+      expenses: [
+        {
+          id: 'expense-1',
+          project_id: project.id,
+          payer_member_id: 'other-member',
+          participant_member_ids: [existingMember.id],
+        },
+      ],
+    });
+    mockState.client = client;
+
+    await expect(deleteProjectMember({
+      projectId: project.id,
+      memberId: existingMember.id,
+    })).rejects.toThrow('该成员已有账单记录，不能删除');
+    expect(client.deletes).toEqual([]);
   });
 });
