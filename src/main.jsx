@@ -1573,6 +1573,30 @@ function DeleteExpenseConfirmDialog({ project, expense, members, onCancel, onCon
   );
 }
 
+function DeleteMemberConfirmDialog({ member, onCancel, onConfirm, isBusy }) {
+  return (
+    <div className="modal-layer">
+      <button className="modal-backdrop" onClick={onCancel} aria-label="取消删除成员" />
+      <section className="delete-confirm-dialog">
+        <div className="delete-confirm-icon">
+          <Trash size={24} weight="fill" />
+        </div>
+        <h2>删除这个成员？</h2>
+        <p>仅能删除还没有账单记录的成员，删除后成员列表会同步更新。</p>
+        <div className="delete-confirm-summary">
+          <span>{memberName(member)}</span>
+          <small>该成员当前没有付款或分摊记录</small>
+        </div>
+        <button className="danger-button" type="button" disabled={isBusy} onClick={() => onConfirm(member)}>
+          <Trash size={18} />
+          {isBusy ? '删除中...' : '确认删除成员'}
+        </button>
+        <button className="cancel-button" type="button" disabled={isBusy} onClick={onCancel}>取消</button>
+      </section>
+    </div>
+  );
+}
+
 function SettlementScreen({
   project,
   activePeriod,
@@ -1986,6 +2010,7 @@ function App() {
   const [expenses, setExpenses] = useState(fallbackExpenses);
   const [draftExpense, setDraftExpense] = useState(null);
   const [deletingExpense, setDeletingExpense] = useState(null);
+  const [deletingMember, setDeletingMember] = useState(null);
   const [appError, setAppError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [syncNotice, setSyncNotice] = useState('');
@@ -2509,7 +2534,7 @@ function App() {
     }
   };
 
-  const handleDeleteMember = async (member) => {
+  const requestDeleteMember = (member) => {
     setAppError('');
     const currentMember = findMemberByDisplayName(members, username);
 
@@ -2528,8 +2553,11 @@ function App() {
       return;
     }
 
-    const confirmed = window.confirm(`删除成员「${memberName(member)}」？该操作仅适用于还没有账单记录的成员。`);
-    if (!confirmed) return;
+    setDeletingMember(member);
+  };
+
+  const handleDeleteMember = async (member) => {
+    setAppError('');
 
     const nextMembers = members.filter((item) => item.id !== member.id);
 
@@ -2544,6 +2572,7 @@ function App() {
       setMembers(nextMembers);
       setEditingMember(null);
       setMemberDialogOpen(false);
+      setDeletingMember(null);
       return;
     }
 
@@ -2553,6 +2582,7 @@ function App() {
       setMembers(nextMembers);
       setEditingMember(null);
       setMemberDialogOpen(false);
+      setDeletingMember(null);
     } catch (error) {
       setAppError(error.message || '删除成员失败');
     } finally {
@@ -2716,6 +2746,7 @@ function App() {
     setEditingMember(null);
     setSettingsOpen(false);
     setDeletingExpense(null);
+    setDeletingMember(null);
   };
 
   const handleSaveProjectSettings = async ({ name, budgetAmount }) => {
@@ -2910,7 +2941,7 @@ function App() {
               setMemberDialogOpen(false);
             }}
             onSubmit={handleSubmitMemberDialog}
-            onDelete={handleDeleteMember}
+            onDelete={requestDeleteMember}
             appError={appError}
             isBusy={isBusy}
           />
@@ -2936,6 +2967,14 @@ function App() {
             members={members}
             onCancel={() => setDeletingExpense(null)}
             onConfirm={handleDeleteExpense}
+            isBusy={isBusy}
+          />
+        ) : null}
+        {deletingMember ? (
+          <DeleteMemberConfirmDialog
+            member={deletingMember}
+            onCancel={() => setDeletingMember(null)}
+            onConfirm={handleDeleteMember}
             isBusy={isBusy}
           />
         ) : null}
