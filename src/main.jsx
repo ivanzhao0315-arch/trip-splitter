@@ -2428,6 +2428,7 @@ function App() {
 
     try {
       let parsedDraft = buildLocalDraft(sourceType, text);
+      const localDraft = parsedDraft;
 
       if (sourceType !== 'manual' && (hasBackendConfig || sourceType === 'text')) {
         let aiDraftId = null;
@@ -2435,7 +2436,10 @@ function App() {
           const response = hasBackendConfig
             ? await createAiDraft({ projectId: currentProject.id, sourceType, text, file })
             : { draft: buildLocalDraft(sourceType, text) };
-          parsedDraft = response.draft ?? parsedDraft;
+          parsedDraft = {
+            ...(response.draft ?? parsedDraft),
+            createdAt: localDraft.createdAt || response.draft?.createdAt || '',
+          };
           aiDraftId = response.aiDraftId ?? null;
         } catch {
           parsedDraft = buildLocalDraft(sourceType, text);
