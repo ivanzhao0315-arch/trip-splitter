@@ -696,9 +696,13 @@ function ProjectHome({
   const budgetMinor = project.budget_amount_minor ?? 0;
   const remainingMinor = budgetMinor - totalMinor;
   const budgetProgress = budgetMinor > 0 ? Math.min(100, Math.round((totalMinor / budgetMinor) * 100)) : 0;
+  const rawBudgetProgress = budgetMinor > 0 ? Math.round((totalMinor / budgetMinor) * 100) : 0;
   const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
   const budgetLabel = project.project_type === 'roommate' ? '月度预算剩余' : '预算剩余';
   const remainingText = `${remainingMinor < 0 ? '-' : ''}${formatMoney(fromMinorUnits(Math.abs(remainingMinor)), project.default_currency)}`;
+  const budgetDetailLabel = budgetMinor > 0
+    ? `已用 ${formatMoney(fromMinorUnits(totalMinor), project.default_currency)} / ${formatMoney(fromMinorUnits(budgetMinor), project.default_currency)} · ${rawBudgetProgress}%`
+    : '';
   const memberById = new Map(members.map((member) => [member.id, member]));
   const currentMember = findMemberByDisplayName(members, currentUsername);
   const currentMemberId = currentMember?.id;
@@ -733,9 +737,15 @@ function ProjectHome({
               {budgetMinor > 0 ? remainingText : projectTypeLabel}
             </strong>
             {budgetMinor > 0 ? (
-              <div className="budget-progress" aria-label={`预算已使用 ${budgetProgress}%`}>
-                <span style={{ width: `${budgetProgress}%` }} />
-              </div>
+              <>
+                <small className="budget-detail">{budgetDetailLabel}</small>
+                <div className="budget-progress" aria-label={`预算已使用 ${rawBudgetProgress}%`}>
+                  <span
+                    className={remainingMinor < 0 ? 'over-budget' : ''}
+                    style={{ width: `${budgetProgress}%` }}
+                  />
+                </div>
+              </>
             ) : null}
           </article>
           <article className="mini-card">

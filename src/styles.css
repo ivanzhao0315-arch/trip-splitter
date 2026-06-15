@@ -640,7 +640,7 @@ button:disabled {
 .budget-progress {
   width: 100%;
   height: 6px;
-  margin-top: 12px;
+  margin-top: 8px;
   overflow: hidden;
   border-radius: 999px;
   background: #edf1f4;
@@ -651,6 +651,18 @@ button:disabled {
   height: 100%;
   border-radius: inherit;
   background: var(--primary);
+}
+
+.budget-progress span.over-budget {
+  background: var(--error);
+}
+
+.budget-detail {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 15px;
 }
 
 .member-card {
