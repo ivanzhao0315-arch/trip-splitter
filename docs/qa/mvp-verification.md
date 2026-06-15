@@ -26,6 +26,7 @@
 - [ ] AI draft preselects payer and participants when names can be inferred from the source.
 - [ ] Photo and screenshot AI draft paths send the uploaded image to the server AI endpoint when `OPENAI_API_KEY` is configured.
 - [ ] Photo and screenshot local fallback opens an empty manual draft instead of fake recognized data.
+- [ ] Photo and screenshot expenses persist and display their source file name when available.
 - [ ] User can confirm an expense.
 - [ ] Expense is split equally among selected participants.
 - [ ] Expense save rejects payer or participant ids that do not belong to the current project.

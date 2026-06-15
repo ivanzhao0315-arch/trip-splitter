@@ -68,7 +68,8 @@ const baseExpense = {
   description: '晚餐',
   payerMemberId: 'ivan',
   participantMemberIds: ['ivan', 'chen', 'chen'],
-  sourceType: 'text',
+  sourceType: 'screenshot',
+  sourceName: 'wechat-pay.png',
 };
 
 describe('expense service member validation', () => {
@@ -87,6 +88,8 @@ describe('expense service member validation', () => {
     expect(client.inserts[0].row).toMatchObject({
       payer_member_id: 'ivan',
       participant_member_ids: ['ivan', 'chen'],
+      source_type: 'screenshot',
+      source_name: 'wechat-pay.png',
     });
   });
 

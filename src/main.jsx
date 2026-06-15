@@ -480,7 +480,10 @@ function ProjectHome({ project, activePeriod, members, expenses, onOpenAi, onOpe
                 <div className="expense-icon"><Receipt size={22} /></div>
                 <div className="expense-copy">
                   <h4>{expense.description}</h4>
-                  <p>{memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分</p>
+                  <p>
+                    {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分
+                    {expense.source_name ? ` · ${sourceTypeLabel(expense.source_type)} ${expense.source_name}` : ''}
+                  </p>
                 </div>
                 <div className="expense-amount">
                   <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>

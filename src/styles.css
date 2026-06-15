@@ -679,6 +679,12 @@ button:disabled {
   line-height: 16px;
 }
 
+.expense-copy p {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .expense-amount {
   text-align: right;
 }

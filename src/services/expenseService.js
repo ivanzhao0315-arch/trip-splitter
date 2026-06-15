@@ -71,6 +71,7 @@ export async function createExpense({
   payerMemberId,
   participantMemberIds,
   sourceType = 'manual',
+  sourceName,
 }) {
   const client = requireSupabase();
   const normalizedMembers = await normalizeExpenseMembers({
@@ -96,6 +97,7 @@ export async function createExpense({
       payer_member_id: normalizedMembers.payerMemberId,
       participant_member_ids: normalizedMembers.participantMemberIds,
       source_type: sourceType,
+      source_name: sourceName ?? null,
     })
     .select()
     .single();
