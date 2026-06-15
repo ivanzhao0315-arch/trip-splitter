@@ -1063,6 +1063,13 @@ button {
   font-size: 18px;
 }
 
+.transfer-empty {
+  margin: 24px 16px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
 .history-row {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -1094,7 +1101,7 @@ button {
 .toast {
   position: absolute;
   z-index: 80;
-  top: 76px;
+  bottom: 150px;
   left: 50%;
   transform: translateX(-50%);
   width: max-content;

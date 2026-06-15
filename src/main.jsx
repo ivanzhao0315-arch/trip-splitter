@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowLeft,
@@ -23,18 +23,56 @@ import {
   Tag,
   UsersThree,
 } from '@phosphor-icons/react';
+import { createProjectCode, normalizeProjectCode } from './domain/codes';
+import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
+import { createExpense, fetchProjectDetail } from './services/expenseService';
+import { hasBackendConfig } from './services/apiClient';
+import { createProject, joinProject } from './services/projectService';
+import { buildCurrentSettlement } from './services/settlementService';
 import './styles.css';
 
-const initialMembers = [
-  { id: 'm1', name: '小陈', initials: '陈', color: '#d6e0f3' },
-  { id: 'm2', name: '张三', initials: '张', color: '#e1e3e4' },
-  { id: 'm3', name: 'Ivan', initials: 'I', color: '#22c55e' },
+const fallbackProject = {
+  id: 'local-project',
+  name: '杭州周末游',
+  code: 'A7K2',
+  default_currency: 'CNY',
+  active_period_id: 'local-period',
+};
+
+const fallbackMembers = [
+  { id: 'm1', display_name: '小陈', initials: '陈', color: '#d6e0f3' },
+  { id: 'm2', display_name: '张三', initials: '张', color: '#e1e3e4' },
+  { id: 'm3', display_name: 'Ivan', initials: 'I', color: '#22c55e' },
 ];
 
-const initialExpenses = [
-  { id: 'e1', title: '晚餐', amount: 400, payer: '小陈', participants: 3, time: '今天 19:30', category: 'restaurant' },
-  { id: 'e2', title: '打车', amount: 86.5, payer: '张三', participants: 2, time: '今天 15:10', category: 'commute' },
-  { id: 'e3', title: '民宿房费', amount: 1200, payer: 'Ivan', participants: 3, time: '昨天 14:00', category: 'hotel' },
+const fallbackExpenses = [
+  {
+    id: 'e1',
+    description: '晚餐',
+    converted_amount_minor: 40000,
+    project_currency: 'CNY',
+    payer_member_id: 'm1',
+    participant_member_ids: ['m1', 'm2', 'm3'],
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'e2',
+    description: '打车',
+    converted_amount_minor: 8650,
+    project_currency: 'CNY',
+    payer_member_id: 'm2',
+    participant_member_ids: ['m1', 'm2'],
+    created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'e3',
+    description: '民宿房费',
+    converted_amount_minor: 120000,
+    project_currency: 'CNY',
+    payer_member_id: 'm3',
+    participant_member_ids: ['m1', 'm2', 'm3'],
+    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
 
 const currencies = [
@@ -45,24 +83,17 @@ const currencies = [
   { code: 'HKD', label: 'HKD - 港币 ($)' },
 ];
 
-function money(value, currency = 'CNY') {
-  const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'JPY' ? '¥' : '¥';
-  return `${symbol}${value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function normalizeCode(value) {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
-}
-
-function createProjectCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+function memberName(member) {
+  return member?.display_name ?? '未知成员';
 }
 
 function Avatar({ member, size = 'md' }) {
+  const initials = member?.initials ?? memberName(member).slice(0, 1).toUpperCase();
+  const color = member?.color ?? '#e1e3e4';
+
   return (
-    <div className={`avatar avatar-${size}`} style={{ backgroundColor: member.color }}>
-      {member.initials}
+    <div className={`avatar avatar-${size}`} style={{ backgroundColor: color }}>
+      {initials}
     </div>
   );
 }
@@ -88,7 +119,7 @@ function TopBar({ title, code, onBack }) {
   );
 }
 
-function EntryScreen({ onCreateProject, onJoinProject }) {
+function EntryScreen({ onCreateProject, onJoinProject, appError, isBusy }) {
   const [name, setName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
@@ -132,17 +163,19 @@ function EntryScreen({ onCreateProject, onJoinProject }) {
               placeholder={error || '输入你的昵称（例：小陈）'}
             />
           </div>
+          {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         </section>
 
         <section className="entry-actions">
           <button
             className="primary-button"
+            disabled={isBusy}
             onClick={() => {
               if (requireName()) onCreateProject(name.trim());
             }}
           >
             <Plus size={22} weight="fill" />
-            创建新项目
+            {isBusy ? '处理中...' : '创建新项目'}
           </button>
 
           <div className="divider"><span>或者</span></div>
@@ -152,7 +185,7 @@ function EntryScreen({ onCreateProject, onJoinProject }) {
               <Tag size={21} />
               <input
                 value={joinCode}
-                onChange={(event) => setJoinCode(normalizeCode(event.target.value))}
+                onChange={(event) => setJoinCode(normalizeProjectCode(event.target.value))}
                 maxLength={4}
                 placeholder="4位项目码"
                 className="code-input"
@@ -160,11 +193,12 @@ function EntryScreen({ onCreateProject, onJoinProject }) {
             </div>
             <button
               className="secondary-button"
+              disabled={isBusy}
               onClick={() => {
                 if (requireName() && joinCode.length === 4) onJoinProject(name.trim(), joinCode);
               }}
             >
-              加入
+              {isBusy ? '处理中...' : '加入'}
             </button>
           </div>
         </section>
@@ -173,7 +207,7 @@ function EntryScreen({ onCreateProject, onJoinProject }) {
   );
 }
 
-function CreateProjectScreen({ username, onBack, onCreated }) {
+function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) {
   const [projectName, setProjectName] = useState('');
   const [currency, setCurrency] = useState('CNY');
   const [code] = useState(createProjectCode);
@@ -216,11 +250,13 @@ function CreateProjectScreen({ username, onBack, onCreated }) {
             <p>创建后将生成 4 位项目码。任何知道项目码的人都可以加入并共同记录支出。</p>
           </div>
 
-          {error ? <p className="error-text">{error}</p> : null}
+          {error ? <p className="error-text" role="alert">{error}</p> : null}
+          {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         </section>
 
         <button
           className="primary-button"
+          disabled={isBusy}
           onClick={() => {
             if (!projectName.trim()) {
               setError('请输入项目名称');
@@ -229,7 +265,7 @@ function CreateProjectScreen({ username, onBack, onCreated }) {
             onCreated({ name: projectName.trim(), currency, code, username });
           }}
         >
-          立即创建
+          {isBusy ? '处理中...' : '立即创建'}
         </button>
       </main>
     </div>
@@ -237,7 +273,8 @@ function CreateProjectScreen({ username, onBack, onCreated }) {
 }
 
 function ProjectHome({ project, members, expenses, onOpenAi, onOpenSettlement }) {
-  const total = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
+  const memberById = new Map(members.map((member) => [member.id, member]));
 
   return (
     <div className="screen">
@@ -245,8 +282,8 @@ function ProjectHome({ project, members, expenses, onOpenAi, onOpenSettlement })
       <main className="content with-nav">
         <section className="summary-grid">
           <article className="total-card">
-            <p>总计支出 ({project.currency})</p>
-            <h2>{money(total, project.currency)}</h2>
+            <p>总计支出 ({project.default_currency})</p>
+            <h2>{formatMoney(fromMinorUnits(totalMinor), project.default_currency)}</h2>
           </article>
           <article className="mini-card">
             <p>我的余额</p>
@@ -272,7 +309,7 @@ function ProjectHome({ project, members, expenses, onOpenAi, onOpenSettlement })
             {members.map((member) => (
               <div className="member-chip" key={member.id}>
                 <Avatar member={member} />
-                <span>{member.name}</span>
+                <span>{memberName(member)}</span>
               </div>
             ))}
             <button className="add-member">
@@ -292,12 +329,12 @@ function ProjectHome({ project, members, expenses, onOpenAi, onOpenSettlement })
               <article className="expense-row" key={expense.id}>
                 <div className="expense-icon"><Receipt size={22} /></div>
                 <div className="expense-copy">
-                  <h4>{expense.title}</h4>
-                  <p>{expense.payer}支付 · {expense.participants}人平分</p>
+                  <h4>{expense.description}</h4>
+                  <p>{memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分</p>
                 </div>
                 <div className="expense-amount">
-                  <strong>{money(expense.amount, project.currency)}</strong>
-                  <span>{expense.time}</span>
+                  <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
+                  <span>{new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </article>
             ))}
@@ -347,9 +384,10 @@ function AiSheet({ onClose, onConfirm }) {
   );
 }
 
-function ConfirmBill({ project, members, onBack, onSave }) {
+function ConfirmBill({ project, members, onBack, onSave, appError, isBusy }) {
   const [rate, setRate] = useState(7.25);
   const converted = 40 * rate;
+  const payer = members[0];
 
   return (
     <div className="screen">
@@ -363,19 +401,19 @@ function ConfirmBill({ project, members, onBack, onSave }) {
 
         <section className="fx-card">
           <div>
-            <p><ArrowsLeftRight size={17} /> 汇率 1 USD = {rate.toFixed(2)} {project.currency}</p>
-            <strong>折合 {money(converted, project.currency)}</strong>
+            <p><ArrowsLeftRight size={17} /> 汇率 1 USD = {rate.toFixed(2)} {project.default_currency}</p>
+            <strong>折合 {formatMoney(converted, project.default_currency)}</strong>
           </div>
           <button onClick={() => setRate((current) => Number((current + 0.01).toFixed(2)))}>刷新汇率</button>
         </section>
 
         <section className="form-stack">
-          <PickerRow label="付款人" value="小陈" member={members[0]} />
+          <PickerRow label="付款人" value={memberName(payer)} member={payer} />
           <div className="field-group">
-            <label>参与人（3人）</label>
+            <label>参与人（{members.length}人）</label>
             <div className="participant-box">
               {members.map((member) => (
-                <button className="participant active" key={member.id}>{member.name}<CheckCircle size={15} weight="fill" /></button>
+                <button className="participant active" key={member.id}>{memberName(member)}<CheckCircle size={15} weight="fill" /></button>
               ))}
               <button className="circle-add"><Plus size={16} /></button>
             </div>
@@ -384,10 +422,28 @@ function ConfirmBill({ project, members, onBack, onSave }) {
             <span>描述</span>
             <input defaultValue="Starbucks Coffee" />
           </label>
+          {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         </section>
       </main>
       <div className="bottom-actions">
-        <button className="primary-button" onClick={() => onSave({ converted })}>保存账单</button>
+        <button
+          className="primary-button"
+          disabled={isBusy}
+          onClick={() => onSave({
+            amount: 40,
+            currency: 'USD',
+            convertedAmount: converted,
+            exchangeRate: rate,
+            exchangeRateProvider: 'manual-refresh',
+            exchangeRateTimestamp: new Date().toISOString(),
+            description: 'Starbucks Coffee',
+            payerMemberId: payer.id,
+            participantMemberIds: members.map((member) => member.id),
+            sourceType: 'photo',
+          })}
+        >
+          {isBusy ? '保存中...' : '保存账单'}
+        </button>
         <button className="text-button">手动修改</button>
       </div>
     </div>
@@ -406,11 +462,8 @@ function PickerRow({ label, value, member }) {
   );
 }
 
-function SettlementScreen({ project, onBack, onSettled, settled }) {
-  const transfers = [
-    { from: '张三', to: '小陈', amount: 96 },
-    { from: 'Ivan', to: '小陈', amount: 74 },
-  ];
+function SettlementScreen({ project, members, expenses, onBack, onSettled, settled }) {
+  const { balances, transfers } = buildCurrentSettlement({ members, expenses });
 
   return (
     <div className="screen">
@@ -426,17 +479,15 @@ function SettlementScreen({ project, onBack, onSettled, settled }) {
 
         <section className="balance-card">
           <h3>净支出状态</h3>
-          {[
-            { name: '小陈（你）', amount: '+¥170.00', type: '待收', positive: true },
-            { name: '张三', amount: '-¥96.00', type: '应付' },
-            { name: 'Ivan', amount: '-¥74.00', type: '应付' },
-          ].map((item) => (
-            <div className="balance-row" key={item.name}>
-              <span className="avatar avatar-sm">{item.name[0]}</span>
-              <strong>{item.name}</strong>
+          {balances.map((item) => (
+            <div className="balance-row" key={item.member_id}>
+              <span className="avatar avatar-sm">{item.display_name[0]}</span>
+              <strong>{item.display_name}</strong>
               <div>
-                <b className={item.positive ? 'positive' : 'negative'}>{item.amount}</b>
-                <small>{item.type}</small>
+                <b className={item.net_minor >= 0 ? 'positive' : 'negative'}>
+                  {item.net_minor >= 0 ? '+' : '-'}{formatMoney(fromMinorUnits(Math.abs(item.net_minor)), project.default_currency)}
+                </b>
+                <small>{item.net_minor >= 0 ? '待收' : '应付'}</small>
               </div>
             </div>
           ))}
@@ -447,14 +498,18 @@ function SettlementScreen({ project, onBack, onSettled, settled }) {
             <h3>最佳结算方案</h3>
             <Sparkle size={20} weight="fill" />
           </div>
-          {transfers.map((transfer) => (
-            <article className="transfer-row" key={transfer.from}>
-              <span>{transfer.from}</span>
-              <ArrowsLeftRight size={18} />
-              <span>{transfer.to}</span>
-              <strong>{money(transfer.amount, project.currency)}</strong>
-            </article>
-          ))}
+          {transfers.length ? (
+            transfers.map((transfer) => (
+              <article className="transfer-row" key={`${transfer.from_member_id}-${transfer.to_member_id}`}>
+                <span>{transfer.from_name}</span>
+                <ArrowsLeftRight size={18} />
+                <span>{transfer.to_name}</span>
+                <strong>{formatMoney(fromMinorUnits(transfer.amount_minor), project.default_currency)}</strong>
+              </article>
+            ))
+          ) : (
+            <p className="transfer-empty">当前没有需要互相转账的余额。</p>
+          )}
         </section>
 
         <section className="section-block">
@@ -473,7 +528,7 @@ function SettlementScreen({ project, onBack, onSettled, settled }) {
                 <span>{item.meta}</span>
               </div>
               <div>
-                <strong>{money(item.amount, project.currency)}</strong>
+                <strong>{formatMoney(item.amount, project.default_currency)}</strong>
                 <span>{item.date}</span>
               </div>
             </article>
@@ -515,12 +570,109 @@ function App() {
   const [screen, setScreen] = useState('entry');
   const [username, setUsername] = useState('');
   const [project, setProject] = useState(null);
+  const [members, setMembers] = useState(fallbackMembers);
   const [aiOpen, setAiOpen] = useState(false);
   const [settled, setSettled] = useState(false);
-  const [expenses, setExpenses] = useState(initialExpenses);
-  const members = useMemo(() => initialMembers, []);
+  const [expenses, setExpenses] = useState(fallbackExpenses);
+  const [appError, setAppError] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
 
-  const currentProject = project || { name: '杭州周末游', code: 'A7K2', currency: 'CNY' };
+  const currentProject = project || fallbackProject;
+
+  const loadProjectState = async (projectId) => {
+    const detail = await fetchProjectDetail(projectId);
+    setProject(detail.project);
+    setMembers(detail.members);
+    setExpenses(detail.expenses);
+  };
+
+  const handleJoinProject = async (name, code) => {
+    setUsername(name);
+    setAppError('');
+
+    if (!hasBackendConfig) {
+      setProject({ ...fallbackProject, code });
+      setMembers([{ id: 'local-member', display_name: name, initials: name[0], color: '#22c55e' }]);
+      setExpenses([]);
+      setScreen('home');
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      const member = await joinProject({ code, displayName: name });
+      await loadProjectState(member.project.id);
+      setScreen('home');
+    } catch (error) {
+      setAppError(error.message || '加入项目失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleCreateProject = async (created) => {
+    setAppError('');
+
+    if (!hasBackendConfig) {
+      setProject({
+        ...fallbackProject,
+        name: created.name,
+        code: created.code,
+        default_currency: created.currency,
+      });
+      setMembers([{ id: 'local-member', display_name: created.username, initials: created.username[0], color: '#22c55e' }]);
+      setExpenses([]);
+      setScreen('home');
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      const createdProject = await createProject({
+        name: created.name,
+        defaultCurrency: created.currency,
+        displayName: created.username,
+      });
+      await loadProjectState(createdProject.id);
+      setScreen('home');
+    } catch (error) {
+      setAppError(error.message || '创建项目失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleSaveExpense = async (draft) => {
+    setAppError('');
+
+    if (!hasBackendConfig) {
+      setExpenses((items) => [
+        {
+          id: `local-expense-${Date.now()}`,
+          description: draft.description,
+          converted_amount_minor: toMinorUnits(draft.convertedAmount),
+          project_currency: currentProject.default_currency,
+          payer_member_id: draft.payerMemberId,
+          participant_member_ids: draft.participantMemberIds,
+          created_at: new Date().toISOString(),
+        },
+        ...items,
+      ]);
+      setScreen('home');
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      await createExpense({ project: currentProject, ...draft });
+      await loadProjectState(currentProject.id);
+      setScreen('home');
+    } catch (error) {
+      setAppError(error.message || '保存账单失败');
+    } finally {
+      setIsBusy(false);
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -529,23 +681,21 @@ function App() {
           <EntryScreen
             onCreateProject={(name) => {
               setUsername(name);
+              setAppError('');
               setScreen('create');
             }}
-            onJoinProject={(name, code) => {
-              setUsername(name);
-              setProject({ name: '杭州周末游', code, currency: 'CNY' });
-              setScreen('home');
-            }}
+            onJoinProject={handleJoinProject}
+            appError={appError}
+            isBusy={isBusy}
           />
         )}
         {screen === 'create' && (
           <CreateProjectScreen
             username={username}
             onBack={() => setScreen('entry')}
-            onCreated={(created) => {
-              setProject({ name: created.name, code: created.code, currency: created.currency });
-              setScreen('home');
-            }}
+            onCreated={handleCreateProject}
+            appError={appError}
+            isBusy={isBusy}
           />
         )}
         {screen === 'home' && (
@@ -562,18 +712,16 @@ function App() {
             project={currentProject}
             members={members}
             onBack={() => setScreen('home')}
-            onSave={({ converted }) => {
-              setExpenses((items) => [
-                { id: `e${items.length + 1}`, title: 'Starbucks Coffee', amount: converted, payer: '小陈', participants: 3, time: '刚刚', category: 'coffee' },
-                ...items,
-              ]);
-              setScreen('home');
-            }}
+            onSave={handleSaveExpense}
+            appError={appError}
+            isBusy={isBusy}
           />
         )}
         {screen === 'settlement' && (
           <SettlementScreen
             project={currentProject}
+            members={members}
+            expenses={expenses}
             onBack={() => setScreen('home')}
             onSettled={() => setSettled(true)}
             settled={settled}
