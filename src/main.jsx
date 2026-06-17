@@ -14,11 +14,11 @@ import {
   DotsThree,
   DownloadSimple,
   GearSix,
-  HouseLine,
   Image,
   ListChecks,
   PencilSimple,
   Plus,
+  SquaresFour,
   Receipt,
   ShareNetwork,
   Sparkle,
@@ -27,6 +27,7 @@ import {
   UsersThree,
 } from '@phosphor-icons/react';
 import { getBillMissingFields } from './domain/billValidation';
+import { createBottomNavItems } from './domain/bottomNav';
 import { createProjectCode, normalizeProjectCode } from './domain/codes';
 import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
@@ -677,6 +678,7 @@ function ProjectHome({
   currentUsername,
   onOpenAi,
   onOpenSettlement,
+  onOpenProjects,
   onInviteMember,
   onEditMember,
   onOpenSettings,
@@ -946,7 +948,7 @@ function ProjectHome({
         <Sparkle size={22} weight="fill" />
         AI 记账
       </button>
-      <BottomNav active="details" onStats={onOpenSettlement} onMembers={copyMemberInvite} onSettings={onOpenSettings} />
+      <BottomNav active="details" onStats={onOpenSettlement} onProjects={onOpenProjects} onSettings={onOpenSettings} />
     </div>
   );
 }
@@ -1735,7 +1737,7 @@ function SettlementScreen({
   expenses,
   settlementHistory,
   onBack,
-  onOpenMembers,
+  onOpenProjects,
   onOpenSettings,
   onSettled,
   settledNotice,
@@ -1930,7 +1932,7 @@ function SettlementScreen({
           }}
         />
       ) : null}
-      <BottomNav active="stats" onDetails={onBack} onMembers={onOpenMembers} onSettings={onOpenSettings} />
+      <BottomNav active="stats" onDetails={onBack} onProjects={onOpenProjects} onSettings={onOpenSettings} />
     </div>
   );
 }
@@ -2133,13 +2135,18 @@ function ProjectSettingsSheet({
   );
 }
 
-function BottomNav({ active, onDetails, onStats, onMembers, onSettings }) {
-  const items = [
-    { id: 'details', label: '明细', icon: <Receipt size={22} />, onClick: onDetails },
-    { id: 'stats', label: '统计', icon: <ChartBar size={22} />, onClick: onStats },
-    { id: 'members', label: '成员', icon: <UsersThree size={22} />, onClick: onMembers },
-    { id: 'settings', label: '设置', icon: <GearSix size={22} />, onClick: onSettings },
-  ];
+function BottomNav({ active, onDetails, onStats, onProjects, onSettings }) {
+  const iconById = {
+    details: <Receipt size={22} />,
+    stats: <ChartBar size={22} />,
+    projects: <SquaresFour size={22} />,
+    settings: <GearSix size={22} />,
+  };
+  const items = createBottomNavItems({ onDetails, onStats, onProjects, onSettings }).map((item) => ({
+    ...item,
+    icon: iconById[item.id],
+    onClick: item.action,
+  }));
   return (
     <nav className="bottom-nav" aria-label="项目导航">
       {items.map((item) => {
@@ -3051,6 +3058,7 @@ function App() {
             currentUsername={username}
             onOpenAi={() => setAiOpen(true)}
             onOpenSettlement={() => setScreen('settlement')}
+            onOpenProjects={handleSwitchProject}
             onInviteMember={copyProjectInvite}
             onEditMember={(member) => {
               setAppError('');
@@ -3083,7 +3091,7 @@ function App() {
             expenses={expenses}
             settlementHistory={settlementHistory}
             onBack={() => setScreen('home')}
-            onOpenMembers={() => setSettingsOpen(true)}
+            onOpenProjects={handleSwitchProject}
             onOpenSettings={() => setSettingsOpen(true)}
             onSettled={handleSettleActivePeriod}
             settledNotice={settledNotice}
