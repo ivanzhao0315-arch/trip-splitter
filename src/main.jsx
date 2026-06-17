@@ -424,11 +424,14 @@ function ProjectTopBar({ project, onSwitchProject, onCreateProject }) {
   return (
     <header className="top-bar project-top-bar">
       <button className="project-switch-button" type="button" onClick={onSwitchProject} aria-label={model.switchLabel}>
-        <span>
-          <strong>{model.title}</strong>
-          <small>#{model.code}</small>
+        <span className="project-switch-mark" aria-hidden="true">
+          <ArrowsLeftRight size={16} />
         </span>
-        <CaretDown size={18} />
+        <span className="project-switch-copy">
+          <small>{model.contextLabel} · #{model.code}</small>
+          <strong>{model.title}</strong>
+        </span>
+        <span className="project-switch-hint">{model.switchHint}</span>
       </button>
       <button className="icon-button project-create-button" type="button" onClick={onCreateProject} aria-label={model.createLabel}>
         <Plus size={22} weight="bold" />

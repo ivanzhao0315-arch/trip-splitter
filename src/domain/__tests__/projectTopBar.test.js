@@ -8,7 +8,9 @@ describe('project top bar', () => {
     })).toEqual({
       title: '东京五日游',
       code: 'A7K2',
+      contextLabel: '当前项目',
       switchLabel: '切换项目',
+      switchHint: '项目列表',
       createLabel: '创建项目',
     });
   });
