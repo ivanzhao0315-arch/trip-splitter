@@ -11,8 +11,9 @@ export function summarizeTransfers(transfers, currency = 'CNY') {
 }
 
 export function formatTransferInstruction(transfer, currency = 'CNY', { compact = false } = {}) {
-  const separator = compact ? '给' : ' 给 ';
-  return `${transfer.from_name}${separator}${transfer.to_name} ${formatMoney(fromMinorUnits(transfer.amount_minor), currency)}`;
+  const amount = formatMoney(fromMinorUnits(transfer.amount_minor), currency);
+  if (compact) return `${transfer.from_name}转给${transfer.to_name} ${amount}`;
+  return `${transfer.from_name} 应转给 ${transfer.to_name} ${amount}`;
 }
 
 export function buildSettlementShareText({ project, period, transfers, currency }) {

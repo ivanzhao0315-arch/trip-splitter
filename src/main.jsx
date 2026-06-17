@@ -119,6 +119,7 @@ const LOCAL_PROJECTS_KEY = 'trip-splitter:local-projects';
 const LOCAL_SESSION_KEY = 'trip-splitter:current-session';
 const RECENT_PROJECTS_KEY = 'trip-splitter:recent-projects';
 const INSTALL_PROMPT_DISMISSED_KEY = 'trip-splitter:install-prompt-dismissed';
+const LAST_EXPENSE_CURRENCY_KEY = 'trip-splitter:last-expense-currency';
 
 const currencies = [
   { code: 'CNY', label: 'CNY - 人民币 (¥)' },
@@ -144,14 +145,44 @@ const fallbackRates = {
   AMD: { CNY: 0.0197, USD: 0.0027, EUR: 0.0025, JPY: 0.427, HKD: 0.0212, GBP: 0.0022, KRW: 3.73 },
 };
 
+function isSupportedCurrency(currency) {
+  return currencies.some((item) => item.code === currency);
+}
+
+function readLastExpenseCurrency() {
+  try {
+    const currency = window.localStorage.getItem(LAST_EXPENSE_CURRENCY_KEY);
+    return isSupportedCurrency(currency) ? currency : 'CNY';
+  } catch {
+    return 'CNY';
+  }
+}
+
+function writeLastExpenseCurrency(currency) {
+  if (!isSupportedCurrency(currency)) return;
+  try {
+    window.localStorage.setItem(LAST_EXPENSE_CURRENCY_KEY, currency);
+  } catch {
+    // Remembering the last currency is a convenience, not required for saving.
+  }
+}
+
+function textHasCurrencyMention(text = '') {
+  return /(?:CNY|RMB|人民币|¥|USD|美元|\$|JPY|日元|EUR|欧元|€|HKD|港币|GBP|英镑|£|KRW|韩元|₩|AMD|֏|դրամ)/i.test(text);
+}
+
 function buildLocalDraft(sourceType, text = '') {
   if (sourceType === 'text') {
-    return parseExpenseText(text);
+    const parsed = parseExpenseText(text);
+    return {
+      ...parsed,
+      currency: textHasCurrencyMention(text) ? parsed.currency : readLastExpenseCurrency(),
+    };
   }
 
   return {
     amount: 0,
-    currency: 'CNY',
+    currency: readLastExpenseCurrency(),
     description: '',
     category: '其他',
     notes: '',
@@ -1244,6 +1275,7 @@ function ConfirmBill({ project, members, currentMemberId, draft, onBack, onSave,
                 onChange={(event) => {
                   const nextCurrency = event.target.value;
                   setCurrency(nextCurrency);
+                  writeLastExpenseCurrency(nextCurrency);
                   refreshRate(nextCurrency);
                 }}
               >
@@ -1355,25 +1387,28 @@ function ConfirmBill({ project, members, currentMemberId, draft, onBack, onSave,
         <button
           className="primary-button"
           disabled={isBusy || !canSave}
-          onClick={() => onSave({
-            amount: numericAmount,
-            currency,
-            convertedAmount: converted,
-            exchangeRate,
-            exchangeRateProvider,
-            exchangeRateTimestamp,
-            description: description.trim(),
-            category,
-            notes: notes.trim(),
-            payerMemberId: payer.id,
-            participantMemberIds: participantIds,
-            sourceType: draft.sourceType,
-            sourceName: draft.sourceName,
-            aiDraftId: draft.aiDraftId,
-            mode: draft.mode,
-            expenseId: draft.expenseId,
-            createdAt,
-          })}
+          onClick={() => {
+            writeLastExpenseCurrency(currency);
+            onSave({
+              amount: numericAmount,
+              currency,
+              convertedAmount: converted,
+              exchangeRate,
+              exchangeRateProvider,
+              exchangeRateTimestamp,
+              description: description.trim(),
+              category,
+              notes: notes.trim(),
+              payerMemberId: payer.id,
+              participantMemberIds: participantIds,
+              sourceType: draft.sourceType,
+              sourceName: draft.sourceName,
+              aiDraftId: draft.aiDraftId,
+              mode: draft.mode,
+              expenseId: draft.expenseId,
+              createdAt,
+            });
+          }}
         >
           {isBusy ? '保存中...' : saveMissingFields.length ? `补全${saveMissingFields[0]}后保存` : isEditing ? '保存修改' : '保存账单'}
         </button>
@@ -1775,6 +1810,47 @@ function SettlementScreen({
           ))}
         </section>
 
+        <section className="transfer-card">
+          <div className="transfer-title">
+            <h3>最佳结算方案</h3>
+            <button
+              className="copy-transfer-button"
+              type="button"
+              onClick={copySettlementText}
+              aria-label="复制结算文案"
+            >
+              <Copy size={18} />
+            </button>
+          </div>
+          {transfers.length ? (
+            transfers.map((transfer) => (
+              <article className="transfer-row" key={`${transfer.from_member_id}-${transfer.to_member_id}`}>
+                <div className="transfer-route">
+                  <strong>{transfer.from_name}</strong>
+                  <span>应转给</span>
+                  <strong>{transfer.to_name}</strong>
+                </div>
+                <p>用于结清本周期分摊差额</p>
+                <div className="transfer-amount">
+                  <span>转账金额</span>
+                  <strong>{formatMoney(fromMinorUnits(transfer.amount_minor), project.default_currency)}</strong>
+                </div>
+                <button
+                  className="copy-transfer-row-button"
+                  type="button"
+                  onClick={() => copyTransferInstruction(transfer)}
+                  aria-label={`复制转账 ${formatTransferInstruction(transfer, project.default_currency)}`}
+                >
+                  复制
+                </button>
+              </article>
+            ))
+          ) : (
+            <p className="transfer-empty">当前没有需要互相转账的余额。</p>
+          )}
+          {shareNotice ? <p className="share-notice">{shareNotice}</p> : null}
+        </section>
+
         <section className="category-card">
           <div className="section-header compact">
             <h3>分类支出</h3>
@@ -1798,41 +1874,6 @@ function SettlementScreen({
           ) : (
             <p className="category-empty">本周期还没有分类支出。</p>
           )}
-        </section>
-
-        <section className="transfer-card">
-          <div className="transfer-title">
-            <h3>最佳结算方案</h3>
-            <button
-              className="copy-transfer-button"
-              type="button"
-              onClick={copySettlementText}
-              aria-label="复制结算文案"
-            >
-              <Copy size={18} />
-            </button>
-          </div>
-          {transfers.length ? (
-            transfers.map((transfer) => (
-              <article className="transfer-row" key={`${transfer.from_member_id}-${transfer.to_member_id}`}>
-                <span>{transfer.from_name}</span>
-                <ArrowsLeftRight size={18} />
-                <span>{transfer.to_name}</span>
-                <strong>{formatMoney(fromMinorUnits(transfer.amount_minor), project.default_currency)}</strong>
-                <button
-                  className="copy-transfer-row-button"
-                  type="button"
-                  onClick={() => copyTransferInstruction(transfer)}
-                  aria-label={`复制转账 ${formatTransferInstruction(transfer, project.default_currency)}`}
-                >
-                  <Copy size={16} />
-                </button>
-              </article>
-            ))
-          ) : (
-            <p className="transfer-empty">当前没有需要互相转账的余额。</p>
-          )}
-          {shareNotice ? <p className="share-notice">{shareNotice}</p> : null}
         </section>
 
         <section className="section-block">
@@ -2703,6 +2744,10 @@ function App() {
           parsedDraft = buildLocalDraft(sourceType, text);
         }
         parsedDraft = { ...parsedDraft, aiDraftId };
+      }
+
+      if (!textHasCurrencyMention([text, parsedDraft.description].filter(Boolean).join('\n'))) {
+        parsedDraft = { ...parsedDraft, currency: readLastExpenseCurrency() };
       }
 
       const rate = await resolveExchangeRate({
