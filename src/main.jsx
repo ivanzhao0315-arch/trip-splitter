@@ -18,7 +18,6 @@ import {
   ListChecks,
   PencilSimple,
   Plus,
-  SquaresFour,
   Receipt,
   ShareNetwork,
   Sparkle,
@@ -678,7 +677,6 @@ function ProjectHome({
   currentUsername,
   onOpenAi,
   onOpenSettlement,
-  onOpenProjects,
   onInviteMember,
   onEditMember,
   onOpenSettings,
@@ -948,7 +946,7 @@ function ProjectHome({
         <Sparkle size={22} weight="fill" />
         AI 记账
       </button>
-      <BottomNav active="details" onStats={onOpenSettlement} onProjects={onOpenProjects} onSettings={onOpenSettings} />
+      <BottomNav active="details" onStats={onOpenSettlement} onSettings={onOpenSettings} />
     </div>
   );
 }
@@ -1737,7 +1735,6 @@ function SettlementScreen({
   expenses,
   settlementHistory,
   onBack,
-  onOpenProjects,
   onOpenSettings,
   onSettled,
   settledNotice,
@@ -1932,7 +1929,7 @@ function SettlementScreen({
           }}
         />
       ) : null}
-      <BottomNav active="stats" onDetails={onBack} onProjects={onOpenProjects} onSettings={onOpenSettings} />
+      <BottomNav active="stats" onDetails={onBack} onSettings={onOpenSettings} />
     </div>
   );
 }
@@ -2135,14 +2132,13 @@ function ProjectSettingsSheet({
   );
 }
 
-function BottomNav({ active, onDetails, onStats, onProjects, onSettings }) {
+function BottomNav({ active, onDetails, onStats, onSettings }) {
   const iconById = {
     details: <Receipt size={22} />,
     stats: <ChartBar size={22} />,
-    projects: <SquaresFour size={22} />,
     settings: <GearSix size={22} />,
   };
-  const items = createBottomNavItems({ onDetails, onStats, onProjects, onSettings }).map((item) => ({
+  const items = createBottomNavItems({ onDetails, onStats, onSettings }).map((item) => ({
     ...item,
     icon: iconById[item.id],
     onClick: item.action,
@@ -3058,7 +3054,6 @@ function App() {
             currentUsername={username}
             onOpenAi={() => setAiOpen(true)}
             onOpenSettlement={() => setScreen('settlement')}
-            onOpenProjects={handleSwitchProject}
             onInviteMember={copyProjectInvite}
             onEditMember={(member) => {
               setAppError('');
@@ -3091,7 +3086,6 @@ function App() {
             expenses={expenses}
             settlementHistory={settlementHistory}
             onBack={() => setScreen('home')}
-            onOpenProjects={handleSwitchProject}
             onOpenSettings={() => setSettingsOpen(true)}
             onSettled={handleSettleActivePeriod}
             settledNotice={settledNotice}
