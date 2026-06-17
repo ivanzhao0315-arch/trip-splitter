@@ -30,7 +30,7 @@ import { getBillMissingFields } from './domain/billValidation';
 import { createProjectCode, normalizeProjectCode } from './domain/codes';
 import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
-import { findMemberByDisplayName, normalizeMemberDisplayName, upsertMemberByIdentity } from './domain/members';
+import { findMemberByDisplayName, normalizeMemberDisplayName } from './domain/members';
 import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
 import { buildProjectInviteText } from './domain/projectInvite';
@@ -50,7 +50,6 @@ import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from 
 import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig, supabase } from './services/apiClient';
 import {
-  addProjectMember,
   createProject,
   deleteProjectMember,
   joinProject,
@@ -687,7 +686,7 @@ function ProjectHome({
   currentUsername,
   onOpenAi,
   onOpenSettlement,
-  onAddMember,
+  onInviteMember,
   onEditMember,
   onOpenSettings,
   onEditExpense,
@@ -698,6 +697,7 @@ function ProjectHome({
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('全部');
   const [expenseSort, setExpenseSort] = useState('newest');
   const [expenseCopyNotice, setExpenseCopyNotice] = useState('');
+  const [memberInviteNotice, setMemberInviteNotice] = useState('');
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const budgetMinor = project.budget_amount_minor ?? 0;
   const remainingMinor = budgetMinor - totalMinor;
@@ -741,6 +741,11 @@ function ProjectHome({
       window.prompt('复制账单摘要', text);
       setExpenseCopyNotice('已生成账单摘要');
     }
+  };
+
+  const copyMemberInvite = async () => {
+    await onInviteMember();
+    setMemberInviteNotice('邀请文案已复制，成员需用邀请码加入');
   };
 
   return (
@@ -795,7 +800,7 @@ function ProjectHome({
         <section className="section-block">
           <div className="section-header">
             <h3>小组成员</h3>
-            <button onClick={onAddMember}>管理成员</button>
+            <button type="button" onClick={copyMemberInvite}>邀请成员</button>
           </div>
           <div className="member-strip">
             {members.map((member) => (
@@ -813,11 +818,8 @@ function ProjectHome({
                 </span>
               </button>
             ))}
-            <button className="add-member" onClick={onAddMember}>
-              <Plus size={20} />
-              <span>添加</span>
-            </button>
           </div>
+          {memberInviteNotice ? <p className="member-invite-notice">{memberInviteNotice}</p> : null}
         </section>
 
         <section className="section-block">
@@ -953,13 +955,12 @@ function ProjectHome({
         <Sparkle size={22} weight="fill" />
         AI 记账
       </button>
-      <BottomNav active="details" onStats={onOpenSettlement} onMembers={onAddMember} onSettings={onOpenSettings} />
+      <BottomNav active="details" onStats={onOpenSettlement} onMembers={copyMemberInvite} onSettings={onOpenSettings} />
     </div>
   );
 }
 
 function MemberDialog({ member, onClose, onSubmit, onDelete, appError, isBusy }) {
-  const isEditing = Boolean(member);
   const [displayName, setDisplayName] = useState(member?.display_name ?? '');
   const [error, setError] = useState('');
 
@@ -977,7 +978,7 @@ function MemberDialog({ member, onClose, onSubmit, onDelete, appError, isBusy })
           onSubmit(displayName.trim(), member);
         }}
       >
-        <h2>{isEditing ? '编辑成员' : '添加成员'}</h2>
+        <h2>编辑成员</h2>
         <label className="form-field">
           <span>成员昵称</span>
           <input
@@ -986,15 +987,15 @@ function MemberDialog({ member, onClose, onSubmit, onDelete, appError, isBusy })
               setDisplayName(event.target.value);
               setError('');
             }}
-            placeholder={isEditing ? '输入新的昵称' : '例：张三'}
+            placeholder="输入新的昵称"
           />
         </label>
         {error ? <p className="error-text" role="alert">{error}</p> : null}
         {appError ? <p className="error-text" role="alert">{appError}</p> : null}
         <button className="primary-button" type="submit" disabled={isBusy}>
-          {isBusy ? '保存中...' : isEditing ? '保存成员' : '添加成员'}
+          {isBusy ? '保存中...' : '保存成员'}
         </button>
-        {isEditing ? (
+        {member ? (
           <button
             className="danger-button"
             type="button"
@@ -2631,42 +2632,6 @@ function App() {
     setScreen('confirm');
   };
 
-  const handleAddMember = async (displayName) => {
-    setAppError('');
-    const normalizedName = normalizeMemberDisplayName(displayName);
-
-    if (!hasBackendConfig) {
-      const existingMember = findMemberByDisplayName(members, normalizedName);
-      if (existingMember) {
-        setMemberDialogOpen(false);
-        return;
-      }
-
-      const nextMembers = [...members, createLocalMember(normalizedName)];
-      saveLocalProjectState({
-        project: currentProject,
-        activePeriod,
-        members: nextMembers,
-        expenses,
-        settlementHistory,
-      });
-      setMembers(nextMembers);
-      setMemberDialogOpen(false);
-      return;
-    }
-
-    setIsBusy(true);
-    try {
-      const member = await addProjectMember({ projectId: currentProject.id, displayName: normalizedName });
-      setMembers((items) => upsertMemberByIdentity(items, member));
-      setMemberDialogOpen(false);
-    } catch (error) {
-      setAppError(error.message || '添加成员失败');
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
   const handleUpdateMember = async (member, displayName) => {
     setAppError('');
     const normalizedName = normalizeMemberDisplayName(displayName);
@@ -2792,12 +2757,22 @@ function App() {
   };
 
   const handleSubmitMemberDialog = (displayName, member) => {
-    if (member) {
-      handleUpdateMember(member, displayName);
-      return;
-    }
+    if (!member) return;
+    handleUpdateMember(member, displayName);
+  };
 
-    handleAddMember(displayName);
+  const copyProjectInvite = async () => {
+    const inviteText = buildProjectInviteText({
+      projectName: currentProject.name,
+      code: currentProject.code,
+      appUrl: createProjectInviteUrl(currentProject.code),
+    });
+
+    try {
+      await navigator.clipboard.writeText(inviteText);
+    } catch {
+      window.prompt('复制邀请文案', inviteText);
+    }
   };
 
   const openDraftForConfirmation = async ({ sourceType, text = '', file }) => {
@@ -3081,11 +3056,7 @@ function App() {
             currentUsername={username}
             onOpenAi={() => setAiOpen(true)}
             onOpenSettlement={() => setScreen('settlement')}
-            onAddMember={() => {
-              setAppError('');
-              setEditingMember(null);
-              setMemberDialogOpen(true);
-            }}
+            onInviteMember={copyProjectInvite}
             onEditMember={(member) => {
               setAppError('');
               setEditingMember(member);
@@ -3117,11 +3088,7 @@ function App() {
             expenses={expenses}
             settlementHistory={settlementHistory}
             onBack={() => setScreen('home')}
-            onOpenMembers={() => {
-              setAppError('');
-              setEditingMember(null);
-              setMemberDialogOpen(true);
-            }}
+            onOpenMembers={() => setSettingsOpen(true)}
             onOpenSettings={() => setSettingsOpen(true)}
             onSettled={handleSettleActivePeriod}
             settledNotice={settledNotice}

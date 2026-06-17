@@ -785,8 +785,7 @@ button:disabled {
   padding-bottom: 8px;
 }
 
-.member-chip,
-.add-member {
+.member-chip {
   flex: none;
   display: flex;
   flex-direction: column;
@@ -823,16 +822,11 @@ button:disabled {
   line-height: 1;
 }
 
-.add-member {
-  color: var(--outline);
-}
-
-.add-member svg {
-  width: 56px;
-  height: 56px;
-  padding: 16px;
-  border-radius: 999px;
-  border: 1px dashed var(--outline);
+.member-invite-notice {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .expense-list {

@@ -148,12 +148,6 @@ export async function joinProject({ code, displayName }) {
   return { ...member, project };
 }
 
-export async function addProjectMember({ projectId, displayName }) {
-  const client = requireSupabase();
-
-  return findOrCreateMember({ client, projectId, displayName });
-}
-
 export async function updateProjectMember({ projectId, memberId, displayName }) {
   const client = requireSupabase();
   const normalizedName = normalizeDisplayName(displayName);

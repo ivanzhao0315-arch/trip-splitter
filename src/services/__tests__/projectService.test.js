@@ -7,7 +7,6 @@ vi.mock('../apiClient', () => ({
 }));
 
 const {
-  addProjectMember,
   createProject,
   deleteProjectMember,
   joinProject,
@@ -198,19 +197,6 @@ describe('project service member joins', () => {
 
     expect(member).toMatchObject({ id: 'member-1', project });
     expect(client.inserts).toEqual([]);
-  });
-
-  it('trims and creates a member when the nickname is new', async () => {
-    const project = { id: 'project-1', code: 'A7K2', name: '杭州周末游' };
-    const client = createMockClient({ project });
-    mockState.client = client;
-
-    const member = await addProjectMember({ projectId: project.id, displayName: ' 张三 ' });
-
-    expect(member).toMatchObject({ id: 'new-member', display_name: '张三' });
-    expect(client.inserts).toEqual([
-      { table: 'members', row: { project_id: project.id, display_name: '张三' } },
-    ]);
   });
 
   it('updates project name and budget', async () => {
