@@ -897,6 +897,15 @@ button:disabled {
   cursor: pointer;
 }
 
+.member-chip:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.member-chip.readonly {
+  color: var(--secondary);
+}
+
 .member-chip > span {
   display: inline-flex;
   align-items: center;
@@ -1854,6 +1863,35 @@ button:disabled {
   color: var(--primary);
   background: rgba(0, 110, 47, 0.1);
   border-color: var(--primary);
+}
+
+.payer-fixed-card {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: var(--primary);
+  background: rgba(0, 110, 47, 0.08);
+  border: 1px solid rgba(0, 110, 47, 0.18);
+}
+
+.payer-fixed-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.payer-fixed-copy strong,
+.payer-fixed-copy small {
+  display: block;
+}
+
+.payer-fixed-copy small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
 }
 
 .split-preview {

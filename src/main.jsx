@@ -30,7 +30,7 @@ import { createProjectCode, normalizeProjectCode } from './domain/codes';
 import { parseExpenseText } from './domain/aiParser';
 import { formatMoney, fromMinorUnits, toMinorUnits } from './domain/money';
 import { findMemberByDisplayName, normalizeMemberDisplayName } from './domain/members';
-import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
+import { inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
 import { buildProjectInviteText } from './domain/projectInvite';
 import { forgetProjectListItem, rememberProjectListItem } from './domain/projectList';
@@ -780,11 +780,12 @@ function ProjectHome({
           <div className="member-strip">
             {members.map((member) => (
               <button
-                className="member-chip"
+                className={`member-chip ${member.id === currentMemberId ? '' : 'readonly'}`}
                 key={member.id}
                 type="button"
+                disabled={member.id !== currentMemberId}
                 onClick={() => onEditMember(member)}
-                aria-label={`编辑成员 ${memberName(member)}`}
+                aria-label={member.id === currentMemberId ? `编辑我的昵称 ${memberName(member)}` : `成员 ${memberName(member)}`}
               >
                 <Avatar member={member} />
                 <span>
@@ -935,7 +936,7 @@ function ProjectHome({
   );
 }
 
-function MemberDialog({ member, onClose, onSubmit, onDelete, appError, isBusy }) {
+function MemberDialog({ member, onClose, onSubmit, appError, isBusy }) {
   const [displayName, setDisplayName] = useState(member?.display_name ?? '');
   const [error, setError] = useState('');
 
@@ -970,17 +971,6 @@ function MemberDialog({ member, onClose, onSubmit, onDelete, appError, isBusy })
         <button className="primary-button" type="submit" disabled={isBusy}>
           {isBusy ? '保存中...' : '保存成员'}
         </button>
-        {member ? (
-          <button
-            className="danger-button"
-            type="button"
-            disabled={isBusy}
-            onClick={() => onDelete(member)}
-          >
-            <Trash size={18} />
-            删除成员
-          </button>
-        ) : null}
         <button className="cancel-button" type="button" onClick={onClose}>取消</button>
       </form>
     </div>
@@ -1106,7 +1096,7 @@ function AiSheet({ onClose, onConfirm, isBusy }) {
   );
 }
 
-function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, appError, isBusy }) {
+function ConfirmBill({ project, members, currentMemberId, draft, onBack, onSave, onResolveRate, appError, isBusy }) {
   const isEditing = draft.mode === 'edit';
   const [amount, setAmount] = useState(String(draft.amount));
   const [currency, setCurrency] = useState(draft.currency);
@@ -1121,7 +1111,7 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
   const [exchangeRateTimestamp, setExchangeRateTimestamp] = useState(draft.exchangeRateTimestamp);
   const [localError, setLocalError] = useState('');
   const [manualOpen, setManualOpen] = useState((draft.confidence ?? 0) === 0);
-  const [payerMemberId, setPayerMemberId] = useState(draft.payerMemberId ?? members[0]?.id);
+  const payerMemberId = currentMemberId ?? draft.payerMemberId ?? members[0]?.id;
   const [participantIds, setParticipantIds] = useState(
     draft.participantMemberIds?.length ? draft.participantMemberIds : members.map((member) => member.id),
   );
@@ -1265,18 +1255,13 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
           </div>
           <div className="field-group">
             <label>付款人</label>
-            <div className="participant-box">
-              {members.map((member) => (
-                <button
-                  className={`participant ${member.id === payerMemberId ? 'active' : ''}`}
-                  key={member.id}
-                  type="button"
-                  onClick={() => setPayerMemberId(member.id)}
-                >
-                  {memberName(member)}
-                  {member.id === payerMemberId ? <CheckCircle size={15} weight="fill" /> : null}
-                </button>
-              ))}
+            <div className="payer-fixed-card">
+              <Avatar member={payer} size="sm" />
+              <div className="payer-fixed-copy">
+                <strong>{memberName(payer)}</strong>
+                <small>只能记录自己的付款</small>
+              </div>
+              <CheckCircle size={18} weight="fill" />
             </div>
           </div>
           <div className="field-group">
@@ -1355,8 +1340,8 @@ function ConfirmBill({ project, members, draft, onBack, onSave, onResolveRate, a
           {manualOpen ? (
             <p className="manual-note">
               {(draft.confidence ?? 0) === 0
-                ? '当前草稿需要手动补全金额、币种、付款人、参与人和描述。'
-                : '可在保存前修正 AI 识别的金额、币种、付款人、参与人和描述。'}
+                ? '当前草稿需要手动补全金额、币种、参与人和描述。'
+                : '可在保存前修正 AI 识别的金额、币种、参与人和描述。'}
             </p>
           ) : null}
           {saveMissingFields.length ? (
@@ -2370,29 +2355,38 @@ function App() {
 
   const handleSaveExpense = async (draft) => {
     setAppError('');
+    const currentMember = findMemberByDisplayName(members, username);
+    const payerMemberId = currentMember?.id;
 
-    if (draft.mode === 'edit') {
+    if (!payerMemberId) {
+      setAppError('请先用自己的昵称加入项目后再记账');
+      return;
+    }
+
+    const normalizedDraft = { ...draft, payerMemberId };
+
+    if (normalizedDraft.mode === 'edit') {
       if (!hasBackendConfig) {
         const nextExpenses = expenses.map((expense) => (
-          expense.id === draft.expenseId
+          expense.id === normalizedDraft.expenseId
             ? {
                 ...expense,
-                description: draft.description,
-                original_amount_minor: toMinorUnits(draft.amount),
-                original_currency: draft.currency,
-                converted_amount_minor: toMinorUnits(draft.convertedAmount),
+                description: normalizedDraft.description,
+                original_amount_minor: toMinorUnits(normalizedDraft.amount),
+                original_currency: normalizedDraft.currency,
+                converted_amount_minor: toMinorUnits(normalizedDraft.convertedAmount),
                 project_currency: currentProject.default_currency,
-                exchange_rate: draft.exchangeRate,
-                exchange_rate_provider: draft.exchangeRateProvider,
-                exchange_rate_timestamp: draft.exchangeRateTimestamp,
-                payer_member_id: draft.payerMemberId,
-                participant_member_ids: draft.participantMemberIds,
-                source_type: draft.sourceType,
-                source_name: draft.sourceName,
-                ai_draft_id: draft.aiDraftId ?? null,
-                created_at: draft.createdAt,
-                category: draft.category,
-                notes: draft.notes,
+                exchange_rate: normalizedDraft.exchangeRate,
+                exchange_rate_provider: normalizedDraft.exchangeRateProvider,
+                exchange_rate_timestamp: normalizedDraft.exchangeRateTimestamp,
+                payer_member_id: normalizedDraft.payerMemberId,
+                participant_member_ids: normalizedDraft.participantMemberIds,
+                source_type: normalizedDraft.sourceType,
+                source_name: normalizedDraft.sourceName,
+                ai_draft_id: normalizedDraft.aiDraftId ?? null,
+                created_at: normalizedDraft.createdAt,
+                category: normalizedDraft.category,
+                notes: normalizedDraft.notes,
               }
             : expense
         ));
@@ -2413,7 +2407,7 @@ function App() {
 
       setIsBusy(true);
       try {
-        await updateExpense({ project: currentProject, ...draft });
+        await updateExpense({ project: currentProject, ...normalizedDraft });
         await loadProjectState(currentProject.id);
         setDraftExpense(null);
         setSettledNotice('');
@@ -2429,22 +2423,22 @@ function App() {
     if (!hasBackendConfig) {
       const nextExpense = {
         id: `local-expense-${Date.now()}`,
-        description: draft.description,
-        original_amount_minor: toMinorUnits(draft.amount),
-        original_currency: draft.currency,
-        converted_amount_minor: toMinorUnits(draft.convertedAmount),
+        description: normalizedDraft.description,
+        original_amount_minor: toMinorUnits(normalizedDraft.amount),
+        original_currency: normalizedDraft.currency,
+        converted_amount_minor: toMinorUnits(normalizedDraft.convertedAmount),
         project_currency: currentProject.default_currency,
-        exchange_rate: draft.exchangeRate,
-        exchange_rate_provider: draft.exchangeRateProvider,
-        exchange_rate_timestamp: draft.exchangeRateTimestamp,
-        payer_member_id: draft.payerMemberId,
-        participant_member_ids: draft.participantMemberIds,
-        source_type: draft.sourceType,
-        source_name: draft.sourceName,
-        ai_draft_id: draft.aiDraftId ?? null,
-        created_at: draft.createdAt,
-        category: draft.category,
-        notes: draft.notes,
+        exchange_rate: normalizedDraft.exchangeRate,
+        exchange_rate_provider: normalizedDraft.exchangeRateProvider,
+        exchange_rate_timestamp: normalizedDraft.exchangeRateTimestamp,
+        payer_member_id: normalizedDraft.payerMemberId,
+        participant_member_ids: normalizedDraft.participantMemberIds,
+        source_type: normalizedDraft.sourceType,
+        source_name: normalizedDraft.sourceName,
+        ai_draft_id: normalizedDraft.aiDraftId ?? null,
+        created_at: normalizedDraft.createdAt,
+        category: normalizedDraft.category,
+        notes: normalizedDraft.notes,
       };
       const nextExpenses = [nextExpense, ...expenses];
 
@@ -2464,7 +2458,7 @@ function App() {
 
     setIsBusy(true);
     try {
-      await createExpense({ project: currentProject, ...draft });
+      await createExpense({ project: currentProject, ...normalizedDraft });
       await loadProjectState(currentProject.id);
       setDraftExpense(null);
       setSettledNotice('');
@@ -2544,6 +2538,11 @@ function App() {
     const duplicateMember = findMemberByDisplayName(members, normalizedName);
     const currentMember = findMemberByDisplayName(members, username);
     const isCurrentMember = currentMember?.id === member.id;
+
+    if (!isCurrentMember) {
+      setAppError('只能修改自己的昵称');
+      return;
+    }
 
     if (duplicateMember && duplicateMember.id !== member.id) {
       setAppError('成员昵称已存在');
@@ -2712,11 +2711,8 @@ function App() {
       });
 
       const inferenceText = [text, parsedDraft.description].filter(Boolean).join('\n');
-      const payerMemberId = inferPayerMemberId({
-        members,
-        text: inferenceText,
-        payerName: parsedDraft.payerName,
-      });
+      const currentMember = findMemberByDisplayName(members, username);
+      const payerMemberId = currentMember?.id ?? members[0]?.id;
       const participantMemberIds = inferParticipantMemberIds({
         members,
         text: inferenceText,
@@ -2974,6 +2970,11 @@ function App() {
             onInviteMember={copyProjectInvite}
             onEditMember={(member) => {
               setAppError('');
+              const currentMember = findMemberByDisplayName(members, username);
+              if (currentMember?.id !== member.id) {
+                setAppError('只能修改自己的昵称');
+                return;
+              }
               setEditingMember(member);
               setMemberDialogOpen(true);
             }}
@@ -2987,6 +2988,7 @@ function App() {
           <ConfirmBill
             project={currentProject}
             members={members}
+            currentMemberId={findMemberByDisplayName(members, username)?.id}
             draft={draftExpense}
             onBack={handleCancelDraft}
             onSave={handleSaveExpense}
@@ -3027,7 +3029,6 @@ function App() {
               setMemberDialogOpen(false);
             }}
             onSubmit={handleSubmitMemberDialog}
-            onDelete={requestDeleteMember}
             appError={appError}
             isBusy={isBusy}
           />
