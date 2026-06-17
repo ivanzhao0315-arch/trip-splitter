@@ -8,6 +8,7 @@ const SYMBOLS = {
   SGD: 'S$',
   KRW: '₩',
   GBP: '£',
+  AMD: '֏',
 };
 
 export function currencySymbol(currency) {

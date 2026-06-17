@@ -31,6 +31,14 @@ describe('parseExpenseText', () => {
     });
   });
 
+  it('extracts Armenian dram amounts', () => {
+    expect(parseExpenseText('Yerevan dinner AMD 12000 Ivan 已付')).toMatchObject({
+      amount: 12000,
+      currency: 'AMD',
+      confidence: 0.82,
+    });
+  });
+
   it('infers expense categories from common text hints', () => {
     expect(parseExpenseText('滴滴打车 ¥96 张三 已付')).toMatchObject({ category: '交通' });
     expect(parseExpenseText('民宿房费 ¥1200 Ivan 已付')).toMatchObject({ category: '住宿' });

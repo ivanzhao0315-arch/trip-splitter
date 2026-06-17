@@ -1,7 +1,7 @@
 import { parseExpenseText } from './lib/aiParser.js';
 import { json } from './lib/json.js';
 
-const SUPPORTED_CURRENCIES = new Set(['CNY', 'USD', 'JPY', 'EUR', 'HKD', 'GBP', 'KRW']);
+const SUPPORTED_CURRENCIES = new Set(['CNY', 'USD', 'JPY', 'EUR', 'HKD', 'GBP', 'KRW', 'AMD']);
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 function expenseDraftSchema() {
@@ -31,7 +31,7 @@ function expenseDraftPrompt(sourceType) {
     '请识别一笔最主要的共同支出。',
     '如果来源是聊天记录，请结合上下文判断金额、币种、描述、付款人和参与人。',
     '如果写了“大家平分”“全员”“所有人”，participantNames 可以为空数组，让前端按当前项目全员处理。',
-    '只返回 JSON，不要解释。字段：amount 数字；currency 三位大写币种；description 简短中文或原文商户描述；category 为 餐饮/交通/住宿/购物/门票/日用品/房租/水电/其他 之一；payerName 付款人昵称或空字符串；participantNames 参与人昵称数组；confidence 0 到 1；createdAt 为可解析到的 ISO 8601 时间字符串，无法判断则返回空字符串。',
+    '只返回 JSON，不要解释。字段：amount 数字；currency 三位大写币种，支持 CNY/USD/JPY/EUR/HKD/GBP/KRW/AMD；description 简短中文或原文商户描述；category 为 餐饮/交通/住宿/购物/门票/日用品/房租/水电/其他 之一；payerName 付款人昵称或空字符串；participantNames 参与人昵称数组；confidence 0 到 1；createdAt 为可解析到的 ISO 8601 时间字符串，无法判断则返回空字符串。',
     `来源类型：${sourceType}`,
   ].join('\n');
 }

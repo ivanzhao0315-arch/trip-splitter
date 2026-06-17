@@ -6,6 +6,7 @@ const CURRENCY_PATTERNS = [
   { currency: 'HKD', regex: /(?:HKD|港币)\s?(\d+(?:\.\d{1,2})?)/i },
   { currency: 'GBP', regex: /£\s?(\d+(?:\.\d{1,2})?)/ },
   { currency: 'KRW', regex: /₩\s?(\d+(?:\.\d{1,2})?)/ },
+  { currency: 'AMD', regex: /(?:AMD|֏|դրամ)\s?(\d+(?:\.\d{1,2})?)/i },
 ];
 
 const CATEGORY_PATTERNS = [

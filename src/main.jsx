@@ -119,6 +119,7 @@ const fallbackExpenses = [
 const LOCAL_PROJECTS_KEY = 'trip-splitter:local-projects';
 const LOCAL_SESSION_KEY = 'trip-splitter:current-session';
 const RECENT_PROJECTS_KEY = 'trip-splitter:recent-projects';
+const INSTALL_PROMPT_DISMISSED_KEY = 'trip-splitter:install-prompt-dismissed';
 
 const currencies = [
   { code: 'CNY', label: 'CNY - 人民币 (¥)' },
@@ -128,18 +129,20 @@ const currencies = [
   { code: 'HKD', label: 'HKD - 港币 ($)' },
   { code: 'GBP', label: 'GBP - 英镑 (£)' },
   { code: 'KRW', label: 'KRW - 韩元 (₩)' },
+  { code: 'AMD', label: 'AMD - 亚美尼亚德拉姆 (֏)' },
 ];
 
 const expenseCategories = ['餐饮', '交通', '住宿', '购物', '门票', '日用品', '房租', '水电', '其他'];
 
 const fallbackRates = {
-  CNY: { USD: 0.14, EUR: 0.13, JPY: 21.8, HKD: 1.08, GBP: 0.11, KRW: 190 },
-  USD: { CNY: 7.25, EUR: 0.93, JPY: 157.4, HKD: 7.82, GBP: 0.8, KRW: 1375 },
-  EUR: { CNY: 7.8, USD: 1.08, JPY: 169.2, HKD: 8.42, GBP: 0.86, KRW: 1482 },
-  JPY: { CNY: 0.046, USD: 0.0064, EUR: 0.0059, HKD: 0.05, GBP: 0.005, KRW: 8.72 },
-  HKD: { CNY: 0.93, USD: 0.128, EUR: 0.119, JPY: 20.1, GBP: 0.1, KRW: 176 },
-  GBP: { CNY: 9.2, USD: 1.25, EUR: 1.16, JPY: 199, HKD: 9.78, KRW: 1718 },
-  KRW: { CNY: 0.0053, USD: 0.00073, EUR: 0.00067, JPY: 0.115, HKD: 0.0057, GBP: 0.00058 },
+  CNY: { USD: 0.14, EUR: 0.13, JPY: 21.8, HKD: 1.08, GBP: 0.11, KRW: 190, AMD: 50.8 },
+  USD: { CNY: 7.25, EUR: 0.93, JPY: 157.4, HKD: 7.82, GBP: 0.8, KRW: 1375, AMD: 368.2 },
+  EUR: { CNY: 7.8, USD: 1.08, JPY: 169.2, HKD: 8.42, GBP: 0.86, KRW: 1482, AMD: 397.2 },
+  JPY: { CNY: 0.046, USD: 0.0064, EUR: 0.0059, HKD: 0.05, GBP: 0.005, KRW: 8.72, AMD: 2.34 },
+  HKD: { CNY: 0.93, USD: 0.128, EUR: 0.119, JPY: 20.1, GBP: 0.1, KRW: 176, AMD: 47.1 },
+  GBP: { CNY: 9.2, USD: 1.25, EUR: 1.16, JPY: 199, HKD: 9.78, KRW: 1718, AMD: 460.3 },
+  KRW: { CNY: 0.0053, USD: 0.00073, EUR: 0.00067, JPY: 0.115, HKD: 0.0057, GBP: 0.00058, AMD: 0.268 },
+  AMD: { CNY: 0.0197, USD: 0.0027, EUR: 0.0025, JPY: 0.427, HKD: 0.0212, GBP: 0.0022, KRW: 3.73 },
 };
 
 function buildLocalDraft(sourceType, text = '') {
@@ -1657,6 +1660,82 @@ function DeleteMemberConfirmDialog({ member, onCancel, onConfirm, isBusy }) {
   );
 }
 
+function isStandaloneApp() {
+  return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function isIosDevice() {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return /iphone|ipad|ipod/.test(userAgent) || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+}
+
+function InstallAppPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [visible, setVisible] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+
+  useEffect(() => {
+    if (isStandaloneApp() || window.localStorage.getItem(INSTALL_PROMPT_DISMISSED_KEY) === '1') {
+      return undefined;
+    }
+
+    const ios = isIosDevice();
+    setIsIos(ios);
+    if (ios) setVisible(true);
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredPrompt(event);
+      setVisible(true);
+    };
+    const handleInstalled = () => {
+      setDeferredPrompt(null);
+      setVisible(false);
+      window.localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, '1');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  const dismiss = () => {
+    window.localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, '1');
+    setVisible(false);
+  };
+
+  const install = async () => {
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+    dismiss();
+  };
+
+  return (
+    <section className="install-prompt" aria-label="添加到手机桌面">
+      <div>
+        <strong>添加到手机桌面</strong>
+        <p>
+          {isIos
+            ? '在 iPhone Safari 中点分享按钮，然后选择“添加到主屏幕”。'
+            : '把分账助手安装到桌面，下次可以像 App 一样打开。'}
+        </p>
+      </div>
+      <div className="install-prompt-actions">
+        {deferredPrompt ? <button type="button" onClick={install}>安装</button> : null}
+        <button type="button" onClick={dismiss}>{isIos ? '知道了' : '稍后'}</button>
+      </div>
+    </section>
+  );
+}
+
 function SettlementScreen({
   project,
   activePeriod,
@@ -2131,6 +2210,31 @@ function App() {
     const timer = window.setTimeout(() => setSyncNotice(''), 2500);
     return () => window.clearTimeout(timer);
   }, [syncNotice]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV || !('serviceWorker' in navigator) || !window.isSecureContext) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const registerServiceWorker = () => {
+      if (cancelled) return;
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    };
+
+    if (document.readyState === 'complete') {
+      registerServiceWorker();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    window.addEventListener('load', registerServiceWorker, { once: true });
+    return () => {
+      cancelled = true;
+      window.removeEventListener('load', registerServiceWorker);
+    };
+  }, []);
 
   useEffect(() => {
     const session = readProjectSession();
@@ -3079,6 +3183,7 @@ function App() {
         ) : null}
         {syncNotice ? <div className="toast sync-toast" role="status">{syncNotice}</div> : null}
       </div>
+      <InstallAppPrompt />
     </div>
   );
 }

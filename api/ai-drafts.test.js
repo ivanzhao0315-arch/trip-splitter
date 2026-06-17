@@ -45,6 +45,25 @@ describe('ai draft endpoint', () => {
     });
   });
 
+  it('keeps AMD text drafts as Armenian dram', async () => {
+    vi.stubEnv('OPENAI_API_KEY', '');
+    disableSupabasePersistence();
+
+    const formData = new FormData();
+    formData.set('projectId', 'project-1');
+    formData.set('sourceType', 'text');
+    formData.set('text', 'Yerevan dinner AMD 12000 Ivan 已付');
+
+    const response = await postAiDraft(formData);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.draft).toMatchObject({
+      amount: 12000,
+      currency: 'AMD',
+    });
+  });
+
   it('persists text drafts to Supabase when backend credentials are configured', async () => {
     vi.stubEnv('OPENAI_API_KEY', '');
     vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
@@ -125,6 +144,7 @@ describe('ai draft endpoint', () => {
       expect(schema.required).toContain('participantNames');
       expect(schema.required).toContain('createdAt');
       expect(schema.required).toContain('category');
+      expect(schema.properties.currency.enum).toContain('AMD');
 
       return new Response(JSON.stringify({
         output_text: JSON.stringify({
