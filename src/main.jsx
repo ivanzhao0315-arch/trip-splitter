@@ -35,6 +35,7 @@ import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberIn
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
 import { buildProjectInviteText } from './domain/projectInvite';
 import { forgetProjectListItem, rememberProjectListItem } from './domain/projectList';
+import { createProjectTopBarModel } from './domain/projectTopBar';
 import { buildSettlementShareText, formatTransferInstruction, summarizeTransfers } from './domain/settlementShare';
 import { filterExpenses } from './domain/expenseFilters';
 import { formatExpenseShareText } from './domain/expenseShare';
@@ -417,6 +418,25 @@ function TopBar({ title, code, onBack }) {
   );
 }
 
+function ProjectTopBar({ project, onSwitchProject, onCreateProject }) {
+  const model = createProjectTopBarModel({ project });
+
+  return (
+    <header className="top-bar project-top-bar">
+      <button className="project-switch-button" type="button" onClick={onSwitchProject} aria-label={model.switchLabel}>
+        <span>
+          <strong>{model.title}</strong>
+          <small>#{model.code}</small>
+        </span>
+        <CaretDown size={18} />
+      </button>
+      <button className="icon-button project-create-button" type="button" onClick={onCreateProject} aria-label={model.createLabel}>
+        <Plus size={22} weight="bold" />
+      </button>
+    </header>
+  );
+}
+
 function EntryScreen({
   initialName = '',
   initialJoinCode = '',
@@ -677,6 +697,8 @@ function ProjectHome({
   currentUsername,
   onOpenAi,
   onOpenSettlement,
+  onSwitchProject,
+  onCreateProject,
   onInviteMember,
   onEditMember,
   onOpenSettings,
@@ -741,7 +763,7 @@ function ProjectHome({
 
   return (
     <div className="screen">
-      <TopBar title={project.name} code={project.code} />
+      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} onCreateProject={onCreateProject} />
       <main className="content with-nav">
         <section className="summary-grid">
           <article className="total-card">
@@ -1735,6 +1757,8 @@ function SettlementScreen({
   expenses,
   settlementHistory,
   onBack,
+  onSwitchProject,
+  onCreateProject,
   onOpenSettings,
   onSettled,
   settledNotice,
@@ -1778,7 +1802,7 @@ function SettlementScreen({
 
   return (
     <div className="screen">
-      <TopBar title="结算汇总" code={project.code} onBack={onBack} />
+      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} onCreateProject={onCreateProject} />
       <main className="content with-nav settlement-content">
         <section className="period-card">
           <div>
@@ -1943,6 +1967,7 @@ function ProjectSettingsScreen({
   onOpenDetails,
   onOpenSettlement,
   onSwitchProject,
+  onCreateProject,
   onSaveSettings,
   appError,
   isBusy,
@@ -2038,7 +2063,7 @@ function ProjectSettingsScreen({
 
   return (
     <div className="screen">
-      <TopBar title="项目设置" code={project.code} />
+      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} onCreateProject={onCreateProject} />
       <main className="content with-nav settings-content">
         <section className="settings-page">
           <div className="settings-header">
@@ -2922,6 +2947,17 @@ function App() {
     setDeletingMember(null);
   };
 
+  const handleOpenCreateProject = () => {
+    setAppError('');
+    setAiOpen(false);
+    setDraftExpense(null);
+    setDeletingExpense(null);
+    setDeletingMember(null);
+    setMemberDialogOpen(false);
+    setEditingMember(null);
+    setScreen('create');
+  };
+
   const handleSaveProjectSettings = async ({ name, budgetAmount }) => {
     setAppError('');
 
@@ -3053,6 +3089,8 @@ function App() {
             currentUsername={username}
             onOpenAi={() => setAiOpen(true)}
             onOpenSettlement={() => setScreen('settlement')}
+            onSwitchProject={handleSwitchProject}
+            onCreateProject={handleOpenCreateProject}
             onInviteMember={copyProjectInvite}
             onEditMember={(member) => {
               setAppError('');
@@ -3085,6 +3123,8 @@ function App() {
             expenses={expenses}
             settlementHistory={settlementHistory}
             onBack={() => setScreen('home')}
+            onSwitchProject={handleSwitchProject}
+            onCreateProject={handleOpenCreateProject}
             onOpenSettings={() => setScreen('settings')}
             onSettled={handleSettleActivePeriod}
             settledNotice={settledNotice}
@@ -3122,6 +3162,7 @@ function App() {
             onOpenDetails={() => setScreen('home')}
             onOpenSettlement={() => setScreen('settlement')}
             onSwitchProject={handleSwitchProject}
+            onCreateProject={handleOpenCreateProject}
             onSaveSettings={handleSaveProjectSettings}
             appError={appError}
             isBusy={isBusy}
