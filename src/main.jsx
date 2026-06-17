@@ -1934,13 +1934,14 @@ function SettlementScreen({
   );
 }
 
-function ProjectSettingsSheet({
+function ProjectSettingsScreen({
   project,
   activePeriod,
   members,
   expenses,
   settlementHistory,
-  onClose,
+  onOpenDetails,
+  onOpenSettlement,
   onSwitchProject,
   onSaveSettings,
   appError,
@@ -2036,98 +2037,98 @@ function ProjectSettingsSheet({
   };
 
   return (
-    <div className="modal-layer">
-      <button className="modal-backdrop" onClick={onClose} aria-label="关闭" />
-      <section className="settings-sheet">
-        <div className="sheet-handle" />
-        <div className="settings-header">
-          <h2>项目设置</h2>
-          <p>{project.name}</p>
-        </div>
-        <div className="settings-list">
-          {rows.map(([label, value]) => (
-            <div className="settings-row" key={label}>
-              <span>{label}</span>
-              <strong>{value}</strong>
-            </div>
-          ))}
-        </div>
-        <form
-          className="settings-edit-form"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const normalizedBudget = budgetAmount.trim();
-            const parsedBudget = Number(normalizedBudget);
+    <div className="screen">
+      <TopBar title="项目设置" code={project.code} />
+      <main className="content with-nav settings-content">
+        <section className="settings-page">
+          <div className="settings-header">
+            <p>{project.name}</p>
+          </div>
+          <div className="settings-list">
+            {rows.map(([label, value]) => (
+              <div className="settings-row" key={label}>
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </div>
+          <form
+            className="settings-edit-form"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const normalizedBudget = budgetAmount.trim();
+              const parsedBudget = Number(normalizedBudget);
 
-            if (!projectName.trim()) {
-              setSettingsError('请输入项目名称');
-              return;
-            }
-            if (normalizedBudget && (!Number.isFinite(parsedBudget) || parsedBudget < 0)) {
-              setSettingsError('请输入有效预算');
-              return;
-            }
+              if (!projectName.trim()) {
+                setSettingsError('请输入项目名称');
+                return;
+              }
+              if (normalizedBudget && (!Number.isFinite(parsedBudget) || parsedBudget < 0)) {
+                setSettingsError('请输入有效预算');
+                return;
+              }
 
-            setSettingsError('');
-            const saved = await onSaveSettings({ name: projectName.trim(), budgetAmount: normalizedBudget });
-            if (saved) setCopyNotice('项目设置已保存');
-          }}
-        >
-          <label className="form-field">
-            <span>项目名称</span>
-            <input
-              value={projectName}
-              onChange={(event) => {
-                setProjectName(event.target.value);
-                setSettingsError('');
-              }}
-            />
-          </label>
-          <label className="form-field">
-            <span>{project.project_type === 'roommate' ? '月度预算' : '出游预算'}（可选）</span>
-            <input
-              value={budgetAmount}
-              inputMode="decimal"
-              onChange={(event) => {
-                setBudgetAmount(event.target.value);
-                setSettingsError('');
-              }}
-              placeholder="例如：3000"
-            />
-          </label>
-          {settingsError ? <p className="error-text" role="alert">{settingsError}</p> : null}
-          {appError ? <p className="error-text" role="alert">{appError}</p> : null}
-          <button className="secondary-button settings-save-button" type="submit" disabled={isBusy}>
-            {isBusy ? '保存中...' : '保存设置'}
+              setSettingsError('');
+              const saved = await onSaveSettings({ name: projectName.trim(), budgetAmount: normalizedBudget });
+              if (saved) setCopyNotice('项目设置已保存');
+            }}
+          >
+            <label className="form-field">
+              <span>项目名称</span>
+              <input
+                value={projectName}
+                onChange={(event) => {
+                  setProjectName(event.target.value);
+                  setSettingsError('');
+                }}
+              />
+            </label>
+            <label className="form-field">
+              <span>{project.project_type === 'roommate' ? '月度预算' : '出游预算'}（可选）</span>
+              <input
+                value={budgetAmount}
+                inputMode="decimal"
+                onChange={(event) => {
+                  setBudgetAmount(event.target.value);
+                  setSettingsError('');
+                }}
+                placeholder="例如：3000"
+              />
+            </label>
+            {settingsError ? <p className="error-text" role="alert">{settingsError}</p> : null}
+            {appError ? <p className="error-text" role="alert">{appError}</p> : null}
+            <button className="secondary-button settings-save-button" type="submit" disabled={isBusy}>
+              {isBusy ? '保存中...' : '保存设置'}
+            </button>
+          </form>
+          <button className="primary-button" type="button" onClick={copyInvite}>
+            <Copy size={20} />
+            复制邀请文案
           </button>
-        </form>
-        <button className="primary-button" type="button" onClick={copyInvite}>
-          <Copy size={20} />
-          复制邀请文案
-        </button>
-        <button className="secondary-button settings-action-button" type="button" onClick={copyProjectCode}>
-          <Copy size={20} />
-          复制项目码
-        </button>
-        <button className="secondary-button settings-action-button" type="button" onClick={copyInviteLink}>
-          <ShareNetwork size={20} />
-          复制邀请链接
-        </button>
-        {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
-        <button className="secondary-button settings-export-button" type="button" onClick={exportExpenses}>
-          <DownloadSimple size={20} />
-          导出本周期明细
-        </button>
-        <button className="secondary-button settings-export-button" type="button" onClick={exportSettlementHistory}>
-          <DownloadSimple size={20} />
-          导出历史结算
-        </button>
-        <button className="switch-project-button" type="button" onClick={onSwitchProject}>
-          返回项目列表
-          <small>仅退出当前设备，不删除账本数据</small>
-        </button>
-        <button className="cancel-button" type="button" onClick={onClose}>关闭</button>
-      </section>
+          <button className="secondary-button settings-action-button" type="button" onClick={copyProjectCode}>
+            <Copy size={20} />
+            复制项目码
+          </button>
+          <button className="secondary-button settings-action-button" type="button" onClick={copyInviteLink}>
+            <ShareNetwork size={20} />
+            复制邀请链接
+          </button>
+          {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
+          <button className="secondary-button settings-export-button" type="button" onClick={exportExpenses}>
+            <DownloadSimple size={20} />
+            导出本周期明细
+          </button>
+          <button className="secondary-button settings-export-button" type="button" onClick={exportSettlementHistory}>
+            <DownloadSimple size={20} />
+            导出历史结算
+          </button>
+          <button className="switch-project-button" type="button" onClick={onSwitchProject}>
+            返回项目列表
+            <small>仅退出当前设备，不删除账本数据</small>
+          </button>
+        </section>
+      </main>
+      <BottomNav active="settings" onDetails={onOpenDetails} onStats={onOpenSettlement} />
     </div>
   );
 }
@@ -2174,7 +2175,6 @@ function App() {
   const [members, setMembers] = useState(fallbackMembers);
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [settledNotice, setSettledNotice] = useState('');
   const [settlementHistory, setSettlementHistory] = useState([]);
@@ -2918,7 +2918,6 @@ function App() {
     setAiOpen(false);
     setMemberDialogOpen(false);
     setEditingMember(null);
-    setSettingsOpen(false);
     setDeletingExpense(null);
     setDeletingMember(null);
   };
@@ -3060,7 +3059,7 @@ function App() {
               setEditingMember(member);
               setMemberDialogOpen(true);
             }}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenSettings={() => setScreen('settings')}
             onEditExpense={handleEditExpense}
             onDeleteExpense={requestDeleteExpense}
             isBusy={isBusy}
@@ -3086,7 +3085,7 @@ function App() {
             expenses={expenses}
             settlementHistory={settlementHistory}
             onBack={() => setScreen('home')}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenSettings={() => setScreen('settings')}
             onSettled={handleSettleActivePeriod}
             settledNotice={settledNotice}
             isBusy={isBusy}
@@ -3113,14 +3112,15 @@ function App() {
             isBusy={isBusy}
           />
         ) : null}
-        {settingsOpen ? (
-          <ProjectSettingsSheet
+        {screen === 'settings' ? (
+          <ProjectSettingsScreen
             project={currentProject}
             activePeriod={activePeriod}
             members={members}
             expenses={expenses}
             settlementHistory={settlementHistory}
-            onClose={() => setSettingsOpen(false)}
+            onOpenDetails={() => setScreen('home')}
+            onOpenSettlement={() => setScreen('settlement')}
             onSwitchProject={handleSwitchProject}
             onSaveSettings={handleSaveProjectSettings}
             appError={appError}
