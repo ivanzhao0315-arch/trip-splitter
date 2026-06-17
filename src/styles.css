@@ -18,6 +18,8 @@
   --muted: #3d4a3d;
   --secondary: #555f6f;
   --error: #ba1a1a;
+  --card-shadow: 0 10px 28px rgba(25, 28, 29, 0.06);
+  --raised-shadow: 0 16px 38px rgba(25, 28, 29, 0.1);
 }
 
 * {
@@ -71,7 +73,9 @@ button:disabled {
 .screen {
   position: absolute;
   inset: 0;
-  background: var(--surface);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), transparent 168px),
+    var(--surface);
   overflow: hidden;
 }
 
@@ -94,8 +98,10 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--surface-highest);
+  background: rgba(248, 249, 250, 0.9);
+  border-bottom: 1px solid rgba(225, 227, 228, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .top-left {
@@ -487,7 +493,7 @@ button:disabled {
 .cancel-button,
 .text-button {
   min-height: 52px;
-  border-radius: 12px;
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -501,8 +507,9 @@ button:disabled {
 
 .primary-button {
   width: 100%;
-  background: var(--primary-container);
+  background: linear-gradient(180deg, #58cd72, var(--primary-container));
   color: #fff;
+  box-shadow: 0 12px 26px rgba(0, 110, 47, 0.16);
 }
 
 .primary-button.settled {
@@ -514,6 +521,7 @@ button:disabled {
   color: var(--primary);
   background: #fff;
   border: 1px solid var(--outline-variant);
+  box-shadow: 0 6px 16px rgba(25, 28, 29, 0.04);
 }
 
 .text-button {
@@ -655,17 +663,20 @@ button:disabled {
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .total-card {
   grid-column: 1 / -1;
   position: relative;
   overflow: hidden;
-  padding: 22px 24px;
-  border-radius: 12px;
+  padding: 24px;
+  border-radius: 18px;
   color: #fff;
-  background: var(--primary);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.14), transparent 42%),
+    linear-gradient(135deg, #0a7d39, #225f32);
+  box-shadow: var(--raised-shadow);
 }
 
 .total-card::after {
@@ -676,8 +687,8 @@ button:disabled {
   width: 128px;
   height: 128px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  filter: blur(6px);
+  background: rgba(255, 255, 255, 0.14);
+  filter: blur(2px);
 }
 
 .total-card p,
@@ -708,14 +719,15 @@ button:disabled {
 .transfer-card,
 .history-row,
 .expense-row {
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid var(--surface-highest);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(225, 227, 228, 0.86);
+  box-shadow: var(--card-shadow);
 }
 
 .mini-card {
   min-height: 86px;
-  padding: 16px;
+  padding: 16px 15px;
 }
 
 .mini-card strong {
@@ -823,29 +835,31 @@ button:disabled {
 }
 
 .section-block {
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .section-header h3 {
   margin: 0;
   font-family: "Plus Jakarta Sans", "PingFang SC", sans-serif;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 24px;
 }
 
 .section-header button {
   color: var(--primary);
-  background: transparent;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 999px;
+  padding: 6px 10px;
   font-size: 12px;
   line-height: 16px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .section-header-actions {
@@ -867,7 +881,7 @@ button:disabled {
 
 .member-strip {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   overflow-x: auto;
   padding-bottom: 8px;
 }
@@ -879,15 +893,14 @@ button:disabled {
   align-items: center;
   gap: 6px;
   color: var(--text);
-  background: transparent;
-  border: 0;
+  min-width: 68px;
+  padding: 8px 8px 9px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(225, 227, 228, 0.72);
   font-size: 12px;
   line-height: 16px;
   cursor: pointer;
-}
-
-.member-chip {
-  padding: 0;
 }
 
 .member-chip > span {
@@ -919,7 +932,7 @@ button:disabled {
 .expense-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .expense-filter-bar {
@@ -952,11 +965,11 @@ button:disabled {
 .expense-sort-field select {
   width: 100%;
   height: 42px;
-  border-radius: 10px;
-  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  border: 1px solid rgba(188, 203, 185, 0.78);
   padding: 0 12px;
   color: var(--text);
-  background: #fff;
+  background: rgba(255, 255, 255, 0.88);
   outline: 0;
 }
 
@@ -974,7 +987,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px;
+  padding: 14px 13px;
 }
 
 .expense-empty-card {
@@ -984,10 +997,12 @@ button:disabled {
   align-items: flex-start;
   justify-content: center;
   gap: 10px;
-  padding: 18px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px dashed var(--outline-variant);
+  padding: 20px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 244, 245, 0.72));
+  border: 1px dashed rgba(109, 123, 108, 0.42);
+  box-shadow: var(--card-shadow);
 }
 
 .expense-empty-card.compact {
@@ -999,9 +1014,9 @@ button:disabled {
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 14px;
   color: #fff;
-  background: var(--primary-container);
+  background: linear-gradient(180deg, #58cd72, var(--primary-container));
 }
 
 .expense-empty-card strong {
@@ -1049,9 +1064,9 @@ button:disabled {
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 14px;
   color: var(--primary);
-  background: var(--surface-low);
+  background: rgba(34, 197, 94, 0.12);
 }
 
 .expense-copy {
@@ -1124,8 +1139,8 @@ button:disabled {
   height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
-  background: var(--surface-low);
+  border-radius: 12px;
+  background: rgba(243, 244, 245, 0.9);
 }
 
 .copy-expense-button,
@@ -1177,13 +1192,13 @@ button:disabled {
   position: absolute;
   z-index: 30;
   right: 16px;
-  bottom: 88px;
+  bottom: 94px;
   height: 56px;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 22px;
-  border-radius: 18px;
+  border-radius: 20px;
   color: #fff;
   background: var(--primary-container);
   box-shadow: 0 12px 28px rgba(0, 110, 47, 0.28);
@@ -1202,24 +1217,31 @@ button:disabled {
 .bottom-nav {
   position: absolute;
   z-index: 25;
-  inset: auto 0 0;
-  height: 64px;
+  inset: auto 14px 12px;
+  height: 66px;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background: var(--surface);
-  border-top: 1px solid var(--surface-highest);
+  padding: 6px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(225, 227, 228, 0.84);
+  box-shadow: 0 18px 44px rgba(25, 28, 29, 0.16);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .bottom-nav button {
-  min-width: 62px;
+  min-width: 0;
+  flex: 1;
+  height: 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 6px 12px;
-  border-radius: 12px;
+  padding: 6px 8px;
+  border-radius: 17px;
   color: var(--muted);
   background: transparent;
   font-size: 12px;
@@ -1227,8 +1249,9 @@ button:disabled {
 }
 
 .bottom-nav button.active {
-  color: #004b1e;
-  background: var(--primary-container);
+  color: #fff;
+  background: linear-gradient(180deg, #58cd72, var(--primary-container));
+  box-shadow: 0 8px 18px rgba(0, 110, 47, 0.16);
 }
 
 .modal-layer {
@@ -1518,19 +1541,20 @@ button:disabled {
 .settings-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: 7px;
+  margin-bottom: 16px;
 }
 
 .settings-edit-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 14px;
+  padding: 16px;
   margin-bottom: 14px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid var(--surface-highest);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(225, 227, 228, 0.86);
+  box-shadow: var(--card-shadow);
 }
 
 .settings-save-button {
@@ -1539,12 +1563,12 @@ button:disabled {
 
 .settings-action-button {
   width: 100%;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .settings-export-button {
   width: 100%;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .settings-row {
@@ -1553,10 +1577,11 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid var(--surface-highest);
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(225, 227, 228, 0.78);
+  box-shadow: 0 6px 16px rgba(25, 28, 29, 0.04);
 }
 
 .settings-row span {
@@ -1595,11 +1620,11 @@ button:disabled {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  margin-top: 10px;
-  border-radius: 12px;
-  color: #8a3900;
-  background: #fff8ef;
-  border: 1px solid rgba(191, 88, 0, 0.24);
+  margin-top: 8px;
+  border-radius: 16px;
+  color: #7a3f00;
+  background: linear-gradient(180deg, #fffaf2, #fff3df);
+  border: 1px solid rgba(191, 88, 0, 0.18);
   font-weight: 800;
 }
 
