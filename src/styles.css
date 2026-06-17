@@ -761,6 +761,12 @@ button:disabled {
   font-weight: 700;
 }
 
+.section-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .section-header span {
   color: var(--muted);
   font-size: 12px;
@@ -871,6 +877,16 @@ button:disabled {
   color: var(--text);
   background: #fff;
   outline: 0;
+}
+
+@media (max-width: 420px) {
+  .expense-filter-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .expense-search-field {
+    grid-column: 1 / -1;
+  }
 }
 
 .expense-row {
@@ -1040,6 +1056,29 @@ button:disabled {
   color: var(--error);
 }
 
+@media (max-width: 420px) {
+  .expense-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 34px;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .expense-copy {
+    grid-column: 2;
+  }
+
+  .expense-amount {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .expense-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
 .danger-button {
   min-height: 46px;
   display: inline-flex;
@@ -1071,6 +1110,12 @@ button:disabled {
   font-size: 18px;
   line-height: 24px;
   font-weight: 700;
+}
+
+@media (max-width: 420px) {
+  .ai-fab {
+    display: none;
+  }
 }
 
 .bottom-nav {

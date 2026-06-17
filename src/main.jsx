@@ -820,7 +820,10 @@ function ProjectHome({
         <section className="section-block">
           <div className="section-header">
             <h3>最近明细</h3>
-            <button onClick={onOpenSettlement}>查看结算</button>
+            <div className="section-header-actions">
+              <button type="button" onClick={onOpenAi}>记一笔</button>
+              <button type="button" onClick={onOpenSettlement}>查看结算</button>
+            </div>
           </div>
           {expenses.length ? (
             <div className="expense-filter-bar">
