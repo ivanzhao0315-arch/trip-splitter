@@ -1,5 +1,4 @@
 import { createProjectCode, normalizeProjectCode } from '../domain/codes';
-import { toMinorUnits } from '../domain/money';
 import { createCurrentPeriodLabel } from '../domain/periods';
 import { requireSupabase } from './apiClient';
 
@@ -49,7 +48,7 @@ async function findOrCreateMember({ client, projectId, displayName }) {
   return racedMember;
 }
 
-async function insertProjectWithCode({ client, name, defaultCurrency, projectType, budgetAmount, preferredCode }) {
+async function insertProjectWithCode({ client, name, defaultCurrency, projectType, preferredCode }) {
   let lastError = null;
   const normalizedPreferredCode = normalizeProjectCode(preferredCode);
   const attemptedCodes = new Set();
@@ -74,7 +73,6 @@ async function insertProjectWithCode({ client, name, defaultCurrency, projectTyp
         code,
         default_currency: defaultCurrency,
         project_type: projectType,
-        budget_amount_minor: budgetAmount ? toMinorUnits(budgetAmount) : null,
       })
       .select()
       .single();
@@ -87,14 +85,13 @@ async function insertProjectWithCode({ client, name, defaultCurrency, projectTyp
   throw lastError ?? new Error('项目码生成失败，请重试');
 }
 
-export async function createProject({ name, defaultCurrency = 'CNY', displayName, projectType = 'trip', budgetAmount = '', code }) {
+export async function createProject({ name, defaultCurrency = 'CNY', displayName, projectType = 'trip', code }) {
   const client = requireSupabase();
   const project = await insertProjectWithCode({
     client,
     name,
     defaultCurrency,
     projectType,
-    budgetAmount,
     preferredCode: code,
   });
 
@@ -205,25 +202,18 @@ export async function deleteProjectMember({ projectId, memberId }) {
   if (error) throw error;
 }
 
-export async function updateProjectSettings({ projectId, name, budgetAmount = '' }) {
+export async function updateProjectSettings({ projectId, name }) {
   const client = requireSupabase();
   const normalizedName = String(name ?? '').trim();
-  const normalizedBudget = String(budgetAmount ?? '').trim();
 
   if (!normalizedName) {
     throw new Error('请输入项目名称');
-  }
-
-  const parsedBudget = Number(normalizedBudget);
-  if (normalizedBudget && (!Number.isFinite(parsedBudget) || parsedBudget < 0)) {
-    throw new Error('请输入有效预算');
   }
 
   const { data, error } = await client
     .from('projects')
     .update({
       name: normalizedName,
-      budget_amount_minor: normalizedBudget ? toMinorUnits(parsedBudget) : null,
     })
     .eq('id', projectId)
     .select()

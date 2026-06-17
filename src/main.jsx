@@ -68,7 +68,6 @@ const fallbackProject = {
   code: 'A7K2',
   default_currency: 'CNY',
   project_type: 'trip',
-  budget_amount_minor: 300000,
   active_period_id: 'local-period',
 };
 
@@ -604,7 +603,6 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
   const [projectName, setProjectName] = useState('');
   const [currency, setCurrency] = useState('CNY');
   const [projectType, setProjectType] = useState('trip');
-  const [budgetAmount, setBudgetAmount] = useState('');
   const [code] = useState(createProjectCode);
   const [error, setError] = useState('');
 
@@ -648,19 +646,9 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
             </select>
           </label>
 
-          <label className="form-field">
-            <span>{projectType === 'trip' ? '出游预算' : '月度预算'}（可选）</span>
-            <input
-              value={budgetAmount}
-              inputMode="decimal"
-              onChange={(event) => setBudgetAmount(event.target.value)}
-              placeholder={projectType === 'trip' ? '例如：3000' : '例如：5000'}
-            />
-          </label>
-
           <div className="info-card">
             <Sparkle size={20} />
-            <p>{projectType === 'trip' ? '适合旅行期间持续记账、看预算和最后结算。' : '适合房租、水电、日用品等周期性合租账单。'} 创建后将生成 4 位项目码。</p>
+            <p>{projectType === 'trip' ? '适合旅行期间持续记账和最后结算。' : '适合房租、水电、日用品等周期性合租账单。'} 创建后将生成 4 位项目码。</p>
           </div>
 
           {error ? <p className="error-text" role="alert">{error}</p> : null}
@@ -675,13 +663,7 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
               setError('请输入项目名称');
               return;
             }
-            const normalizedBudget = budgetAmount.trim();
-            const parsedBudget = Number(normalizedBudget);
-            if (normalizedBudget && (!Number.isFinite(parsedBudget) || parsedBudget < 0)) {
-              setError('请输入有效预算');
-              return;
-            }
-            onCreated({ name: projectName.trim(), currency, code, username, projectType, budgetAmount });
+            onCreated({ name: projectName.trim(), currency, code, username, projectType });
           }}
         >
           {isBusy ? '处理中...' : '立即创建'}
@@ -714,16 +696,7 @@ function ProjectHome({
   const [expenseCopyNotice, setExpenseCopyNotice] = useState('');
   const [memberInviteNotice, setMemberInviteNotice] = useState('');
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
-  const budgetMinor = project.budget_amount_minor ?? 0;
-  const remainingMinor = budgetMinor - totalMinor;
-  const budgetProgress = budgetMinor > 0 ? Math.min(100, Math.round((totalMinor / budgetMinor) * 100)) : 0;
-  const rawBudgetProgress = budgetMinor > 0 ? Math.round((totalMinor / budgetMinor) * 100) : 0;
   const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
-  const budgetLabel = project.project_type === 'roommate' ? '月度预算剩余' : '预算剩余';
-  const remainingText = `${remainingMinor < 0 ? '-' : ''}${formatMoney(fromMinorUnits(Math.abs(remainingMinor)), project.default_currency)}`;
-  const budgetDetailLabel = budgetMinor > 0
-    ? `已用 ${formatMoney(fromMinorUnits(totalMinor), project.default_currency)} / ${formatMoney(fromMinorUnits(budgetMinor), project.default_currency)} · ${rawBudgetProgress}%`
-    : '';
   const memberById = new Map(members.map((member) => [member.id, member]));
   const currentMember = findMemberByDisplayName(members, currentUsername);
   const currentMemberId = currentMember?.id;
@@ -773,21 +746,8 @@ function ProjectHome({
             <h2>{formatMoney(fromMinorUnits(totalMinor), project.default_currency)}</h2>
           </article>
           <article className="mini-card">
-            <p>{budgetMinor > 0 ? budgetLabel : '项目类型'}</p>
-            <strong className={remainingMinor < 0 ? 'negative' : 'positive'}>
-              {budgetMinor > 0 ? remainingText : projectTypeLabel}
-            </strong>
-            {budgetMinor > 0 ? (
-              <>
-                <small className="budget-detail">{budgetDetailLabel}</small>
-                <div className="budget-progress" aria-label={`预算已使用 ${rawBudgetProgress}%`}>
-                  <span
-                    className={remainingMinor < 0 ? 'over-budget' : ''}
-                    style={{ width: `${budgetProgress}%` }}
-                  />
-                </div>
-              </>
-            ) : null}
+            <p>项目类型</p>
+            <strong className="positive">{projectTypeLabel}</strong>
           </article>
           <article className="mini-card">
             <p>我的余额</p>
@@ -1976,19 +1936,13 @@ function ProjectSettingsScreen({
 }) {
   const [copyNotice, setCopyNotice] = useState('');
   const [projectName, setProjectName] = useState(project.name);
-  const [budgetAmount, setBudgetAmount] = useState(
-    project.budget_amount_minor == null ? '' : String(fromMinorUnits(project.budget_amount_minor)),
-  );
   const [settingsError, setSettingsError] = useState('');
   const totalMinor = expenses.reduce((sum, expense) => sum + expense.converted_amount_minor, 0);
-  const budgetMinor = project.budget_amount_minor ?? 0;
   const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
-  const budgetLabel = budgetMinor > 0 ? formatMoney(fromMinorUnits(budgetMinor), project.default_currency) : '未设置';
   const rows = [
     ['项目类型', projectTypeLabel],
     ['项目码', project.code],
     ['结算币种', project.default_currency],
-    ['预算', budgetLabel],
     ['当前周期', activePeriod.label],
     ['成员', `${members.length} 人`],
     ['本周期账单', `${expenses.length} 笔 · ${formatMoney(fromMinorUnits(totalMinor), project.default_currency)}`],
@@ -2045,20 +1999,14 @@ function ProjectSettingsScreen({
             className="settings-edit-form"
             onSubmit={async (event) => {
               event.preventDefault();
-              const normalizedBudget = budgetAmount.trim();
-              const parsedBudget = Number(normalizedBudget);
 
               if (!projectName.trim()) {
                 setSettingsError('请输入项目名称');
                 return;
               }
-              if (normalizedBudget && (!Number.isFinite(parsedBudget) || parsedBudget < 0)) {
-                setSettingsError('请输入有效预算');
-                return;
-              }
 
               setSettingsError('');
-              const saved = await onSaveSettings({ name: projectName.trim(), budgetAmount: normalizedBudget });
+              const saved = await onSaveSettings({ name: projectName.trim() });
               if (saved) setCopyNotice('项目设置已保存');
             }}
           >
@@ -2070,18 +2018,6 @@ function ProjectSettingsScreen({
                   setProjectName(event.target.value);
                   setSettingsError('');
                 }}
-              />
-            </label>
-            <label className="form-field">
-              <span>{project.project_type === 'roommate' ? '月度预算' : '出游预算'}（可选）</span>
-              <input
-                value={budgetAmount}
-                inputMode="decimal"
-                onChange={(event) => {
-                  setBudgetAmount(event.target.value);
-                  setSettingsError('');
-                }}
-                placeholder="例如：3000"
               />
             </label>
             {settingsError ? <p className="error-text" role="alert">{settingsError}</p> : null}
@@ -2387,7 +2323,6 @@ function App() {
         code: created.code,
         default_currency: created.currency,
         project_type: created.projectType,
-        budget_amount_minor: created.budgetAmount.trim() ? toMinorUnits(created.budgetAmount) : null,
         active_period_id: nextPeriod.id,
       };
       const nextMembers = [{ id: 'local-member', display_name: created.username, initials: created.username[0], color: '#22c55e' }];
@@ -2421,7 +2356,6 @@ function App() {
         defaultCurrency: created.currency,
         displayName: created.username,
         projectType: created.projectType,
-        budgetAmount: created.budgetAmount,
       });
       await loadProjectState(createdProject.id);
       writeProjectSession({ mode: 'backend', username: created.username, projectId: createdProject.id });
@@ -2906,14 +2840,13 @@ function App() {
     setScreen('create');
   };
 
-  const handleSaveProjectSettings = async ({ name, budgetAmount }) => {
+  const handleSaveProjectSettings = async ({ name }) => {
     setAppError('');
 
     if (!hasBackendConfig) {
       const nextProject = {
         ...currentProject,
         name,
-        budget_amount_minor: budgetAmount ? toMinorUnits(budgetAmount) : null,
       };
 
       saveLocalProjectState({
@@ -2933,7 +2866,6 @@ function App() {
       const updatedProject = await updateProjectSettings({
         projectId: currentProject.id,
         name,
-        budgetAmount,
       });
       setProject((current) => ({ ...(current ?? currentProject), ...updatedProject }));
       setRecentProjects(rememberRecentProject({ project: updatedProject, username, mode: 'backend' }));

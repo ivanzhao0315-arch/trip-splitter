@@ -155,7 +155,6 @@ describe('project service member joins', () => {
       defaultCurrency: 'JPY',
       displayName: 'Ivan',
       projectType: 'trip',
-      budgetAmount: '1200',
       code: 'ab12',
     });
 
@@ -173,7 +172,6 @@ describe('project service member joins', () => {
           code: 'AB12',
           default_currency: 'JPY',
           project_type: 'trip',
-          budget_amount_minor: 120000,
         },
       },
       {
@@ -199,7 +197,7 @@ describe('project service member joins', () => {
     expect(client.inserts).toEqual([]);
   });
 
-  it('updates project name and budget', async () => {
+  it('updates project name', async () => {
     const project = { id: 'project-1', code: 'A7K2', name: '杭州周末游' };
     const client = createMockClient({ project });
     mockState.client = client;
@@ -207,14 +205,13 @@ describe('project service member joins', () => {
     const updated = await updateProjectSettings({
       projectId: project.id,
       name: ' 东京五日游 ',
-      budgetAmount: '1200',
     });
 
-    expect(updated).toMatchObject({ name: '东京五日游', budget_amount_minor: 120000 });
+    expect(updated).toMatchObject({ name: '东京五日游' });
     expect(client.updates).toEqual([
       {
         table: 'projects',
-        row: { name: '东京五日游', budget_amount_minor: 120000 },
+        row: { name: '东京五日游' },
         filters: { id: project.id },
       },
     ]);
