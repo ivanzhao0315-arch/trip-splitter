@@ -19,7 +19,6 @@ import {
   PencilSimple,
   Plus,
   Receipt,
-  ShareNetwork,
   Sparkle,
   Tag,
   Trash,
@@ -1996,44 +1995,6 @@ function ProjectSettingsScreen({
     ['历史结算', `${settlementHistory.length} 条`],
   ];
 
-  const copyInvite = async () => {
-    const inviteText = buildProjectInviteText({
-      projectName: project.name,
-      code: project.code,
-      appUrl: createProjectInviteUrl(project.code),
-    });
-
-    try {
-      await navigator.clipboard.writeText(inviteText);
-      setCopyNotice('邀请文案已复制');
-    } catch {
-      window.prompt('复制邀请文案', inviteText);
-      setCopyNotice('可手动复制邀请文案');
-    }
-  };
-
-  const copyProjectCode = async () => {
-    try {
-      await navigator.clipboard.writeText(project.code);
-      setCopyNotice('项目码已复制');
-    } catch {
-      window.prompt('复制项目码', project.code);
-      setCopyNotice('可手动复制项目码');
-    }
-  };
-
-  const copyInviteLink = async () => {
-    const inviteUrl = createProjectInviteUrl(project.code);
-
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      setCopyNotice('邀请链接已复制');
-    } catch {
-      window.prompt('复制邀请链接', inviteUrl);
-      setCopyNotice('可手动复制邀请链接');
-    }
-  };
-
   const exportExpenses = () => {
     const csv = buildExpenseCsv({ project, period: activePeriod, members, expenses });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -2129,18 +2090,6 @@ function ProjectSettingsScreen({
               {isBusy ? '保存中...' : '保存设置'}
             </button>
           </form>
-          <button className="primary-button" type="button" onClick={copyInvite}>
-            <Copy size={20} />
-            复制邀请文案
-          </button>
-          <button className="secondary-button settings-action-button" type="button" onClick={copyProjectCode}>
-            <Copy size={20} />
-            复制项目码
-          </button>
-          <button className="secondary-button settings-action-button" type="button" onClick={copyInviteLink}>
-            <ShareNetwork size={20} />
-            复制邀请链接
-          </button>
           {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
           <button className="secondary-button settings-export-button" type="button" onClick={exportExpenses}>
             <DownloadSimple size={20} />
@@ -2149,10 +2098,6 @@ function ProjectSettingsScreen({
           <button className="secondary-button settings-export-button" type="button" onClick={exportSettlementHistory}>
             <DownloadSimple size={20} />
             导出历史结算
-          </button>
-          <button className="switch-project-button" type="button" onClick={onSwitchProject}>
-            返回项目列表
-            <small>仅退出当前设备，不删除账本数据</small>
           </button>
         </section>
       </main>
