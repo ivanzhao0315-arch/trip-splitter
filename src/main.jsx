@@ -34,6 +34,7 @@ import { findMemberByDisplayName, normalizeMemberDisplayName } from './domain/me
 import { inferPayerMemberId, inferParticipantMemberIds } from './domain/memberInference';
 import { buildSettlementSnapshot, createCurrentPeriodLabel, createNextPeriodLabel } from './domain/periods';
 import { buildProjectInviteText } from './domain/projectInvite';
+import { forgetProjectListItem, rememberProjectListItem } from './domain/projectList';
 import { buildSettlementShareText, formatTransferInstruction, summarizeTransfers } from './domain/settlementShare';
 import { filterExpenses } from './domain/expenseFilters';
 import { formatExpenseShareText } from './domain/expenseShare';
@@ -279,32 +280,21 @@ function readRecentProjects() {
 
 function writeRecentProjects(projects) {
   try {
-    window.localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(projects.slice(0, 6)));
+    window.localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(projects));
   } catch {
-    // Recent projects are a local convenience; project codes still work without storage.
+    // Project list is a local convenience; project codes still work without storage.
   }
 }
 
 function rememberRecentProject({ project, username, mode }) {
-  if (!project?.id || !project?.code || !username) return [];
-
-  const item = {
-    id: project.id,
-    code: project.code,
-    name: project.name,
-    username,
-    mode,
-    updatedAt: new Date().toISOString(),
-  };
-  const existing = readRecentProjects().filter((recent) => recent.id !== item.id && recent.code !== item.code);
-  const nextProjects = [item, ...existing];
+  const nextProjects = rememberProjectListItem(readRecentProjects(), { project, username, mode });
   writeRecentProjects(nextProjects);
-  return nextProjects.slice(0, 6);
+  return nextProjects;
 }
 
 function forgetRecentProject(projectId) {
   if (!projectId) return readRecentProjects();
-  const nextProjects = readRecentProjects().filter((project) => project.id !== projectId);
+  const nextProjects = forgetProjectListItem(readRecentProjects(), projectId);
   writeRecentProjects(nextProjects);
   return nextProjects;
 }
@@ -474,7 +464,7 @@ function EntryScreen({
 
   return (
     <div className="screen entry-screen">
-      <TopBar title="分账助手" />
+      <TopBar title="我的项目" />
       <main className="entry-content">
         <section className="entry-visual">
           <div className="visual-card">
@@ -488,8 +478,44 @@ function EntryScreen({
               <div />
             </div>
           </div>
-          <p>透明、公平、高效的群组分账工具</p>
+          <p>管理你加入的所有群组账本</p>
         </section>
+
+        {recentProjects.length ? (
+          <section className="recent-projects" aria-label="项目列表">
+            <div className="recent-projects-header">
+              <h2>项目列表</h2>
+              <span>{recentProjects.length} 个</span>
+            </div>
+            <div className="recent-project-list">
+              {recentProjects.map((recentProject) => (
+                <div className="recent-project-item" key={`${recentProject.mode}-${recentProject.id}`}>
+                  <button
+                    className="recent-project-row"
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => onOpenRecentProject(recentProject)}
+                  >
+                    <span>
+                      <strong>{recentProject.name}</strong>
+                      <small>#{recentProject.code} · {recentProject.username}</small>
+                    </span>
+                    <CaretRight size={20} />
+                  </button>
+                  <button
+                    className="recent-project-remove"
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => onForgetRecentProject(recentProject.id)}
+                    aria-label={`从项目列表移除 ${recentProject.name}`}
+                  >
+                    <Trash size={17} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="field-card">
           <label htmlFor="username">设置你的昵称</label>
@@ -547,41 +573,6 @@ function EntryScreen({
           ) : null}
         </section>
 
-        {recentProjects.length ? (
-          <section className="recent-projects" aria-label="最近项目">
-            <div className="recent-projects-header">
-              <h2>最近项目</h2>
-              <span>{recentProjects.length} 个</span>
-            </div>
-            <div className="recent-project-list">
-              {recentProjects.map((recentProject) => (
-                <div className="recent-project-item" key={`${recentProject.mode}-${recentProject.id}`}>
-                  <button
-                    className="recent-project-row"
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => onOpenRecentProject(recentProject)}
-                  >
-                    <span>
-                      <strong>{recentProject.name}</strong>
-                      <small>#{recentProject.code} · {recentProject.username}</small>
-                    </span>
-                    <CaretRight size={20} />
-                  </button>
-                  <button
-                    className="recent-project-remove"
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => onForgetRecentProject(recentProject.id)}
-                    aria-label={`移除最近项目 ${recentProject.name}`}
-                  >
-                    <Trash size={17} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </main>
     </div>
   );
@@ -2133,7 +2124,7 @@ function ProjectSettingsSheet({
           导出历史结算
         </button>
         <button className="switch-project-button" type="button" onClick={onSwitchProject}>
-          切换项目
+          返回项目列表
           <small>仅退出当前设备，不删除账本数据</small>
         </button>
         <button className="cancel-button" type="button" onClick={onClose}>关闭</button>
@@ -2248,6 +2239,11 @@ function App() {
     }
 
     if (!session?.username) return;
+    if (readRecentProjects().length > 1) {
+      setUsername(session.username);
+      setScreen('entry');
+      return;
+    }
 
     let cancelled = false;
 
@@ -2908,7 +2904,6 @@ function App() {
   const handleSwitchProject = () => {
     clearProjectSession();
     setScreen('entry');
-    setUsername('');
     setProject(null);
     setActivePeriod(fallbackPeriod);
     setMembers(fallbackMembers);
