@@ -745,7 +745,7 @@ function ProjectHome({
 
   const copyMemberInvite = async () => {
     await onInviteMember();
-    setMemberInviteNotice('邀请文案已复制，成员需用邀请码加入');
+    setMemberInviteNotice('邀请已复制，成员需输入邀请码加入');
   };
 
   return (
