@@ -36,6 +36,44 @@ describe('equal splitting', () => {
     ]);
   });
 
+  it('settles mixed-currency expenses after converting to the project currency', () => {
+    const expenses = [
+      {
+        payer_member_id: 'chen',
+        original_currency: 'CNY',
+        original_amount_minor: 10000,
+        converted_amount_minor: 10000,
+        participant_member_ids: ['chen', 'zhang', 'ivan'],
+      },
+      {
+        payer_member_id: 'zhang',
+        original_currency: 'USD',
+        original_amount_minor: 2000,
+        converted_amount_minor: 14600,
+        participant_member_ids: ['chen', 'zhang', 'ivan'],
+      },
+      {
+        payer_member_id: 'ivan',
+        original_currency: 'AMD',
+        original_amount_minor: 1200000,
+        converted_amount_minor: 23640,
+        participant_member_ids: ['chen', 'zhang', 'ivan'],
+      },
+    ];
+
+    const balances = calculatePeriodBalances({ members, expenses });
+
+    expect(balances).toEqual([
+      { member_id: 'chen', display_name: '小陈', paid_minor: 10000, owed_minor: 16081, net_minor: -6081 },
+      { member_id: 'zhang', display_name: '张三', paid_minor: 14600, owed_minor: 16080, net_minor: -1480 },
+      { member_id: 'ivan', display_name: 'Ivan', paid_minor: 23640, owed_minor: 16079, net_minor: 7561 },
+    ]);
+    expect(simplifyTransfers(balances)).toEqual([
+      { from_member_id: 'chen', from_name: '小陈', to_member_id: 'ivan', to_name: 'Ivan', amount_minor: 6081 },
+      { from_member_id: 'zhang', from_name: '张三', to_member_id: 'ivan', to_name: 'Ivan', amount_minor: 1480 },
+    ]);
+  });
+
   it('simplifies debtor-to-creditor transfers', () => {
     const transfers = simplifyTransfers([
       { member_id: 'chen', display_name: '小陈', net_minor: 17000 },
