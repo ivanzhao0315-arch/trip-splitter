@@ -210,17 +210,6 @@ button:disabled {
   font-weight: 800;
 }
 
-.project-create-button {
-  flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  color: #fff;
-  background: var(--primary-container);
-  border: 1px solid rgba(0, 110, 47, 0.08);
-  box-shadow: 0 10px 22px rgba(0, 110, 47, 0.16);
-}
-
 .icon-button,
 .circle-add {
   width: 40px;
@@ -855,58 +844,6 @@ button:disabled {
 
 .section-header.compact {
   margin-bottom: 4px;
-}
-
-.member-strip {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.member-chip {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  color: var(--text);
-  min-width: 68px;
-  padding: 8px 8px 9px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(225, 227, 228, 0.72);
-  font-size: 12px;
-  line-height: 16px;
-  cursor: pointer;
-}
-
-.member-chip:disabled {
-  cursor: default;
-  opacity: 1;
-}
-
-.member-chip.readonly {
-  color: var(--secondary);
-}
-
-.member-chip > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.member-chip b {
-  display: inline-grid;
-  place-items: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  color: #fff;
-  background: var(--primary);
-  font-size: 10px;
-  line-height: 1;
 }
 
 .expense-list {

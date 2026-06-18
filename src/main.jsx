@@ -447,8 +447,19 @@ function TopBar({ title, code, onBack }) {
   );
 }
 
-function ProjectTopBar({ project, onSwitchProject, onCreateProject }) {
+function ProjectTopBar({ project, onSwitchProject }) {
   const model = createProjectTopBarModel({ project });
+  const [copyNotice, setCopyNotice] = useState('');
+
+  const copyProjectCode = async () => {
+    try {
+      await navigator.clipboard.writeText(project.code);
+      setCopyNotice('项目码已复制');
+    } catch {
+      window.prompt('复制项目码', project.code);
+      setCopyNotice('可手动复制项目码');
+    }
+  };
 
   return (
     <header className="top-bar project-top-bar">
@@ -457,14 +468,18 @@ function ProjectTopBar({ project, onSwitchProject, onCreateProject }) {
           <ArrowsLeftRight size={16} />
         </span>
         <span className="project-switch-copy">
-          <small>{model.contextLabel} · #{model.code}</small>
+          <small>{model.contextLabel}</small>
           <strong>{model.title}</strong>
         </span>
         <span className="project-switch-hint">{model.switchHint}</span>
       </button>
-      <button className="icon-button project-create-button" type="button" onClick={onCreateProject} aria-label={model.createLabel}>
-        <Plus size={22} weight="bold" />
-      </button>
+      <div className="code-share project-code-share">
+        <button className="code-pill" type="button" onClick={copyProjectCode} aria-label={`复制项目码 ${project.code}`}>
+          <span>#{project.code}</span>
+          <Copy size={15} />
+        </button>
+        {copyNotice ? <span className="code-copy-notice">{copyNotice}</span> : null}
+      </div>
     </header>
   );
 }
@@ -713,8 +728,6 @@ function ProjectHome({
   onOpenAi,
   onOpenSettlement,
   onSwitchProject,
-  onCreateProject,
-  onEditMember,
   onOpenSettings,
   onEditExpense,
   onDeleteExpense,
@@ -762,7 +775,7 @@ function ProjectHome({
 
   return (
     <div className="screen">
-      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} onCreateProject={onCreateProject} />
+      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} />
       <main className="content with-nav">
         <section className="summary-grid">
           <article className="total-card">
@@ -794,30 +807,6 @@ function ProjectHome({
               ))}
             </div>
           </article>
-        </section>
-
-        <section className="section-block">
-          <div className="section-header">
-            <h3>小组成员</h3>
-          </div>
-          <div className="member-strip">
-            {members.map((member) => (
-              <button
-                className={`member-chip ${member.id === currentMemberId ? '' : 'readonly'}`}
-                key={member.id}
-                type="button"
-                disabled={member.id !== currentMemberId}
-                onClick={() => onEditMember(member)}
-                aria-label={member.id === currentMemberId ? `编辑我的昵称 ${memberName(member)}` : `成员 ${memberName(member)}`}
-              >
-                <Avatar member={member} />
-                <span>
-                  {memberName(member)}
-                  {member.id === currentMemberId ? <b>我</b> : null}
-                </span>
-              </button>
-            ))}
-          </div>
         </section>
 
         <section className="section-block">
@@ -1726,7 +1715,6 @@ function SettlementScreen({
   settlementHistory,
   onBack,
   onSwitchProject,
-  onCreateProject,
   onOpenSettings,
   onSettled,
   settledNotice,
@@ -1770,7 +1758,7 @@ function SettlementScreen({
 
   return (
     <div className="screen">
-      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} onCreateProject={onCreateProject} />
+      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} />
       <main className="content with-nav settlement-content">
         <section className="period-card">
           <div>
@@ -1941,7 +1929,6 @@ function ProjectSettingsScreen({
   onOpenDetails,
   onOpenSettlement,
   onSwitchProject,
-  onCreateProject,
   onSaveSettings,
   appError,
   isBusy,
@@ -1991,9 +1978,21 @@ function ProjectSettingsScreen({
     setCopyNotice(settlementHistory.length ? '历史结算 CSV 已导出' : '已导出空的历史结算模板');
   };
 
+  const copyInviteLink = async () => {
+    const inviteUrl = createProjectInviteUrl(project.code);
+
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopyNotice('邀请链接已复制，成员打开后可带入项目码');
+    } catch {
+      window.prompt('复制邀请链接', inviteUrl);
+      setCopyNotice('可手动复制邀请链接');
+    }
+  };
+
   return (
     <div className="screen">
-      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} onCreateProject={onCreateProject} />
+      <ProjectTopBar project={project} onSwitchProject={onSwitchProject} />
       <main className="content with-nav settings-content">
         <section className="settings-page">
           <div className="settings-header">
@@ -2039,6 +2038,10 @@ function ProjectSettingsScreen({
             </button>
           </form>
           {copyNotice ? <p className="settings-notice">{copyNotice}</p> : null}
+          <button className="secondary-button settings-export-button" type="button" onClick={copyInviteLink}>
+            <ClipboardText size={20} />
+            邀请成员
+          </button>
           <button className="secondary-button settings-export-button" type="button" onClick={exportExpenses}>
             <DownloadSimple size={20} />
             导出本周期明细
@@ -2983,17 +2986,6 @@ function App() {
             onOpenAi={() => setAiOpen(true)}
             onOpenSettlement={() => setScreen('settlement')}
             onSwitchProject={handleSwitchProject}
-            onCreateProject={handleOpenCreateProject}
-            onEditMember={(member) => {
-              setAppError('');
-              const currentMember = findMemberByDisplayName(members, username);
-              if (currentMember?.id !== member.id) {
-                setAppError('只能修改自己的昵称');
-                return;
-              }
-              setEditingMember(member);
-              setMemberDialogOpen(true);
-            }}
             onOpenSettings={() => setScreen('settings')}
             onEditExpense={handleEditExpense}
             onDeleteExpense={requestDeleteExpense}
@@ -3022,7 +3014,6 @@ function App() {
             settlementHistory={settlementHistory}
             onBack={() => setScreen('home')}
             onSwitchProject={handleSwitchProject}
-            onCreateProject={handleOpenCreateProject}
             onOpenSettings={() => setScreen('settings')}
             onSettled={handleSettleActivePeriod}
             settledNotice={settledNotice}
@@ -3059,7 +3050,6 @@ function App() {
             onOpenDetails={() => setScreen('home')}
             onOpenSettlement={() => setScreen('settlement')}
             onSwitchProject={handleSwitchProject}
-            onCreateProject={handleOpenCreateProject}
             onSaveSettings={handleSaveProjectSettings}
             appError={appError}
             isBusy={isBusy}
