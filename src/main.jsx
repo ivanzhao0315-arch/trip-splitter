@@ -874,25 +874,35 @@ function ProjectHome({
               const traceLabel = expenseTraceLabel(expense, project.default_currency);
               const splitMinor = Math.round(expense.converted_amount_minor / expense.participant_member_ids.length);
               const splitLabel = formatMoney(fromMinorUnits(splitMinor), project.default_currency);
+              const payerLabel = `${memberName(memberById.get(expense.payer_member_id))}支付`;
+              const splitMetaLabel = `${expense.participant_member_ids.length}人平分 · 每人约 ${splitLabel}`;
+              const createdAtLabel = new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
               const participantNames = expense.participant_member_ids
                 .map((memberId) => memberName(memberById.get(memberId)))
                 .join('、');
+              const sourceLabel = expense.source_name ? `${sourceTypeLabel(expense.source_type)} ${expense.source_name}` : '';
               return (
                 <article className="expense-row" key={expense.id}>
-                  <div className="expense-icon"><Receipt size={22} /></div>
-                  <div className="expense-copy">
-                    <h4>{expense.description}</h4>
-                    <p>
-                      {expense.category ?? '其他'} · {memberName(memberById.get(expense.payer_member_id))}支付 · {expense.participant_member_ids.length}人平分 · 每人约 {splitLabel}
-                      {expense.source_name ? ` · ${sourceTypeLabel(expense.source_type)} ${expense.source_name}` : ''}
-                    </p>
-                    {participantNames ? <small className="expense-participants">参与：{participantNames}</small> : null}
-                    {expense.notes ? <small className="expense-notes">{expense.notes}</small> : null}
+                  <div className="expense-row-main">
+                    <div className="expense-icon"><Receipt size={22} /></div>
+                    <div className="expense-copy">
+                      <div className="expense-title-row">
+                        <h4>{expense.description}</h4>
+                        <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
+                      </div>
+                      <div className="expense-meta-grid">
+                        <span>{expense.category ?? '其他'}</span>
+                        <span>{payerLabel}</span>
+                        <span>{splitMetaLabel}</span>
+                        <span>{createdAtLabel}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="expense-amount">
-                    <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
+                  <div className="expense-detail-list">
+                    {participantNames ? <p><b>参与</b><span>{participantNames}</span></p> : null}
+                    {sourceLabel ? <p><b>来源</b><span>{sourceLabel}</span></p> : null}
+                    {expense.notes ? <p><b>备注</b><span>{expense.notes}</span></p> : null}
                     {traceLabel ? <small>{traceLabel}</small> : null}
-                    <span>{new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                   <div className="expense-actions">
                     <button

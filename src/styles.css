@@ -902,9 +902,9 @@ button:disabled {
 
 .expense-row {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 13px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
 }
 
 .expense-empty-card {
@@ -966,6 +966,7 @@ button:disabled {
 }
 
 .expense-icon {
+  flex: 0 0 auto;
   width: 42px;
   height: 42px;
   display: grid;
@@ -975,66 +976,106 @@ button:disabled {
   background: rgba(34, 197, 94, 0.12);
 }
 
+.expense-row-main {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .expense-copy {
   flex: 1;
   min-width: 0;
 }
 
+.expense-title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
 .expense-copy h4 {
-  margin: 0 0 2px;
+  min-width: 0;
+  margin: 0;
   font-size: 16px;
   line-height: 24px;
+  overflow-wrap: anywhere;
 }
 
-.expense-copy p,
-.expense-copy small,
-.expense-amount span,
-.expense-amount small {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.expense-copy p {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.expense-participants,
-.expense-notes {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.expense-amount {
-  flex: none;
-  text-align: right;
-}
-
-.expense-amount strong {
-  display: block;
+.expense-title-row strong {
+  color: var(--text);
   font-size: 17px;
   line-height: 24px;
-}
-
-.expense-amount small {
-  display: block;
-  max-width: 132px;
-  overflow: hidden;
+  text-align: right;
   white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
-.expense-actions {
-  flex: none;
+.expense-meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.expense-meta-grid span {
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--secondary);
+  background: rgba(243, 244, 245, 0.92);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.expense-detail-list {
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding-left: 54px;
+}
+
+.expense-detail-list p,
+.expense-detail-list small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.expense-detail-list p {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.expense-detail-list b {
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.expense-detail-list span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.expense-detail-list small {
+  color: var(--secondary);
+  overflow-wrap: anywhere;
+}
+
+.expense-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .copy-expense-button,
@@ -1060,24 +1101,24 @@ button:disabled {
 
 @media (max-width: 420px) {
   .expense-row {
-    display: grid;
-    grid-template-columns: 42px minmax(0, 1fr) 34px;
-    align-items: start;
     gap: 10px;
   }
 
-  .expense-copy {
-    grid-column: 2;
+  .expense-row-main {
+    gap: 10px;
   }
 
-  .expense-amount {
-    grid-column: 2;
+  .expense-title-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .expense-title-row strong {
     text-align: left;
   }
 
-  .expense-actions {
-    grid-column: 3;
-    grid-row: 1 / span 2;
+  .expense-detail-list {
+    padding-left: 52px;
   }
 }
 
