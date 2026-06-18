@@ -846,22 +846,6 @@ button:disabled {
   line-height: 24px;
 }
 
-.section-header button {
-  color: var(--primary);
-  background: rgba(34, 197, 94, 0.1);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 800;
-}
-
-.section-header-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .section-header span {
   color: var(--muted);
   font-size: 12px;
@@ -923,13 +907,6 @@ button:disabled {
   background: var(--primary);
   font-size: 10px;
   line-height: 1;
-}
-
-.member-invite-notice {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 18px;
 }
 
 .expense-list {
@@ -1032,17 +1009,6 @@ button:disabled {
   color: var(--muted);
   font-size: 13px;
   line-height: 20px;
-}
-
-.expense-empty-card button {
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 10px;
-  color: #fff;
-  background: var(--primary-container);
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 700;
 }
 
 .expense-filter-summary {
@@ -1213,7 +1179,13 @@ button:disabled {
 
 @media (max-width: 420px) {
   .ai-fab {
-    display: none;
+    right: 14px;
+    bottom: 88px;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 18px;
+    font-size: 15px;
+    line-height: 20px;
   }
 }
 

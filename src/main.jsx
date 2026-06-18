@@ -714,7 +714,6 @@ function ProjectHome({
   onOpenSettlement,
   onSwitchProject,
   onCreateProject,
-  onInviteMember,
   onEditMember,
   onOpenSettings,
   onEditExpense,
@@ -725,7 +724,6 @@ function ProjectHome({
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('全部');
   const [expenseSort, setExpenseSort] = useState('newest');
   const [expenseCopyNotice, setExpenseCopyNotice] = useState('');
-  const [memberInviteNotice, setMemberInviteNotice] = useState('');
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
   const memberById = new Map(members.map((member) => [member.id, member]));
@@ -760,11 +758,6 @@ function ProjectHome({
       window.prompt('复制账单摘要', text);
       setExpenseCopyNotice('已生成账单摘要');
     }
-  };
-
-  const copyMemberInvite = async () => {
-    await onInviteMember();
-    setMemberInviteNotice('邀请已复制，成员需输入邀请码加入');
   };
 
   return (
@@ -806,7 +799,6 @@ function ProjectHome({
         <section className="section-block">
           <div className="section-header">
             <h3>小组成员</h3>
-            <button type="button" onClick={copyMemberInvite}>邀请成员</button>
           </div>
           <div className="member-strip">
             {members.map((member) => (
@@ -826,16 +818,11 @@ function ProjectHome({
               </button>
             ))}
           </div>
-          {memberInviteNotice ? <p className="member-invite-notice">{memberInviteNotice}</p> : null}
         </section>
 
         <section className="section-block">
           <div className="section-header">
             <h3>最近明细</h3>
-            <div className="section-header-actions">
-              <button type="button" onClick={onOpenAi}>记一笔</button>
-              <button type="button" onClick={onOpenSettlement}>查看结算</button>
-            </div>
           </div>
           {expenses.length ? (
             <div className="expense-filter-bar">
@@ -879,7 +866,6 @@ function ProjectHome({
                 <div className="expense-empty-icon"><Sparkle size={24} weight="fill" /></div>
                 <strong>还没有账单</strong>
                 <p>拍小票、上传支付截图，或粘贴群聊记录，先生成一笔待确认账单。</p>
-                <button type="button" onClick={onOpenAi}>AI 录入第一笔</button>
               </div>
             ) : filteredExpenses.length === 0 ? (
               <div className="expense-empty-card compact">
@@ -2707,20 +2693,6 @@ function App() {
     handleUpdateMember(member, displayName);
   };
 
-  const copyProjectInvite = async () => {
-    const inviteText = buildProjectInviteText({
-      projectName: currentProject.name,
-      code: currentProject.code,
-      appUrl: createProjectInviteUrl(currentProject.code),
-    });
-
-    try {
-      await navigator.clipboard.writeText(inviteText);
-    } catch {
-      window.prompt('复制邀请文案', inviteText);
-    }
-  };
-
   const openDraftForConfirmation = async ({ sourceType, text = '', file }) => {
     setAppError('');
     setIsBusy(true);
@@ -3012,7 +2984,6 @@ function App() {
             onOpenSettlement={() => setScreen('settlement')}
             onSwitchProject={handleSwitchProject}
             onCreateProject={handleOpenCreateProject}
-            onInviteMember={copyProjectInvite}
             onEditMember={(member) => {
               setAppError('');
               const currentMember = findMemberByDisplayName(members, username);
