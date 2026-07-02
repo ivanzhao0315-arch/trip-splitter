@@ -1220,6 +1220,58 @@ button:disabled {
   backdrop-filter: blur(5px);
 }
 
+.recognition-blocker {
+  position: absolute;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(18, 28, 42, 0.48);
+  backdrop-filter: blur(6px);
+}
+
+.recognition-card {
+  width: min(312px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 22px 60px rgba(25, 28, 29, 0.3);
+}
+
+.recognition-spinner {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 4px solid rgba(34, 197, 94, 0.18);
+  border-top-color: var(--primary);
+  animation: recognition-spin 0.9s linear infinite;
+}
+
+.recognition-card h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  line-height: 24px;
+  color: var(--text);
+}
+
+.recognition-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@keyframes recognition-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .ai-sheet,
 .history-detail-sheet {
   position: absolute;

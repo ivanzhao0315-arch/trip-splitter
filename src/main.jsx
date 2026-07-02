@@ -120,6 +120,7 @@ const LOCAL_SESSION_KEY = 'trip-splitter:current-session';
 const RECENT_PROJECTS_KEY = 'trip-splitter:recent-projects';
 const INSTALL_PROMPT_DISMISSED_KEY = 'trip-splitter:install-prompt-dismissed';
 const LAST_EXPENSE_CURRENCY_KEY = 'trip-splitter:last-expense-currency';
+const MIN_RECOGNITION_BLOCK_MS = 450;
 
 const currencies = [
   { code: 'CNY', label: 'CNY - 人民币 (¥)' },
@@ -648,7 +649,6 @@ function EntryScreen({
 function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) {
   const [projectName, setProjectName] = useState('');
   const [currency, setCurrency] = useState('CNY');
-  const [projectType, setProjectType] = useState('trip');
   const [code] = useState(createProjectCode);
   const [error, setError] = useState('');
 
@@ -676,14 +676,6 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
           </label>
 
           <label className="form-field">
-            <span>项目类型</span>
-            <select value={projectType} onChange={(event) => setProjectType(event.target.value)}>
-              <option value="trip">朋友出游</option>
-              <option value="roommate">合租账本</option>
-            </select>
-          </label>
-
-          <label className="form-field">
             <span>结算币种</span>
             <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
               {currencies.map((item) => (
@@ -694,7 +686,7 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
 
           <div className="info-card">
             <Sparkle size={20} />
-            <p>{projectType === 'trip' ? '适合旅行期间持续记账和最后结算。' : '适合房租、水电、日用品等周期性合租账单。'} 创建后将生成 4 位项目码。</p>
+            <p>创建后将生成 4 位项目码。</p>
           </div>
 
           {error ? <p className="error-text" role="alert">{error}</p> : null}
@@ -709,7 +701,7 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
               setError('请输入项目名称');
               return;
             }
-            onCreated({ name: projectName.trim(), currency, code, username, projectType });
+            onCreated({ name: projectName.trim(), currency, code, username });
           }}
         >
           {isBusy ? '处理中...' : '立即创建'}
@@ -1108,6 +1100,25 @@ function AiSheet({ onClose, onConfirm, isBusy }) {
         ) : null}
         <button className="cancel-button" onClick={onClose}>取消</button>
       </section>
+    </div>
+  );
+}
+
+function RecognitionBlockingDialog({ sourceType }) {
+  const title = sourceType === 'photo' ? '正在识别照片' : '正在识别截图';
+  const description = sourceType === 'photo'
+    ? '正在从收据照片中提取金额、币种和付款信息，请稍等。'
+    : '正在从支付截图中提取金额、币种和付款信息，请稍等。';
+
+  return (
+    <div className="recognition-blocker" role="alertdialog" aria-modal="true" aria-labelledby="recognition-title">
+      <div className="recognition-card">
+        <div className="recognition-spinner" aria-hidden="true" />
+        <div>
+          <h3 id="recognition-title">{title}</h3>
+          <p>{description}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2110,6 +2121,7 @@ function App() {
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const [recognitionSource, setRecognitionSource] = useState(null);
   const [settledNotice, setSettledNotice] = useState('');
   const [settlementHistory, setSettlementHistory] = useState([]);
   const [expenses, setExpenses] = useState(fallbackExpenses);
@@ -2347,7 +2359,6 @@ function App() {
         name: created.name,
         code: created.code,
         default_currency: created.currency,
-        project_type: created.projectType,
         active_period_id: nextPeriod.id,
       };
       const nextMembers = [{ id: 'local-member', display_name: created.username, initials: created.username[0], color: '#22c55e' }];
@@ -2380,7 +2391,6 @@ function App() {
         code: created.code,
         defaultCurrency: created.currency,
         displayName: created.username,
-        projectType: created.projectType,
       });
       await loadProjectState(createdProject.id);
       writeProjectSession({ mode: 'backend', username: created.username, projectId: createdProject.id });
@@ -2708,6 +2718,9 @@ function App() {
 
   const openDraftForConfirmation = async ({ sourceType, text = '', file }) => {
     setAppError('');
+    const shouldBlockForRecognition = Boolean(file && ['photo', 'screenshot'].includes(sourceType));
+    const recognitionStartedAt = Date.now();
+    setRecognitionSource(shouldBlockForRecognition ? sourceType : null);
     setIsBusy(true);
 
     try {
@@ -2767,6 +2780,16 @@ function App() {
     } catch (error) {
       setAppError(error.message || 'AI 识别失败，请手动填写账单');
     } finally {
+      if (shouldBlockForRecognition) {
+        const elapsed = Date.now() - recognitionStartedAt;
+        const remainingDelay = MIN_RECOGNITION_BLOCK_MS - elapsed;
+        if (remainingDelay > 0) {
+          await new Promise((resolve) => {
+            window.setTimeout(resolve, remainingDelay);
+          });
+        }
+      }
+      setRecognitionSource(null);
       setIsBusy(false);
     }
   };
@@ -3038,6 +3061,7 @@ function App() {
             isBusy={isBusy}
           />
         ) : null}
+        {recognitionSource ? <RecognitionBlockingDialog sourceType={recognitionSource} /> : null}
         {memberDialogOpen ? (
           <MemberDialog
             member={editingMember}
