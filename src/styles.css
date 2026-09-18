@@ -2503,15 +2503,21 @@ button:disabled {
     padding: 12px;
   }
 }
-.display-currency-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+.currency-amount {
+  appearance: none;
+  border: 0;
+  border-radius: 0;
+  padding: 3px 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
-.display-currency-bar label { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.display-currency-bar select { min-width: 0; max-width: 230px; padding: 8px; }
-.display-currency-bar button { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; }
-.display-currency-bar small { flex-basis: 100%; overflow-wrap: anywhere; color: #65716b; }
-.total-card h2, .expense-amount strong { overflow-wrap: anywhere; }
+.currency-amount:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.currency-note { display: block; margin-top: 6px; font-size: 11px; line-height: 18px; }
+.currency-note a, .currency-note button { color: inherit; }
+.currency-note button { background: transparent; border: 0; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; }
+.total-card h2, .expense-title-row strong { overflow-wrap: anywhere; }

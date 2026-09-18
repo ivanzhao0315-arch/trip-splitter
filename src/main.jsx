@@ -48,7 +48,7 @@ import {
 } from './domain/expenseExport';
 import { createAiDraft, discardAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
-import { fetchExchangeRate, resolveExchangeRateWithFallback } from './services/exchangeRateService';
+import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig, supabase } from './services/apiClient';
 import {
   createProject,
@@ -60,6 +60,7 @@ import {
 import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } from './services/settlementService';
 import { subscribeProjectRealtime } from './services/realtimeService';
 import { summarizeExpensesByCategory } from './domain/splitting';
+import { CurrencyAmount, CurrencyNote, useDisplayCurrency } from './components/DisplayCurrency';
 import './styles.css';
 
 const fallbackProject = {
@@ -713,6 +714,7 @@ function CreateProjectScreen({ username, onBack, onCreated, appError, isBusy }) 
 
 function ProjectHome({
   project,
+  currencyDisplay,
   activePeriod,
   members,
   expenses,
@@ -729,33 +731,7 @@ function ProjectHome({
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('全部');
   const [expenseSort, setExpenseSort] = useState('newest');
   const [expenseCopyNotice, setExpenseCopyNotice] = useState('');
-  const [displayCurrency, setDisplayCurrency] = useState(project.default_currency);
-  const [displayQuote, setDisplayQuote] = useState(null);
-  const [rateError, setRateError] = useState('');
-  const [rateRefresh, setRateRefresh] = useState(0);
-  useEffect(() => {
-    setDisplayCurrency(project.default_currency);
-  }, [project.id, project.default_currency]);
-  useEffect(() => {
-    let active = true;
-    setDisplayQuote(null);
-    setRateError('');
-    if (displayCurrency === project.default_currency) return;
-    fetchExchangeRate({ fromCurrency: project.default_currency, toCurrency: displayCurrency })
-      .then((quote) => {
-        if (active) setDisplayQuote({ ...quote, from: project.default_currency, to: displayCurrency });
-      })
-      .catch(() => {
-        if (active) setRateError('汇率获取失败，请重试');
-      });
-    return () => { active = false; };
-  }, [project.default_currency, displayCurrency, rateRefresh]);
-  const isConverted = displayCurrency !== project.default_currency;
-  const quote = displayQuote?.from === project.default_currency && displayQuote?.to === displayCurrency
-    ? displayQuote : null;
-  const displayMoney = (minor) => !isConverted
-    ? formatMoney(fromMinorUnits(minor), project.default_currency)
-    : quote ? `≈ ${formatMoney(fromMinorUnits(minor) * quote.rate, displayCurrency)}` : '—';
+  const displayMoney = currencyDisplay.format;
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
   const memberById = new Map(members.map((member) => [member.id, member]));
@@ -796,22 +772,11 @@ function ProjectHome({
     <div className="screen">
       <ProjectTopBar project={project} onSwitchProject={onSwitchProject} />
       <main className="content with-nav">
-        <div className="display-currency-bar">
-          <label>显示币种
-            <select aria-label="显示币种" value={displayCurrency} onChange={(event) => setDisplayCurrency(event.target.value)}>
-              {currencies.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
-            </select>
-          </label>
-          {isConverted && <button type="button" title="刷新汇率" aria-label="刷新显示汇率" onClick={() => setRateRefresh((value) => value + 1)}><ArrowsLeftRight size={20} /></button>}
-          {isConverted && <small role="status">
-            {rateError || (quote ? `1 ${project.default_currency} = ${quote.rate.toFixed(6)} ${displayCurrency} · ${quote.timestamp ? `更新于 ${new Date(quote.timestamp).toLocaleString('zh-CN')}` : '数据更新时间未知'}` : '正在获取汇率…')}
-          </small>}
-          {isConverted && <small>参考换算 · 结算仍使用 {project.default_currency}{quote?.provider === 'open.er-api.com' && <> · 每日更新 · <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">ExchangeRate-API</a></>}</small>}
-        </div>
         <section className="summary-grid">
           <article className="total-card">
-            <p>{projectTypeLabel} · 总计支出 ({displayCurrency}) · {activePeriod.label}</p>
-            <h2>{displayMoney(totalMinor)}</h2>
+            <p>{projectTypeLabel} · 总计支出 ({currencyDisplay.currency}) · {activePeriod.label}</p>
+            <h2><CurrencyAmount display={currencyDisplay} minor={totalMinor} /></h2>
+            <CurrencyNote display={currencyDisplay} />
           </article>
           <article className="mini-card">
             <p>项目类型</p>
@@ -820,9 +785,9 @@ function ProjectHome({
           <article className="mini-card">
             <p>我的余额</p>
             <strong className={currentNetMinor < 0 ? 'negative' : 'positive'}>
-              {currentNetLabel}
+              <CurrencyAmount display={currencyDisplay}>{currentNetLabel}</CurrencyAmount>
             </strong>
-            <small className="balance-detail">已付 {currentPaidLabel} · 应摊 {currentOwedLabel}</small>
+            <small className="balance-detail">已付 <CurrencyAmount display={currencyDisplay}>{currentPaidLabel}</CurrencyAmount> · 应摊 <CurrencyAmount display={currencyDisplay}>{currentOwedLabel}</CurrencyAmount></small>
           </article>
           <article className="mini-card member-card">
             <div>
@@ -919,7 +884,7 @@ function ProjectHome({
                     <div className="expense-copy">
                       <div className="expense-title-row">
                         <h4>{expense.description}</h4>
-                        <strong>{displayMoney(expense.converted_amount_minor)}</strong>
+                        <strong><CurrencyAmount display={currencyDisplay} minor={expense.converted_amount_minor} /></strong>
                       </div>
                       <div className="expense-meta-grid">
                         <span>{expense.category ?? '其他'}</span>
@@ -1769,6 +1734,7 @@ function InstallAppPrompt() {
 
 function SettlementScreen({
   project,
+  currencyDisplay,
   activePeriod,
   members,
   expenses,
@@ -1829,14 +1795,15 @@ function SettlementScreen({
         </section>
 
         <section className="balance-card">
-          <h3>净支出状态</h3>
+          <h3>净支出状态 · <CurrencyAmount display={currencyDisplay}>{currencyDisplay.currency}</CurrencyAmount></h3>
+          <CurrencyNote display={currencyDisplay} />
           {balances.map((item) => (
             <div className="balance-row" key={item.member_id}>
               <span className="avatar avatar-sm">{item.display_name[0]}</span>
               <strong>{item.display_name}</strong>
               <div>
                 <b className={item.net_minor >= 0 ? 'positive' : 'negative'}>
-                  {item.net_minor >= 0 ? '+' : '-'}{formatMoney(fromMinorUnits(Math.abs(item.net_minor)), project.default_currency)}
+                  {item.net_minor >= 0 ? '+' : '-'}<CurrencyAmount display={currencyDisplay} minor={Math.abs(item.net_minor)} />
                 </b>
                 <small>{item.net_minor >= 0 ? '待收' : '应付'}</small>
               </div>
@@ -1866,8 +1833,8 @@ function SettlementScreen({
                 </div>
                 <p>用于结清本周期分摊差额</p>
                 <div className="transfer-amount">
-                  <span>转账金额</span>
-                  <strong>{formatMoney(fromMinorUnits(transfer.amount_minor), project.default_currency)}</strong>
+                  <span>{currencyDisplay.currency === project.default_currency ? '转账金额' : `参考金额 · 复制使用 ${project.default_currency}`}</span>
+                  <strong><CurrencyAmount display={currencyDisplay} minor={transfer.amount_minor} /></strong>
                 </div>
                 <button
                   className="copy-transfer-row-button"
@@ -1898,7 +1865,7 @@ function SettlementScreen({
                     <strong>{item.category}</strong>
                     <span>{item.count} 笔 · {item.percentage}%</span>
                   </div>
-                  <b>{formatMoney(fromMinorUnits(item.amount_minor), project.default_currency)}</b>
+                  <b><CurrencyAmount display={currencyDisplay} minor={item.amount_minor} /></b>
                   <div className="category-bar" aria-label={`${item.category} 占比 ${item.percentage}%`}>
                     <span style={{ width: `${item.percentage}%` }} />
                   </div>
@@ -2173,6 +2140,7 @@ function App() {
   const [recentProjects, setRecentProjects] = useState(() => readRecentProjects());
 
   const currentProject = project || fallbackProject;
+  const currencyDisplay = useDisplayCurrency(currentProject);
 
   const loadProjectState = useCallback(async (projectId) => {
     const detail = await fetchProjectDetail(projectId);
@@ -3050,6 +3018,7 @@ function App() {
         )}
         {screen === 'home' && (
           <ProjectHome
+            currencyDisplay={currencyDisplay}
             project={currentProject}
             activePeriod={activePeriod}
             members={members}
@@ -3079,6 +3048,7 @@ function App() {
         )}
         {screen === 'settlement' && (
           <SettlementScreen
+            currencyDisplay={currencyDisplay}
             project={currentProject}
             activePeriod={activePeriod}
             members={members}
