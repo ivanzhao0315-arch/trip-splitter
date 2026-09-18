@@ -37,6 +37,7 @@ describe('exchange-rate endpoint', () => {
 
       return new Response(JSON.stringify({
         result: 'success',
+        time_last_update_unix: 1781740800,
         rates: { CNY: 7.28 },
       }), { status: 200 });
     }));
@@ -48,6 +49,7 @@ describe('exchange-rate endpoint', () => {
     expect(payload).toMatchObject({
       rate: 7.28,
       provider: 'open.er-api.com',
+      timestamp: new Date(1781740800 * 1000).toISOString(),
     });
   });
 

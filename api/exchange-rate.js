@@ -29,7 +29,9 @@ function providerResponse(payload, rate, provider) {
   return json({
     rate,
     provider,
-    timestamp: new Date().toISOString(),
+    timestamp: Number.isFinite(payload?.time_last_update_unix) && payload.time_last_update_unix > 0
+      ? new Date(payload.time_last_update_unix * 1000).toISOString()
+      : null,
   });
 }
 

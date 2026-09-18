@@ -1,4 +1,4 @@
-export async function fetchExchangeRate({ fromCurrency, toCurrency }) {
+export async function fetchExchangeRate({ fromCurrency, toCurrency, signal }) {
   if (fromCurrency === toCurrency) {
     return {
       rate: 1,
@@ -11,13 +11,18 @@ export async function fetchExchangeRate({ fromCurrency, toCurrency }) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fromCurrency, toCurrency }),
+    signal: signal ?? AbortSignal.timeout(15000),
   });
 
   if (!response.ok) {
     throw new Error('汇率获取失败，请手动输入汇率');
   }
 
-  return response.json();
+  const result = await response.json();
+  if (!Number.isFinite(result.rate) || result.rate <= 0) {
+    throw new Error('汇率数据无效');
+  }
+  return result;
 }
 
 function resolveLocalFallbackRate({ fromCurrency, toCurrency, fallbackRates }) {

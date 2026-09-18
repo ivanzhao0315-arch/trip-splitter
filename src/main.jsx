@@ -48,7 +48,7 @@ import {
 } from './domain/expenseExport';
 import { createAiDraft, discardAiDraft } from './services/aiDraftService';
 import { createExpense, deleteExpense, fetchProjectDetail, updateExpense } from './services/expenseService';
-import { resolveExchangeRateWithFallback } from './services/exchangeRateService';
+import { fetchExchangeRate, resolveExchangeRateWithFallback } from './services/exchangeRateService';
 import { hasBackendConfig, supabase } from './services/apiClient';
 import {
   createProject,
@@ -729,6 +729,33 @@ function ProjectHome({
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('全部');
   const [expenseSort, setExpenseSort] = useState('newest');
   const [expenseCopyNotice, setExpenseCopyNotice] = useState('');
+  const [displayCurrency, setDisplayCurrency] = useState(project.default_currency);
+  const [displayQuote, setDisplayQuote] = useState(null);
+  const [rateError, setRateError] = useState('');
+  const [rateRefresh, setRateRefresh] = useState(0);
+  useEffect(() => {
+    setDisplayCurrency(project.default_currency);
+  }, [project.id, project.default_currency]);
+  useEffect(() => {
+    let active = true;
+    setDisplayQuote(null);
+    setRateError('');
+    if (displayCurrency === project.default_currency) return;
+    fetchExchangeRate({ fromCurrency: project.default_currency, toCurrency: displayCurrency })
+      .then((quote) => {
+        if (active) setDisplayQuote({ ...quote, from: project.default_currency, to: displayCurrency });
+      })
+      .catch(() => {
+        if (active) setRateError('汇率获取失败，请重试');
+      });
+    return () => { active = false; };
+  }, [project.default_currency, displayCurrency, rateRefresh]);
+  const isConverted = displayCurrency !== project.default_currency;
+  const quote = displayQuote?.from === project.default_currency && displayQuote?.to === displayCurrency
+    ? displayQuote : null;
+  const displayMoney = (minor) => !isConverted
+    ? formatMoney(fromMinorUnits(minor), project.default_currency)
+    : quote ? `≈ ${formatMoney(fromMinorUnits(minor) * quote.rate, displayCurrency)}` : '—';
   const totalMinor = expenses.reduce((sum, item) => sum + item.converted_amount_minor, 0);
   const projectTypeLabel = project.project_type === 'roommate' ? '合租账本' : '朋友出游';
   const memberById = new Map(members.map((member) => [member.id, member]));
@@ -740,10 +767,10 @@ function ProjectHome({
   const currentNetLabel = currentNetMinor === 0
     ? '已平衡'
     : currentNetMinor > 0
-      ? `待收 ${formatMoney(fromMinorUnits(currentNetMinor), project.default_currency)}`
-      : `应付 ${formatMoney(fromMinorUnits(Math.abs(currentNetMinor)), project.default_currency)}`;
-  const currentPaidLabel = formatMoney(fromMinorUnits(currentBalance?.paid_minor ?? 0), project.default_currency);
-  const currentOwedLabel = formatMoney(fromMinorUnits(currentBalance?.owed_minor ?? 0), project.default_currency);
+      ? `待收 ${displayMoney(currentNetMinor)}`
+      : `应付 ${displayMoney(Math.abs(currentNetMinor))}`;
+  const currentPaidLabel = displayMoney(currentBalance?.paid_minor ?? 0);
+  const currentOwedLabel = displayMoney(currentBalance?.owed_minor ?? 0);
   const filteredExpenses = filterExpenses({
     expenses,
     members,
@@ -769,10 +796,22 @@ function ProjectHome({
     <div className="screen">
       <ProjectTopBar project={project} onSwitchProject={onSwitchProject} />
       <main className="content with-nav">
+        <div className="display-currency-bar">
+          <label>显示币种
+            <select aria-label="显示币种" value={displayCurrency} onChange={(event) => setDisplayCurrency(event.target.value)}>
+              {currencies.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
+            </select>
+          </label>
+          {isConverted && <button type="button" title="刷新汇率" aria-label="刷新显示汇率" onClick={() => setRateRefresh((value) => value + 1)}><ArrowsLeftRight size={20} /></button>}
+          {isConverted && <small role="status">
+            {rateError || (quote ? `1 ${project.default_currency} = ${quote.rate.toFixed(6)} ${displayCurrency} · ${quote.timestamp ? `更新于 ${new Date(quote.timestamp).toLocaleString('zh-CN')}` : '数据更新时间未知'}` : '正在获取汇率…')}
+          </small>}
+          {isConverted && <small>参考换算 · 结算仍使用 {project.default_currency}{quote?.provider === 'open.er-api.com' && <> · 每日更新 · <a href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">ExchangeRate-API</a></>}</small>}
+        </div>
         <section className="summary-grid">
           <article className="total-card">
-            <p>{projectTypeLabel} · 总计支出 ({project.default_currency}) · {activePeriod.label}</p>
-            <h2>{formatMoney(fromMinorUnits(totalMinor), project.default_currency)}</h2>
+            <p>{projectTypeLabel} · 总计支出 ({displayCurrency}) · {activePeriod.label}</p>
+            <h2>{displayMoney(totalMinor)}</h2>
           </article>
           <article className="mini-card">
             <p>项目类型</p>
@@ -865,7 +904,7 @@ function ProjectHome({
             ) : filteredExpenses.map((expense) => {
               const traceLabel = expenseTraceLabel(expense, project.default_currency);
               const splitMinor = Math.round(expense.converted_amount_minor / expense.participant_member_ids.length);
-              const splitLabel = formatMoney(fromMinorUnits(splitMinor), project.default_currency);
+              const splitLabel = displayMoney(splitMinor);
               const payerLabel = `${memberName(memberById.get(expense.payer_member_id))}支付`;
               const splitMetaLabel = `${expense.participant_member_ids.length}人平分 · 每人约 ${splitLabel}`;
               const createdAtLabel = new Date(expense.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -880,7 +919,7 @@ function ProjectHome({
                     <div className="expense-copy">
                       <div className="expense-title-row">
                         <h4>{expense.description}</h4>
-                        <strong>{formatMoney(fromMinorUnits(expense.converted_amount_minor), project.default_currency)}</strong>
+                        <strong>{displayMoney(expense.converted_amount_minor)}</strong>
                       </div>
                       <div className="expense-meta-grid">
                         <span>{expense.category ?? '其他'}</span>
@@ -1219,7 +1258,7 @@ function ConfirmBill({ project, members, currentMemberId, draft, onBack, onSave,
               汇率 1 {currency} = {validExchangeRate ? numericExchangeRate.toFixed(4) : '--'} {project.default_currency}
             </p>
             <strong>折合 {Number.isFinite(converted) ? formatMoney(converted, project.default_currency) : '--'}</strong>
-            <small>{exchangeRateProvider} · {new Date(exchangeRateTimestamp).toLocaleString('zh-CN')}</small>
+            <small>{exchangeRateProvider} · {exchangeRateTimestamp ? new Date(exchangeRateTimestamp).toLocaleString('zh-CN') : '数据更新时间未知'}</small>
             {rateEditing ? (
               <div className="fx-edit-row">
                 <span>1 {currency} =</span>
