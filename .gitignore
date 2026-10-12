@@ -12,6 +12,7 @@
 .env
 .env.*
 !.env.example
+.private/
 
 # Dependencies and build output
 node_modules/

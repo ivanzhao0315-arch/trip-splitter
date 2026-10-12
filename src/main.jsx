@@ -61,6 +61,7 @@ import { buildCurrentSettlement, fetchSettlementSnapshots, settleActivePeriod } 
 import { subscribeProjectRealtime } from './services/realtimeService';
 import { summarizeExpensesByCategory } from './domain/splitting';
 import { CurrencyAmount, CurrencyNote, useDisplayCurrency } from './components/DisplayCurrency';
+import { createOwnerToken, readOwnerToken, saveOwnerToken, verifyProjectOwner } from './services/projectOwnerService';
 import './styles.css';
 
 const fallbackProject = {
@@ -792,10 +793,10 @@ function ProjectHome({
           <article className="mini-card member-card">
             <div>
               <p>成员</p>
-              <strong>{members.length} 人</strong>
+              <strong>{members.filter((member) => !member.removed_at).length} 人</strong>
             </div>
             <div className="avatar-stack">
-              {members.map((member) => (
+              {members.filter((member) => !member.removed_at).map((member) => (
                 <div className="avatar-stack-item" key={member.id}>
                   <Avatar member={member} size="sm" />
                   {member.id === currentMemberId ? <span>我</span> : null}
@@ -1144,7 +1145,7 @@ function ConfirmBill({ project, members, currentMemberId, draft, onBack, onSave,
   const [manualOpen, setManualOpen] = useState((draft.confidence ?? 0) === 0);
   const payerMemberId = currentMemberId ?? draft.payerMemberId ?? members[0]?.id;
   const [participantIds, setParticipantIds] = useState(
-    draft.participantMemberIds?.length ? draft.participantMemberIds : members.map((member) => member.id),
+    draft.participantMemberIds?.length ? draft.participantMemberIds : members.filter((member) => !member.removed_at).map((member) => member.id),
   );
   const payer = members.find((member) => member.id === payerMemberId) ?? members[0];
   const numericAmount = Number(amount);
@@ -1299,7 +1300,7 @@ function ConfirmBill({ project, members, currentMemberId, draft, onBack, onSave,
           <div className="field-group">
             <label>参与人（{participantIds.length}人）</label>
             <div className="participant-box">
-              {members.map((member) => (
+              {members.filter((member) => !member.removed_at || (isEditing && participantIds.includes(member.id))).map((member) => (
                 <button
                   className={`participant ${participantIds.includes(member.id) ? 'active' : ''}`}
                   key={member.id}
@@ -1632,7 +1633,7 @@ function DeleteExpenseConfirmDialog({ project, expense, members, onCancel, onCon
   );
 }
 
-function DeleteMemberConfirmDialog({ member, onCancel, onConfirm, isBusy }) {
+function DeleteMemberConfirmDialog({ member, onCancel, onConfirm, isBusy, appError }) {
   return (
     <div className="modal-layer">
       <button className="modal-backdrop" onClick={onCancel} aria-label="取消删除成员" />
@@ -1641,10 +1642,11 @@ function DeleteMemberConfirmDialog({ member, onCancel, onConfirm, isBusy }) {
           <Trash size={24} weight="fill" />
         </div>
         <h2>删除这个成员？</h2>
-        <p>仅能删除还没有账单记录的成员，删除后成员列表会同步更新。</p>
+        {appError ? <p className="error-text" role="alert">{appError}</p> : null}
+        <p>移出当前成员名单，不再参与新账单。已有账单和欠款保留。</p>
         <div className="delete-confirm-summary">
           <span>{memberName(member)}</span>
-          <small>该成员当前没有付款或分摊记录</small>
+          <small>历史付款和分摊金额不会改变</small>
         </div>
         <button className="danger-button" type="button" disabled={isBusy} onClick={() => onConfirm(member)}>
           <Trash size={18} />
@@ -1949,6 +1951,8 @@ function SettlementScreen({
 
 function ProjectSettingsScreen({
   project,
+  canManageMembers,
+  onDeleteMember,
   activePeriod,
   members,
   expenses,
@@ -1970,7 +1974,7 @@ function ProjectSettingsScreen({
     ['项目码', project.code],
     ['结算币种', project.default_currency],
     ['当前周期', activePeriod.label],
-    ['成员', `${members.length} 人`],
+    ['成员', `${members.filter((member) => !member.removed_at).length} 人`],
     ['本周期账单', `${expenses.length} 笔 · ${formatMoney(fromMinorUnits(totalMinor), project.default_currency)}`],
     ['历史结算', `${settlementHistory.length} 条`],
   ];
@@ -2033,6 +2037,17 @@ function ProjectSettingsScreen({
               </div>
             ))}
           </div>
+          <section aria-label="项目成员" className="settings-members">
+            <h3>项目成员</h3>
+            {members.filter((member) => !member.removed_at).map((member) => (
+              <div className="settings-row" key={member.id}>
+                <span>{memberName(member)}</span>
+                {canManageMembers && <button className="icon-button" type="button"
+                  aria-label={`删除成员 ${memberName(member)}`} title="删除成员"
+                  disabled={isBusy} onClick={() => onDeleteMember(member)}><Trash size={18} /></button>}
+              </div>
+            ))}
+          </section>
           <form
             className="settings-edit-form"
             onSubmit={async (event) => {
@@ -2134,6 +2149,8 @@ function App() {
   const [draftExpense, setDraftExpense] = useState(null);
   const [deletingExpense, setDeletingExpense] = useState(null);
   const [deletingMember, setDeletingMember] = useState(null);
+  const [canManageMembers, setCanManageMembers] = useState(false);
+  const [ownerRevision, setOwnerRevision] = useState(0);
   const [appError, setAppError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [syncNotice, setSyncNotice] = useState('');
@@ -2141,6 +2158,29 @@ function App() {
 
   const currentProject = project || fallbackProject;
   const currencyDisplay = useDisplayCurrency(currentProject);
+  useEffect(() => {
+    let active = true;
+    setCanManageMembers(false);
+    const restoreOwner = async () => {
+      const fragment = new URLSearchParams(window.location.hash.slice(1));
+      const token = fragment.get('owner');
+      const ownerProjectId = fragment.get('project');
+      if (token && ownerProjectId) {
+        window.history.replaceState({}, '', window.location.pathname + window.location.search);
+        if (!/^[a-f0-9]{64}$/.test(token) || !await verifyProjectOwner(ownerProjectId, token)) {
+          throw new Error('创建者管理凭证无效');
+        }
+        saveOwnerToken(ownerProjectId, token);
+        setOwnerRevision((value) => value + 1);
+      }
+      const allowed = hasBackendConfig
+        ? await verifyProjectOwner(currentProject.id)
+        : Boolean(currentProject.local_owner_token && readOwnerToken(currentProject.id) === currentProject.local_owner_token);
+      if (active) setCanManageMembers(allowed);
+    };
+    restoreOwner().catch((error) => { if (active) setAppError(error.message || '创建者权限验证失败'); });
+    return () => { active = false; };
+  }, [currentProject.id, ownerRevision]);
 
   const loadProjectState = useCallback(async (projectId) => {
     const detail = await fetchProjectDetail(projectId);
@@ -2318,6 +2358,7 @@ function App() {
       }
 
       const existingMember = findMemberByDisplayName(stored.members, name);
+      if (existingMember?.removed_at) { setAppError('该成员已被移出项目'); return; }
       const nextMembers = existingMember ? stored.members : [...stored.members, createLocalMember(name)];
       const nextState = { ...stored, members: nextMembers };
 
@@ -2368,6 +2409,8 @@ function App() {
         default_currency: created.currency,
         active_period_id: nextPeriod.id,
       };
+      nextProject.local_owner_token = createOwnerToken();
+      saveOwnerToken(nextProject.id, nextProject.local_owner_token);
       const nextMembers = [{ id: 'local-member', display_name: created.username, initials: created.username[0], color: '#22c55e' }];
       const nextExpenses = [];
       const nextHistory = [];
@@ -2415,7 +2458,7 @@ function App() {
     const currentMember = findMemberByDisplayName(members, username);
     const payerMemberId = currentMember?.id;
 
-    if (!payerMemberId) {
+    if (!payerMemberId || currentMember?.removed_at) {
       setAppError('请先用自己的昵称加入项目后再记账');
       return;
     }
@@ -2664,52 +2707,24 @@ function App() {
 
   const requestDeleteMember = (member) => {
     setAppError('');
-    const currentMember = findMemberByDisplayName(members, username);
-
-    if (currentMember?.id === member.id) {
-      setAppError('不能删除当前使用的成员');
-      return;
-    }
-
-    const isUsedByExpense = expenses.some((expense) => (
-      expense.payer_member_id === member.id
-      || (expense.participant_member_ids ?? []).includes(member.id)
-    ));
-
-    if (isUsedByExpense) {
-      setAppError('该成员已有账单记录，不能删除');
-      return;
-    }
-
+    if (!canManageMembers) { setAppError('只有项目创建者可以删除成员'); return; }
     setDeletingMember(member);
   };
 
   const handleDeleteMember = async (member) => {
     setAppError('');
-
-    const nextMembers = members.filter((item) => item.id !== member.id);
-
-    if (!hasBackendConfig) {
-      saveLocalProjectState({
-        project: currentProject,
-        activePeriod,
-        members: nextMembers,
-        expenses,
-        settlementHistory,
-      });
-      setMembers(nextMembers);
-      setEditingMember(null);
-      setMemberDialogOpen(false);
-      setDeletingMember(null);
-      return;
-    }
-
+    if (!canManageMembers) { setAppError('只有项目创建者可以删除成员'); return; }
     setIsBusy(true);
     try {
-      await deleteProjectMember({ projectId: currentProject.id, memberId: member.id });
+      if (!hasBackendConfig && member.id === 'local-member') throw new Error('不能删除项目创建者');
+      const removed = hasBackendConfig
+        ? await deleteProjectMember({ projectId: currentProject.id, memberId: member.id })
+        : { ...member, removed_at: new Date().toISOString() };
+      const nextMembers = members.map((item) => item.id === member.id ? { ...item, ...removed } : item);
+      if (!hasBackendConfig) saveLocalProjectState({
+        project: currentProject, activePeriod, members: nextMembers, expenses, settlementHistory,
+      });
       setMembers(nextMembers);
-      setEditingMember(null);
-      setMemberDialogOpen(false);
       setDeletingMember(null);
     } catch (error) {
       setAppError(error.message || '删除成员失败');
@@ -2762,9 +2777,11 @@ function App() {
 
       const inferenceText = [text, parsedDraft.description].filter(Boolean).join('\n');
       const currentMember = findMemberByDisplayName(members, username);
-      const payerMemberId = currentMember?.id ?? members[0]?.id;
+      const activeMembers = members.filter((member) => !member.removed_at);
+      if (currentMember?.removed_at) throw new Error('你已被移出项目，不能新增账单');
+      const payerMemberId = currentMember?.id ?? activeMembers[0]?.id;
       const participantMemberIds = inferParticipantMemberIds({
-        members,
+        members: activeMembers,
         text: inferenceText,
         participantNames: parsedDraft.participantNames,
         payerMemberId,
@@ -3085,6 +3102,8 @@ function App() {
         ) : null}
         {screen === 'settings' ? (
           <ProjectSettingsScreen
+            canManageMembers={canManageMembers}
+            onDeleteMember={requestDeleteMember}
             project={currentProject}
             activePeriod={activePeriod}
             members={members}
@@ -3110,6 +3129,7 @@ function App() {
         ) : null}
         {deletingMember ? (
           <DeleteMemberConfirmDialog
+            appError={appError}
             member={deletingMember}
             onCancel={() => setDeletingMember(null)}
             onConfirm={handleDeleteMember}

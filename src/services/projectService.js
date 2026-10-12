@@ -1,6 +1,7 @@
 import { createProjectCode, normalizeProjectCode } from '../domain/codes';
 import { createCurrentPeriodLabel } from '../domain/periods';
 import { requireSupabase } from './apiClient';
+import { createOwnerToken, readOwnerToken, saveOwnerToken } from './projectOwnerService';
 
 const MAX_CODE_ATTEMPTS = 5;
 
@@ -26,6 +27,7 @@ async function findOrCreateMember({ client, projectId, displayName }) {
     .maybeSingle();
 
   if (existingError) throw existingError;
+  if (existingMember?.removed_at) throw new Error('该成员已被移出项目');
   if (existingMember) return existingMember;
 
   const { data: member, error: memberError } = await client
@@ -45,83 +47,33 @@ async function findOrCreateMember({ client, projectId, displayName }) {
     .single();
 
   if (racedError) throw racedError;
+  if (racedMember?.removed_at) throw new Error('该成员已被移出项目');
   return racedMember;
-}
-
-async function insertProjectWithCode({ client, name, defaultCurrency, projectType, preferredCode }) {
-  let lastError = null;
-  const normalizedPreferredCode = normalizeProjectCode(preferredCode);
-  const attemptedCodes = new Set();
-  let attempts = 0;
-
-  while (attempts < MAX_CODE_ATTEMPTS) {
-    const code = attempts === 0 && normalizedPreferredCode.length === 4
-      ? normalizedPreferredCode
-      : createProjectCode();
-
-    if (attemptedCodes.has(code)) {
-      attempts += 1;
-      continue;
-    }
-    attemptedCodes.add(code);
-    attempts += 1;
-
-    const { data, error } = await client
-      .from('projects')
-      .insert({
-        name,
-        code,
-        default_currency: defaultCurrency,
-        project_type: projectType,
-      })
-      .select()
-      .single();
-
-    if (!error) return data;
-    if (!isUniqueViolation(error)) throw error;
-    lastError = error;
-  }
-
-  throw lastError ?? new Error('项目码生成失败，请重试');
 }
 
 export async function createProject({ name, defaultCurrency = 'CNY', displayName, projectType = 'trip', code }) {
   const client = requireSupabase();
-  const project = await insertProjectWithCode({
-    client,
-    name,
-    defaultCurrency,
-    projectType,
-    preferredCode: code,
-  });
-
-  try {
-    const { data: period, error: periodError } = await client
-      .from('settlement_periods')
-      .insert({ project_id: project.id, label: createCurrentPeriodLabel() })
-      .select()
-      .single();
-
-    if (periodError) throw periodError;
-
-    const { error: updateError } = await client
-      .from('projects')
-      .update({ active_period_id: period.id })
-      .eq('id', project.id);
-
-    if (updateError) throw updateError;
-
-    const member = await joinProject({ code: project.code, displayName });
-
-    return {
-      ...project,
-      active_period_id: period.id,
-      current_member_id: member.id,
-    };
-  } catch (error) {
-    await client.from('projects').delete().eq('id', project.id);
-    throw error;
+  const token = createOwnerToken();
+  // Persist before sending so a lost response cannot lose the creator credential.
+  window.localStorage.setItem('trip-splitter:pending-owner', token);
+  let lastError;
+  for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt += 1) {
+    const nextCode = attempt === 0 && normalizeProjectCode(code).length === 4
+      ? normalizeProjectCode(code) : createProjectCode();
+    const { data, error } = await client.rpc('create_owned_project', {
+      p_name: name, p_code: nextCode, p_currency: defaultCurrency,
+      p_type: projectType, p_display_name: displayName,
+      p_period_label: createCurrentPeriodLabel(), p_token: token,
+    });
+    if (!error) {
+      saveOwnerToken(data.id, token);
+      window.localStorage.removeItem('trip-splitter:pending-owner');
+      return data;
+    }
+    if (!isUniqueViolation(error)) throw error;
+    lastError = error;
   }
+  throw lastError ?? new Error('项目码生成失败，请重试');
 }
 
 export async function joinProject({ code, displayName }) {
@@ -166,40 +118,13 @@ export async function updateProjectMember({ projectId, memberId, displayName }) 
 }
 
 export async function deleteProjectMember({ projectId, memberId }) {
-  const client = requireSupabase();
-
-  const [
-    { data: payerExpenses, error: payerError },
-    { data: participantExpenses, error: participantError },
-  ] = await Promise.all([
-    client
-      .from('expenses')
-      .select('id, description')
-      .eq('project_id', projectId)
-      .eq('payer_member_id', memberId)
-      .limit(1),
-    client
-      .from('expenses')
-      .select('id, description')
-      .eq('project_id', projectId)
-      .contains('participant_member_ids', [memberId])
-      .limit(1),
-  ]);
-
-  if (payerError) throw payerError;
-  if (participantError) throw participantError;
-
-  if (payerExpenses?.length || participantExpenses?.length) {
-    throw new Error('该成员已有账单记录，不能删除');
-  }
-
-  const { error } = await client
-    .from('members')
-    .delete()
-    .eq('project_id', projectId)
-    .eq('id', memberId);
-
+  const token = readOwnerToken(projectId);
+  if (!token) throw new Error('只有项目创建者可以删除成员');
+  const { data, error } = await requireSupabase().rpc('remove_project_member', {
+    p_project_id: projectId, p_member_id: memberId, p_token: token,
+  });
   if (error) throw error;
+  return data;
 }
 
 export async function updateProjectSettings({ projectId, name }) {
