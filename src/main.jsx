@@ -1750,6 +1750,11 @@ function SettlementScreen({
   appError,
 }) {
   const { balances, transfers } = buildCurrentSettlement({ members, expenses });
+  const removedMemberIds = new Set(members.filter((member) => member.removed_at).map((member) => member.id));
+  const isVisibleTransfer = (transfer) => !removedMemberIds.has(transfer.from_member_id) && !removedMemberIds.has(transfer.to_member_id);
+  const visibleBalances = balances.filter((balance) => !removedMemberIds.has(balance.member_id));
+  const visibleTransfers = transfers.filter(isVisibleTransfer);
+  const hasHiddenTransfers = visibleTransfers.length !== transfers.length;
   const categorySummary = summarizeExpensesByCategory(expenses);
   const [shareNotice, setShareNotice] = useState('');
   const [selectedHistorySnapshot, setSelectedHistorySnapshot] = useState(null);
@@ -1759,9 +1764,9 @@ function SettlementScreen({
     const text = buildSettlementShareText({
       project,
       period: activePeriod,
-      transfers,
+      transfers: visibleTransfers,
       currency: project.default_currency,
-    });
+    }) + (hasHiddenTransfers ? '\n已隐藏移出成员的转账，历史欠款仍保留，以上不是完整结清方案。' : '');
 
     try {
       await navigator.clipboard.writeText(text);
@@ -1799,7 +1804,7 @@ function SettlementScreen({
         <section className="balance-card">
           <h3>净支出状态 · <CurrencyAmount display={currencyDisplay}>{currencyDisplay.currency}</CurrencyAmount></h3>
           <CurrencyNote display={currencyDisplay} />
-          {balances.map((item) => (
+          {visibleBalances.map((item) => (
             <div className="balance-row" key={item.member_id}>
               <span className="avatar avatar-sm">{item.display_name[0]}</span>
               <strong>{item.display_name}</strong>
@@ -1815,7 +1820,7 @@ function SettlementScreen({
 
         <section className="transfer-card">
           <div className="transfer-title">
-            <h3>最佳结算方案</h3>
+            <h3>{hasHiddenTransfers ? '当前成员转账' : '最佳结算方案'}</h3>
             <button
               className="copy-transfer-button"
               type="button"
@@ -1825,8 +1830,9 @@ function SettlementScreen({
               <Copy size={18} />
             </button>
           </div>
-          {transfers.length ? (
-            transfers.map((transfer) => (
+          {hasHiddenTransfers ? <p className="transfer-empty">已隐藏移出成员的转账，历史欠款仍保留。</p> : null}
+          {visibleTransfers.length ? (
+            visibleTransfers.map((transfer) => (
               <article className="transfer-row" key={`${transfer.from_member_id}-${transfer.to_member_id}`}>
                 <div className="transfer-route">
                   <strong>{transfer.from_name}</strong>
@@ -1849,7 +1855,7 @@ function SettlementScreen({
               </article>
             ))
           ) : (
-            <p className="transfer-empty">当前没有需要互相转账的余额。</p>
+            <p className="transfer-empty">{hasHiddenTransfers ? '当前成员之间没有可展示的转账。' : '当前没有需要互相转账的余额。'}</p>
           )}
           {shareNotice ? <p className="share-notice">{shareNotice}</p> : null}
         </section>
@@ -1898,7 +1904,7 @@ function SettlementScreen({
                   <div>
                     <strong>{item.period_label ?? activePeriod.label} 结算</strong>
                     <span>{meta.memberCount}人参与 · {meta.transferCount}笔转账</span>
-                    <small>{meta.transferSummary}</small>
+                    {(item.transfer_payload ?? []).every(isVisibleTransfer) ? <small>{meta.transferSummary}</small> : null}
                   </div>
                   <div>
                     <strong>{formatMoney(fromMinorUnits(meta.totalMinor), project.default_currency)}</strong>
