@@ -2521,3 +2521,10 @@ button:disabled {
 .currency-note a, .currency-note button { color: inherit; }
 .currency-note button { background: transparent; border: 0; padding: 0; font: inherit; text-decoration: underline; cursor: pointer; }
 .total-card h2, .expense-title-row strong { overflow-wrap: anywhere; }
+.secondary-button.quick-commute {
+  width: auto;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 14px;
+  flex-shrink: 0;
+}

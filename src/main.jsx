@@ -5,6 +5,7 @@ import {
   ArrowsLeftRight,
   CalendarBlank,
   Camera,
+  Car,
   CaretDown,
   CaretRight,
   ChartBar,
@@ -721,6 +722,7 @@ function ProjectHome({
   expenses,
   currentUsername,
   onOpenAi,
+  onQuickCommute,
   onOpenSettlement,
   onSwitchProject,
   onOpenSettings,
@@ -809,6 +811,9 @@ function ProjectHome({
         <section className="section-block">
           <div className="section-header">
             <h3>最近明细</h3>
+            <button className="secondary-button quick-commute" type="button" disabled={isBusy} onClick={onQuickCommute}>
+              <Car size={18} />打车上班
+            </button>
           </div>
           {expenses.length ? (
             <div className="expense-filter-bar">
@@ -1214,7 +1219,7 @@ function ConfirmBill({ project, members, currentMemberId, draft, onBack, onSave,
         <section className="amount-card">
           <label>金额</label>
           <h2>{Number.isFinite(numericAmount) ? formatMoney(numericAmount, currency) : `${currency} --`}</h2>
-          <p>{currency} · AI 置信度 {Math.round((draft.confidence ?? 0) * 100)}%</p>
+          <p>{currency} · {draft.sourceType === 'manual' ? '手动记账' : `AI 置信度 ${Math.round((draft.confidence ?? 0) * 100)}%`}</p>
         </section>
 
         <section className="fx-card">
@@ -2744,7 +2749,7 @@ function App() {
     handleUpdateMember(member, displayName);
   };
 
-  const openDraftForConfirmation = async ({ sourceType, text = '', file }) => {
+  const openDraftForConfirmation = async ({ sourceType, text = '', file, commute = false }) => {
     setAppError('');
     const shouldBlockForRecognition = Boolean(file && ['photo', 'screenshot'].includes(sourceType));
     const recognitionStartedAt = Date.now();
@@ -2753,6 +2758,7 @@ function App() {
 
     try {
       let parsedDraft = buildLocalDraft(sourceType, text);
+      if (commute) parsedDraft = { ...parsedDraft, amount: 1000, currency: 'AMD', description: '打车上班', category: '交通' };
       const localDraft = parsedDraft;
 
       if (sourceType !== 'manual' && (hasBackendConfig || sourceType === 'text')) {
@@ -2772,7 +2778,7 @@ function App() {
         parsedDraft = { ...parsedDraft, aiDraftId };
       }
 
-      if (!textHasCurrencyMention([text, parsedDraft.description].filter(Boolean).join('\n'))) {
+      if (!commute && !textHasCurrencyMention([text, parsedDraft.description].filter(Boolean).join('\n'))) {
         parsedDraft = { ...parsedDraft, currency: readLastExpenseCurrency() };
       }
 
@@ -2796,7 +2802,7 @@ function App() {
       setDraftExpense({
         ...parsedDraft,
         sourceType,
-        sourceName: file?.name,
+        sourceName: commute ? '快捷记账' : file?.name,
         aiDraftId: parsedDraft.aiDraftId ?? null,
         payerMemberId,
         participantMemberIds,
@@ -3048,6 +3054,7 @@ function App() {
             expenses={expenses}
             currentUsername={username}
             onOpenAi={() => setAiOpen(true)}
+            onQuickCommute={() => openDraftForConfirmation({ sourceType: 'manual', text: '大家平分', commute: true })}
             onOpenSettlement={() => setScreen('settlement')}
             onSwitchProject={handleSwitchProject}
             onOpenSettings={() => setScreen('settings')}
